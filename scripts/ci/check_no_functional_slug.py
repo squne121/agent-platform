@@ -2,7 +2,8 @@
 
 usage: check_no_functional_slug.py ROOT [ROOT ...]   (ROOT = directory or file)
 
-exit 0 = clean, 1 = violation found, 2 = usage error / root missing / nothing scanned.
+exit 0 = clean, 1 = violation found, 2 = usage error / root missing / nothing scanned /
+a target could not be read (an unreadable file is never reported as clean).
 
 Scope: `.py` files are scanned through the AST (string constants only, so comments
 are ignored); `.json .yml .yaml .toml .sh` are scanned as text. Markdown is exempt
@@ -54,10 +55,8 @@ def _folded_str(node: ast.AST) -> str | None:
 
 
 def _scan(path: Path) -> list[str]:
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return []
+    """Violations in `path`; raises OSError/UnicodeDecodeError when it cannot be read."""
+    text = path.read_text(encoding="utf-8")
     if path.suffix.lower() == ".py":
         try:
             tree = ast.parse(text)
@@ -89,6 +88,7 @@ def main(argv: list[str]) -> int:
         return 2
     scanned = 0
     violations: list[str] = []
+    unreadable: list[str] = []
     for arg in argv:
         root = Path(arg)
         if not root.exists():
@@ -97,9 +97,16 @@ def main(argv: list[str]) -> int:
         for path in _iter_files(root):
             if path.suffix.lower() == ".py" or path.suffix.lower() in TEXT_SUFFIXES:
                 scanned += 1
-                violations.extend(_scan(path))
+                try:
+                    violations.extend(_scan(path))
+                except (OSError, UnicodeDecodeError) as exc:
+                    unreadable.append(f"{path}: unreadable ({type(exc).__name__})")
     if scanned == 0:
         print("no scannable files", file=sys.stderr)
+        return 2
+    if unreadable:
+        for u in unreadable:
+            print(u, file=sys.stderr)
         return 2
     for v in violations:
         print(v)

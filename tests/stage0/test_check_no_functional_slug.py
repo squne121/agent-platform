@@ -76,3 +76,16 @@ def test_marker_does_not_hide_violation_outside_allowed_paths(tmp_path):
 def test_uppercase_extension_is_scanned(tmp_path):
     (tmp_path / "D.PY").write_text('X = "squne121/" + "loop-protocol"\n')
     assert _run(tmp_path).returncode == 1
+
+
+def test_undecodable_target_is_an_error_not_clean(tmp_path):
+    (tmp_path / "ok.py").write_text("X = 1\n")
+    (tmp_path / "broken.json").write_bytes(b'{"s": "\xff\xfe"}')
+    r = _run(tmp_path)
+    assert r.returncode == 2, (r.stdout, r.stderr)
+    assert "broken.json" in r.stderr
+
+
+def test_unreadable_python_target_is_an_error_not_clean(tmp_path):
+    (tmp_path / "broken.py").write_bytes(b"X = '\xff'\n")
+    assert _run(tmp_path).returncode == 2

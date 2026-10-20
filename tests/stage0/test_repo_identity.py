@@ -118,23 +118,56 @@ def test_layout_shift_fails_closed(tmp_path):
         mod.load_trusted_repo_slug()
 
 
+def _folded_str(node):
+    """String value of a constant or of a `+` concatenation of constants, else None."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left, right = _folded_str(node.left), _folded_str(node.right)
+        if left is not None and right is not None:
+            return left + right
+    return None
+
+
+def _slug_offenders(source, name="mod.py", forbidden=(CANONICAL, LEGACY)):
+    offenders = []
+    for node in ast.walk(ast.parse(source)):
+        if _folded_str(node) in forbidden:
+            offenders.append(f"{name}:{node.lineno} literal")
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for t in targets:
+                if isinstance(t, ast.Name) and t.id == "TRUSTED_REPO_SLUG":
+                    offenders.append(f"{name}:{node.lineno} TRUSTED_REPO_SLUG")
+    return offenders
+
+
 def test_slug_defined_in_exactly_one_place():
     """AST check: no production module hard-codes a slug-shaped literal or a TRUSTED_REPO_SLUG."""
     slug_shape = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
     offenders = []
     for path in sorted((ROOT / "scripts").rglob("*.py")):
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Constant) and node.value in (CANONICAL, LEGACY):
-                offenders.append(f"{path.name}:{node.lineno} literal")
-            if isinstance(node, (ast.Assign, ast.AnnAssign)):
-                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-                for t in targets:
-                    if isinstance(t, ast.Name) and t.id == "TRUSTED_REPO_SLUG":
-                        offenders.append(f"{path.name}:{node.lineno} TRUSTED_REPO_SLUG")
+        # the no-functional-slug checker legitimately holds the legacy slug as its denylist
+        forbidden = (
+            (CANONICAL,) if path.name == "check_no_functional_slug.py" else (CANONICAL, LEGACY)
+        )
+        offenders += _slug_offenders(path.read_text(encoding="utf-8"), path.name, forbidden)
     assert offenders == []
     config = json.loads((ROOT / "config" / "repository_identity.v1.json").read_text())
     assert slug_shape.match(config["trusted_repo_slug"])
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        'ALT_TRUSTED_REPO = "squne121/" + "agent-platform"\n',
+        'ALT = "squne121/" + "loop-" + "protocol"\n',  # allow-legacy-slug
+        'ALT = "squne121/agent-platform"\n',
+        "TRUSTED_REPO_SLUG = compute()\n",
+    ],
+)
+def test_single_definition_check_detects_negative_controls(source):
+    assert _slug_offenders(source) != []
 
 
 def test_shadowing_repo_identity_on_sys_path_cannot_replace_the_source(tmp_path):
