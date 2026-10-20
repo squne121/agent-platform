@@ -8,7 +8,7 @@
       "description": "agent-platform Stable pilot plugin",
       "source": {
         "source": "git-subdir",
-        "url": "squne121/agent-platform",
+        "url": "https://github.com/squne121/agent-platform.git",
         "path": "plugins/ap-pilot",
         "sha": "c9eff0631e1f3adb494c6fd40ac4adb6a129db29"
       }
