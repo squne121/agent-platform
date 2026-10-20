@@ -48,20 +48,22 @@ as `_CredentiallessPreflightTransport`, which a caller passes explicitly via
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import re
-import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
 from typing import Protocol
 
-_HERE = Path(__file__).resolve().parent
-if str(_HERE) not in sys.path:
-    sys.path.insert(0, str(_HERE))
-
-import repo_identity
+# Load the identity module from this file's own directory by absolute path, so a
+# same-named module earlier on sys.path cannot replace the single identity source.
+_identity_spec = importlib.util.spec_from_file_location(
+    "_agent_platform_repo_identity", Path(__file__).resolve().parent / "repo_identity.py"
+)
+repo_identity = importlib.util.module_from_spec(_identity_spec)
+_identity_spec.loader.exec_module(repo_identity)
 
 # Trust boundary: this module only ever reads from the repository named in
 # the identity config (config/repository_identity.v1.json). Never derived from

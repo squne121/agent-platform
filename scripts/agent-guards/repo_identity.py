@@ -33,7 +33,11 @@ def load_trusted_repo_slug(config_path: Path | None = None) -> str:
     if data["schema"] != SCHEMA:
         raise RepositoryIdentityError("identity_config_schema_mismatch")
     slug = data["trusted_repo_slug"]
-    if not isinstance(slug, str) or not _SLUG_RE.match(slug):
+    if (
+        not isinstance(slug, str)
+        or not _SLUG_RE.fullmatch(slug)
+        or {".", ".."} & set(slug.split("/"))
+    ):
         raise RepositoryIdentityError("identity_config_slug_invalid")
     return slug
 

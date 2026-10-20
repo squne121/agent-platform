@@ -19,7 +19,7 @@ import github_credentialless_read as gcr
 import repo_identity
 
 CANONICAL = "squne121/agent-platform"
-LEGACY = "squne121/" + "loop-protocol"
+LEGACY = "squne121/" + "loop-protocol"  # allow-legacy-slug
 THIRD = "example/other-repo"
 
 
@@ -54,7 +54,7 @@ def test_third_slug_config_flips_accept_and_reject(tmp_path, monkeypatch):
     path = _write(tmp_path, _cfg(THIRD))
     assert repo_identity.is_trusted_repo(THIRD, path) is True
     assert repo_identity.is_trusted_repo(CANONICAL, path) is False
-    monkeypatch.setattr(repo_identity, "DEFAULT_CONFIG_PATH", path)
+    monkeypatch.setattr(gcr.repo_identity, "DEFAULT_CONFIG_PATH", path)
     assert gcr._validate_repo(None) == THIRD
     assert gcr._validate_repo(THIRD) == THIRD
     for rejected in (CANONICAL, LEGACY):
@@ -74,6 +74,9 @@ def test_third_slug_config_flips_accept_and_reject(tmp_path, monkeypatch):
         _cfg("no-slash"),
         _cfg("a/b/c"),
         _cfg("has space/x"),
+        _cfg(CANONICAL + "\n"),
+        _cfg("../.."),
+        _cfg("./x"),
         _cfg(None),
         _cfg(5),
         {**_cfg(CANONICAL), "extra": 1},
@@ -88,10 +91,10 @@ def test_invalid_config_fails_closed(tmp_path, payload):
 
 
 def test_missing_config_fails_closed_through_gcr(tmp_path, monkeypatch):
-    monkeypatch.setattr(repo_identity, "DEFAULT_CONFIG_PATH", tmp_path / "absent.json")
-    with pytest.raises(repo_identity.RepositoryIdentityError):
+    monkeypatch.setattr(gcr.repo_identity, "DEFAULT_CONFIG_PATH", tmp_path / "absent.json")
+    with pytest.raises(gcr.repo_identity.RepositoryIdentityError):
         gcr._validate_repo(CANONICAL)
-    with pytest.raises(repo_identity.RepositoryIdentityError):
+    with pytest.raises(gcr.repo_identity.RepositoryIdentityError):
         gcr.read_public_issue(1)
 
 
@@ -132,3 +135,23 @@ def test_slug_defined_in_exactly_one_place():
     assert offenders == []
     config = json.loads((ROOT / "config" / "repository_identity.v1.json").read_text())
     assert slug_shape.match(config["trusted_repo_slug"])
+
+
+def test_shadowing_repo_identity_on_sys_path_cannot_replace_the_source(tmp_path):
+    """A same-named module earlier on sys.path must not become the identity source."""
+    import subprocess
+
+    (tmp_path / "repo_identity.py").write_text(
+        "DEFAULT_CONFIG_PATH = None\n"
+        "def is_trusted_repo(repo, config_path=None):\n    return True\n"
+        "def load_trusted_repo_slug(config_path=None):\n    return 'evil/x'\n"
+    )
+    code = (
+        "import sys; sys.path.insert(0, sys.argv[1]); sys.path.append(sys.argv[2]);"
+        "import github_credentialless_read as g;"
+        "sys.exit(0 if not g.repo_identity.is_trusted_repo('evil/x') else 1)"
+    )
+    r = subprocess.run(
+        [sys.executable, "-c", code, str(tmp_path), str(GUARDS)], capture_output=True, check=False
+    )
+    assert r.returncode == 0, r.stderr

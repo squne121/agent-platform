@@ -8,8 +8,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "ci" / "check_no_functional_slug.py"
-LEGACY = "squne121/" + "loop-protocol"
-REFS = "refs/" + "loop-protocol/heads"
+LEGACY = "squne121/" + "loop-protocol"  # allow-legacy-slug
+REFS = "refs/" + "loop-protocol/heads"  # allow-legacy-slug
 
 
 def _run(*args):
@@ -51,3 +51,11 @@ def test_repository_is_clean():
         ROOT / "scripts", ROOT / "config", ROOT / "tests", ROOT / ".github", ROOT / "pyproject.toml"
     )
     assert r.returncode == 0, r.stdout
+
+
+def test_concatenated_and_uppercase_legacy_slug_are_detected(tmp_path):
+    (tmp_path / "cat.py").write_text('X = "squne121/" + "loop-protocol"\n')
+    assert _run(tmp_path).returncode == 1
+    (tmp_path / "cat.py").unlink()
+    (tmp_path / "up.json").write_text(f'{{"s": "{LEGACY.upper()}"}}\n')
+    assert _run(tmp_path).returncode == 1

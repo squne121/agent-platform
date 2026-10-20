@@ -16,10 +16,11 @@ import ast
 import sys
 from pathlib import Path
 
-# Built by concatenation so this file does not trip its own scan.
+# Lines carrying this marker are intentional fixtures/definitions and are skipped.
+ALLOW_MARKER = "allow-legacy-slug"
 FORBIDDEN = (
-    "squne121" + "/loop-protocol",
-    "refs/" + "loop-protocol/",
+    "squne121" + "/loop-protocol",  # allow-legacy-slug
+    "refs/" + "loop-protocol/",  # allow-legacy-slug
 )
 TEXT_SUFFIXES = {".json", ".yml", ".yaml", ".toml", ".sh"}
 SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "worktrees"}
@@ -34,6 +35,17 @@ def _iter_files(root: Path):
             yield path
 
 
+def _folded_str(node: ast.AST) -> str | None:
+    """String value of a constant or of a `+` concatenation of constants, else None."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left, right = _folded_str(node.left), _folded_str(node.right)
+        if left is not None and right is not None:
+            return left + right
+    return None
+
+
 def _scan(path: Path) -> list[str]:
     try:
         text = path.read_text(encoding="utf-8")
@@ -45,10 +57,12 @@ def _scan(path: Path) -> list[str]:
         except SyntaxError:
             return [f"{path}: unparsable python"]
         found = []
+        lines = text.splitlines()
         for node in ast.walk(tree):
-            if isinstance(node, ast.Constant) and isinstance(node.value, str):
+            value = _folded_str(node)
+            if value is not None and ALLOW_MARKER not in lines[node.lineno - 1]:
                 for needle in FORBIDDEN:
-                    if needle in node.value:
+                    if needle in value.casefold():
                         found.append(f"{path}:{node.lineno}: forbidden {needle!r}")
         return found
     if path.suffix in TEXT_SUFFIXES:
@@ -56,7 +70,7 @@ def _scan(path: Path) -> list[str]:
             f"{path}:{n}: forbidden {needle!r}"
             for n, line in enumerate(text.splitlines(), 1)
             for needle in FORBIDDEN
-            if needle in line
+            if needle in line.casefold()
         ]
     return []
 

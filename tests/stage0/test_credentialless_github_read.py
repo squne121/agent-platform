@@ -22,9 +22,8 @@ if str(_GUARDS_DIR) not in sys.path:
     sys.path.insert(0, str(_GUARDS_DIR))
 
 import github_credentialless_read as gcr
-import repo_identity
 
-SLUG = repo_identity.load_trusted_repo_slug()
+SLUG = gcr.repo_identity.load_trusted_repo_slug()
 
 # Non-GET HTTP method literals that must never appear anywhere in this
 # module's source. Kept out of any docstring/comment in the module itself

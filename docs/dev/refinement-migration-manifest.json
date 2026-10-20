@@ -9,7 +9,7 @@
     {
       "from": "scripts/agent-guards/github_credentialless_read.py",
       "to": "scripts/agent-guards/github_credentialless_read.py",
-      "changes": "TRUSTED_REPO_SLUG constant removed; slug resolved from config via repo_identity; repo defaults to None; User-Agent renamed"
+      "changes": "TRUSTED_REPO_SLUG constant and its __all__ export removed (breaking for any caller that imported it); slug resolved at call time from config via repo_identity, loaded by absolute path; repo defaults to None; User-Agent renamed; shebang dropped; ruff-driven cosmetic edits (noqa removal, annotation quotes, __all__ order, formatting)"
     },
     {
       "from": "scripts/agent-guards/tests/test_credentialless_github_read.py",
