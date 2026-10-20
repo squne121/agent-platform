@@ -7,7 +7,7 @@
   "expected_collect": {
     "tests/smoke/test_plugins.py": 2,
     "tests/smoke/test_smoke.py": 9,
-    "tests/stage0/test_check_no_functional_slug.py": 7,
+    "tests/stage0/test_check_no_functional_slug.py": 10,
     "tests/stage0/test_credentialless_github_read.py": 47,
     "tests/stage0/test_repo_identity.py": 24
   }

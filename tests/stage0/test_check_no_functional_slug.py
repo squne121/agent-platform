@@ -59,3 +59,20 @@ def test_concatenated_and_uppercase_legacy_slug_are_detected(tmp_path):
     (tmp_path / "cat.py").unlink()
     (tmp_path / "up.json").write_text(f'{{"s": "{LEGACY.upper()}"}}\n')
     assert _run(tmp_path).returncode == 1
+
+
+def test_worktrees_named_production_dir_is_scanned(tmp_path):
+    d = tmp_path / "scripts" / "worktrees"
+    d.mkdir(parents=True)
+    (d / "a.py").write_text('X = "squne121/" + "loop-protocol"\n')
+    assert _run(tmp_path).returncode == 1
+
+
+def test_marker_does_not_hide_violation_outside_allowed_paths(tmp_path):
+    (tmp_path / "prod.py").write_text('X = "squne121/" + "loop-protocol"  # allow-legacy-slug\n')
+    assert _run(tmp_path).returncode == 1
+
+
+def test_uppercase_extension_is_scanned(tmp_path):
+    (tmp_path / "D.PY").write_text('X = "squne121/" + "loop-protocol"\n')
+    assert _run(tmp_path).returncode == 1

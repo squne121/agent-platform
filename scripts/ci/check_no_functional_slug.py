@@ -13,6 +13,7 @@ Absolute home paths are covered by scripts/check_public_hygiene.sh, not here.
 from __future__ import annotations
 
 import ast
+import itertools
 import sys
 from pathlib import Path
 
@@ -23,7 +24,9 @@ FORBIDDEN = (
     "refs/" + "loop-protocol/",  # allow-legacy-slug
 )
 TEXT_SUFFIXES = {".json", ".yml", ".yaml", ".toml", ".sh"}
-SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache", "worktrees"}
+SKIP_DIRS = {".git", ".venv", "__pycache__", ".pytest_cache", ".ruff_cache"}
+# The marker is honoured only in the checker itself and in its own test fixtures.
+MARKER_ALLOWED = ("/scripts/ci/check_no_functional_slug.py", "/tests/stage0/")
 
 
 def _iter_files(root: Path):
@@ -31,8 +34,12 @@ def _iter_files(root: Path):
         yield root
         return
     for path in sorted(root.rglob("*")):
-        if path.is_file() and not (SKIP_DIRS & set(path.relative_to(root).parts)):
-            yield path
+        parts = path.relative_to(root).parts
+        if not path.is_file() or SKIP_DIRS & set(parts):
+            continue
+        if any(a == ".claude" and b == "worktrees" for a, b in itertools.pairwise(parts)):
+            continue
+        yield path
 
 
 def _folded_str(node: ast.AST) -> str | None:
@@ -51,21 +58,22 @@ def _scan(path: Path) -> list[str]:
         text = path.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return []
-    if path.suffix == ".py":
+    if path.suffix.lower() == ".py":
         try:
             tree = ast.parse(text)
         except SyntaxError:
             return [f"{path}: unparsable python"]
         found = []
         lines = text.splitlines()
+        marker_ok = any(a in "/" + path.resolve().as_posix() for a in MARKER_ALLOWED)
         for node in ast.walk(tree):
             value = _folded_str(node)
-            if value is not None and ALLOW_MARKER not in lines[node.lineno - 1]:
+            if value is not None and not (marker_ok and ALLOW_MARKER in lines[node.lineno - 1]):
                 for needle in FORBIDDEN:
                     if needle in value.casefold():
                         found.append(f"{path}:{node.lineno}: forbidden {needle!r}")
         return found
-    if path.suffix in TEXT_SUFFIXES:
+    if path.suffix.lower() in TEXT_SUFFIXES:
         return [
             f"{path}:{n}: forbidden {needle!r}"
             for n, line in enumerate(text.splitlines(), 1)
@@ -87,7 +95,7 @@ def main(argv: list[str]) -> int:
             print(f"root not found: {arg}", file=sys.stderr)
             return 2
         for path in _iter_files(root):
-            if path.suffix == ".py" or path.suffix in TEXT_SUFFIXES:
+            if path.suffix.lower() == ".py" or path.suffix.lower() in TEXT_SUFFIXES:
                 scanned += 1
                 violations.extend(_scan(path))
     if scanned == 0:
