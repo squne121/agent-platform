@@ -56,3 +56,10 @@ def test_hygiene_errors_when_only_binary_files(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     subprocess.run(["git", "add", "bin"], cwd=tmp_path, check=True)
     assert run_hygiene(tmp_path).returncode == 2
+
+
+def test_hygiene_ignores_kebab_case_words_ending_in_sk(tmp_path):
+    assert (
+        run_hygiene(git_repo(tmp_path, "see task-management-and-scheduling-system\n")).returncode
+        == 0
+    )
