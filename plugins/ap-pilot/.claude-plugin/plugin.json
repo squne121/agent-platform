@@ -1,6 +1,6 @@
 {
   "name": "ap-pilot",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "agent-platform Stable pilot plugin",
   "author": { "name": "squne121" },
   "license": "UNLICENSED"

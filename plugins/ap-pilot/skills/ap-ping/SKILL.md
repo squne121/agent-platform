@@ -6,4 +6,4 @@ disable-model-invocation: true
 
 次の 1 行だけをそのまま出力する。他の文は出力しない。
 
-AP_PING stable ap-pilot 0.1.0
+AP_PING stable ap-pilot 0.2.0
