@@ -14,6 +14,8 @@ package = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--import-mode=importlib -ra --strict-markers"
+xfail_strict = true
 
 [tool.ruff]
 line-length = 100
