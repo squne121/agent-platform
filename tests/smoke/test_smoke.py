@@ -39,3 +39,20 @@ def test_hygiene_fails_on_home_path(tmp_path):
 def test_hygiene_errors_when_nothing_checked(tmp_path):
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
     assert run_hygiene(tmp_path).returncode == 2
+
+
+def test_hygiene_detects_anthropic_key_and_json_session_id(tmp_path):
+    key = "sk-ant-" + "api03-abcdefghijklmnopqrstuvwx\n"
+    assert run_hygiene(git_repo(tmp_path, key)).returncode == 1
+
+
+def test_hygiene_detects_json_session_id(tmp_path):
+    sid = '"session' + '_id": "abc"\n'
+    assert run_hygiene(git_repo(tmp_path, sid)).returncode == 1
+
+
+def test_hygiene_errors_when_only_binary_files(tmp_path):
+    (tmp_path / "bin").write_bytes(b"\0\1\2")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True)
+    subprocess.run(["git", "add", "bin"], cwd=tmp_path, check=True)
+    assert run_hygiene(tmp_path).returncode == 2
