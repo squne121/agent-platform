@@ -1,0 +1,44 @@
+{
+  "schema": "REFINEMENT_MIGRATION_MANIFEST_V1",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "migrated_stage0": [
+    {
+      "from": "scripts/agent-guards/github_credentialless_read.py",
+      "to": "scripts/agent-guards/github_credentialless_read.py",
+      "changes": "TRUSTED_REPO_SLUG constant and its __all__ export removed (breaking for any caller that imported it); slug resolved at call time from config via repo_identity, loaded by absolute path; repo defaults to None; User-Agent renamed; shebang dropped; ruff-driven cosmetic edits (noqa removal, annotation quotes, __all__ order, formatting)"
+    },
+    {
+      "from": "scripts/agent-guards/tests/test_credentialless_github_read.py",
+      "to": "tests/stage0/test_credentialless_github_read.py",
+      "changes": "slug literals replaced by config-derived SLUG; github_live test removed (needs live network, would be a deselect); absolute home path replaced by tmp_path"
+    }
+  ],
+  "new_in_stage0": [
+    "config/repository_identity.v1.json",
+    "scripts/agent-guards/repo_identity.py",
+    "scripts/ci/check_no_functional_slug.py",
+    "scripts/ci/run_stage0_tests.py",
+    "docs/dev/stage0-test-manifest.json"
+  ],
+  "deferred": {
+    "stage_1a": {
+      "scripts": ["plan_refinement_loop", "run_refinement_preflight", "command_registry", "workflow_start_entry", "root_entry_router", "decide_next_loop_action"],
+      "dependencies_to_add": ["pyyaml", "jsonschema", "referencing"],
+      "identity_work": [
+        "scripts/agent-guards/skill_runtime_command_policy.py: second TRUSTED_REPO_SLUG definition and ~13 comparison sites must move to repo_identity",
+        "remote URL constants and ~25 functional slug strings in py",
+        "parents[N] repo-root inference in 11 scripts (add layout-shift tests when moved)",
+        "docs/dev/extension-surface-runtime-policy.yaml and protected_paths_policy.v1.json (+ protected_paths_policy.py, changed_file_matcher.py)"
+      ]
+    },
+    "stage_1b": ["run_root_review_pipeline", "reviewer_transport", "compact_*", "join_review_results", "semantic_review_*", "review-issue", "issue-contract-review", "create-issue parser scripts", "agents issue-design-reviewer/issue-editor/issue-creator"],
+    "stage_2": ["edit_issue_txn", "create_issue_txn", "repair_issue_contract", "dependency_materializer", "publish_termination_report", "controlled_skill_mutation_*", "isolation_issue_comment_bridge", "scope_signal_delta", "decide_rewrite_route", "route_after_rewrite"],
+    "stage_3": ["codebase-investigator", "web-researcher", "gemini-cli-headless-delegation"]
+  },
+  "out_of_scope": ["impl-review-loop (I-4)", "scripts/claude-gpt/*", "scripts/task-context/*", ".claude/hooks/*", "Plugin distribution (I-6)"],
+  "not_claimed": "No closure beyond the two migrated files is verified in Stage 0. AC1 (closure manifest), AC4, AC6, AC7 and the closure part of AC5 belong to Stage 1a onward."
+}
