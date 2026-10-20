@@ -11,7 +11,7 @@ Parent: #5. Child: #6. Source baseline: loop-protocol tag `pre-split-agent-platf
 - `github_credentialless_read.py` resolves the slug through it at call time.
 
 ## Checks
-- `scripts/ci/check_no_functional_slug.py ROOT...`: exit 0 clean / 1 violation / 2 bad root or nothing scanned.
+- `scripts/ci/check_no_functional_slug.py ROOT...`: exit 0 clean / 1 violation / 2 bad root, nothing scanned, or an unreadable target (never reported as clean).
   A line carrying `# allow-legacy-slug` is skipped (used only by the checker and its own fixtures). Python is scanned by AST (string constants and `+` concatenations of them, so comments are ignored; matching is case-insensitive); json/yaml/toml/sh as text;
   Markdown is exempt. The words `squne121` and `LOOP_PROTOCOL` alone are not violations; only the
   legacy slug and `refs/` namespace are. Absolute home paths stay with `scripts/check_public_hygiene.sh`.
