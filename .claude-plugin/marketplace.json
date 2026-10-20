@@ -1,0 +1,17 @@
+{
+  "name": "ap-stable",
+  "owner": { "name": "squne121" },
+  "description": "agent-platform Stable plugins (sha pinned)",
+  "plugins": [
+    {
+      "name": "ap-pilot",
+      "description": "agent-platform Stable pilot plugin",
+      "source": {
+        "source": "git-subdir",
+        "url": "squne121/agent-platform",
+        "path": "plugins/ap-pilot",
+        "sha": "c9eff0631e1f3adb494c6fd40ac4adb6a129db29"
+      }
+    }
+  ]
+}
