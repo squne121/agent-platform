@@ -1,0 +1,7 @@
+{
+  "name": "ap-pilot-exp",
+  "version": "0.0.1",
+  "description": "agent-platform Experimental pilot plugin(非配布)",
+  "author": { "name": "squne121" },
+  "license": "UNLICENSED"
+}
