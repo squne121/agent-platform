@@ -36,7 +36,10 @@ def _iter_files(root: Path):
         return
     for path in sorted(root.rglob("*")):
         parts = path.relative_to(root).parts
-        if not path.is_file() or SKIP_DIRS & set(parts):
+        if SKIP_DIRS & set(parts):
+            continue
+        # a dangling symlink is yielded so that reading it fails loudly (exit 2)
+        if not path.is_file() and not path.is_symlink():
             continue
         if any(a == ".claude" and b == "worktrees" for a, b in itertools.pairwise(parts)):
             continue
@@ -62,11 +65,16 @@ def _scan(path: Path) -> list[str]:
             tree = ast.parse(text)
         except SyntaxError:
             return [f"{path}: unparsable python"]
+        except (ValueError, RecursionError, MemoryError) as exc:
+            raise OSError(f"cannot parse: {type(exc).__name__}") from exc
         found = []
         lines = text.splitlines()
         marker_ok = any(a in "/" + path.resolve().as_posix() for a in MARKER_ALLOWED)
         for node in ast.walk(tree):
-            value = _folded_str(node)
+            try:
+                value = _folded_str(node)
+            except RecursionError as exc:
+                raise OSError("cannot fold: RecursionError") from exc
             if value is not None and not (marker_ok and ALLOW_MARKER in lines[node.lineno - 1]):
                 for needle in FORBIDDEN:
                     if needle in value.casefold():

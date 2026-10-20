@@ -89,3 +89,15 @@ def test_undecodable_target_is_an_error_not_clean(tmp_path):
 def test_unreadable_python_target_is_an_error_not_clean(tmp_path):
     (tmp_path / "broken.py").write_bytes(b"X = '\xff'\n")
     assert _run(tmp_path).returncode == 2
+
+
+def test_dangling_symlink_target_is_an_error_not_clean(tmp_path):
+    (tmp_path / "ok.py").write_text("X = 1\n")
+    (tmp_path / "gone.py").symlink_to(tmp_path / "nonexistent")
+    assert _run(tmp_path).returncode == 2
+
+
+def test_pathologically_deep_concatenation_is_an_error_not_a_traceback(tmp_path):
+    (tmp_path / "deep.py").write_text("X = " + " + ".join(['"a"'] * 5000) + "\n")
+    r = _run(tmp_path)
+    assert r.returncode == 2, (r.returncode, r.stderr[-200:])

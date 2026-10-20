@@ -12,7 +12,7 @@ Parent: #5. Child: #6. Source baseline: loop-protocol tag `pre-split-agent-platf
 
 ## Checks
 - `scripts/ci/check_no_functional_slug.py ROOT...`: exit 0 clean / 1 violation / 2 bad root, nothing scanned, or an unreadable target (never reported as clean).
-  A line carrying `# allow-legacy-slug` is skipped (used only by the checker and its own fixtures). Python is scanned by AST (string constants and `+` concatenations of them, so comments are ignored; matching is case-insensitive); json/yaml/toml/sh as text;
+  The CI step scans `scripts config tests .github pyproject.toml`; `docs/` is not scanned (it holds source-reference values such as the legacy slug in the migration manifest, like markdown). A line carrying `# allow-legacy-slug` is skipped (used only by the checker and its own fixtures). Python is scanned by AST (string constants and `+` concatenations of them, so comments are ignored; matching is case-insensitive); json/yaml/toml/sh as text;
   Markdown is exempt. The words `squne121` and `LOOP_PROTOCOL` alone are not violations; only the
   legacy slug and `refs/` namespace are. Absolute home paths stay with `scripts/check_public_hygiene.sh`.
 - `scripts/ci/run_stage0_tests.py` (CI job `stage0-closure`): collect must exit 0, per-file counts must equal
