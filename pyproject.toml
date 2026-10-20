@@ -1,0 +1,19 @@
+[project]
+name = "agent-platform"
+version = "0.1.0"
+description = "AI development platform"
+requires-python = ">=3.12"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.uv]
+required-version = "==0.11.29"
+package = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
