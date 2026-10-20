@@ -4,14 +4,15 @@
 set -u
 cd "${1:-.}" || exit 2
 
-files=$(git ls-files -- . ':!uv.lock' ':!scripts/check_public_hygiene.sh' ':!tests/smoke/**' | wc -l)
+files=$(git ls-files -- . ':!uv.lock' ':!scripts/check_public_hygiene.sh' ':!tests/smoke/test_smoke.py' | wc -l)
 if [ "$files" -lt 1 ]; then
   echo "hygiene: no tracked files were checked" >&2
   exit 2
 fi
 
-pattern='(/home/[A-Za-z0-9_-]+/|/Users/[A-Za-z0-9_-]+/|ghp_[A-Za-z0-9]{20,}|gho_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|session[_-]?id[=:])'
-git grep -nIE "$pattern" -- . ':!uv.lock' ':!scripts/check_public_hygiene.sh' ':!tests/smoke/**'
+# 除外: uv.lock(生成物)、本スクリプト(pattern を含む)、smoke test(禁止文字列 fixture を分割して持つ)
+pattern='(/home/[A-Za-z0-9_-]+/|/root/|/Users/[A-Za-z0-9_-]+/|[A-Za-z]:\\Users\\|gh[pos]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[bp]-[A-Za-z0-9-]{10,}|session[_-]?id[=:]|https?://[A-Za-z0-9.-]+\.(internal|corp|local)([:/]|$))'
+git grep -nIiE "$pattern" -- . ':!uv.lock' ':!scripts/check_public_hygiene.sh' ':!tests/smoke/test_smoke.py'
 rc=$?
 case "$rc" in
   1) echo "hygiene: OK ($files files checked)"; exit 0 ;;
