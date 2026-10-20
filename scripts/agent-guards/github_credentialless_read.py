@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Credentialless public GitHub REST read for Claude-GPT isolated sessions
 (Issue #2241, hardened per PR #2247 human review).
 
