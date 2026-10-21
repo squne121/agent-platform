@@ -31,9 +31,8 @@ CLOSURE = [
 ]
 SKILL = ".claude/skills/issue-refinement-loop"
 CANONICAL = "squne121/agent-platform"
-LEGACY = "/".join(
-    ["squne121", "-".join(["loop", "protocol"])]
-)  # old repository slug, built at runtime
+# Old repository slug, assembled at runtime so no functional literal exists in the tree.
+LEGACY = "/".join(["squne121", "-".join(["loop", "protocol"])])  # noqa: FLY002
 RESULT = ".claude/artifacts/issue-refinement-loop/100/refinement_preflight_result_v1.json"
 OK_STATUS = {"pass", "warn"}
 
