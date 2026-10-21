@@ -580,6 +580,20 @@ def main(argv: list[str] | None = None) -> None:
         print("ERROR: --issue には --repo が必要です", file=sys.stderr)
         sys.exit(2)
 
+    if args.issue:
+        # Only the gh read path takes a caller-supplied repo; bind it to the trusted slug.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "scripts" / "agent-guards"))
+        import repo_identity as _repo_identity
+
+        try:
+            trusted = _repo_identity.is_trusted_repo(args.repo)
+        except _repo_identity.RepositoryIdentityError as exc:
+            print(f"ERROR: repository identity unavailable: {exc}", file=sys.stderr)
+            sys.exit(2)
+        if not trusted:
+            print(f"ERROR: repository identity mismatch: --repo {args.repo!r}", file=sys.stderr)
+            sys.exit(2)
+
     if args.max_rewrite_attempts < 1:
         print(
             f"ERROR: --max-rewrite-attempts must be >= 1, got {args.max_rewrite_attempts}",

@@ -5683,6 +5683,15 @@ def _main_impl() -> int:
         except _repo_identity.RepositoryIdentityError as exc:
             print(f"repository identity unavailable: {exc}", file=sys.stderr)
             return 2
+    else:
+        try:
+            trusted = _repo_identity.is_trusted_repo(args.repo)
+        except _repo_identity.RepositoryIdentityError as exc:
+            print(f"repository identity unavailable: {exc}", file=sys.stderr)
+            return 2
+        if not trusted:
+            print(f"repository identity mismatch: --repo {args.repo!r}", file=sys.stderr)
+            return 2
     cwd_supplied = args.cwd is not None
     args.cwd = args.cwd or "."
     current_evidence: Optional[Dict[str, Any]] = None

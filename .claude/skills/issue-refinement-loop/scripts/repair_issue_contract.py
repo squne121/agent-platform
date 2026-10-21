@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""repair_issue_contract.py
+r"""repair_issue_contract.py
 
 Deterministic, mutation-free repair pass for common Issue contract defects
 that can be fixed without LLM rewriting.
@@ -351,7 +351,7 @@ _ESCAPED_FENCE_LINE_RE = re.compile(
 
 
 def _repair_escaped_code_fences(body: str) -> tuple[str, list[dict]]:
-    """Repair escaped code fences inside the ## Machine-Readable Contract section.
+    r"""Repair escaped code fences inside the ## Machine-Readable Contract section.
 
     Only modifies lines that are **entirely** a backslash-escaped fence
     (e.g., ``\`\`\`bash``, ``\`\`\```) to unescaped equivalents.

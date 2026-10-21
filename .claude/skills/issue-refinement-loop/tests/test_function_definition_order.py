@@ -204,6 +204,8 @@ _DIRECT_CLI_VALID_ISSUE_BODY = """\
 contract_schema_version: v1
 issue_kind: implementation
 parent_issue: "#1"
+goal_ref: "#1"
+change_kind: code
 ```
 
 ## Parent Issue
@@ -221,6 +223,11 @@ parent_issue: "#1"
 ## Remaining Parent Gaps
 
 - [ ] Nothing remaining
+
+## Runtime Verification Applicability
+
+decision: not_applicable
+reason: 静的検証のみで完結するため
 
 ## Outcome
 
@@ -381,6 +388,14 @@ def test_direct_cli_anchor_comment_path_has_no_nameerror(tmp_path) -> None:
     # The anchor path is only exercised if the run got past the repository identity gate.
     assert "REPOSITORY_IDENTITY" not in combined_output, (
         f"stopped at the identity gate before the anchor path:\n{proc.stdout}"
+    )
+    # Any other early block (e.g. planner fail-closed on a malformed body) also
+    # skips the anchor path, so rule those out explicitly.
+    assert "PLANNER_FAIL_CLOSED" not in proc.stdout, (
+        f"planner fail-closed before the anchor path:\n{proc.stdout}"
+    )
+    assert "missing_required_section" not in proc.stdout, (
+        f"fixture body is missing a required section:\n{proc.stdout}"
     )
     assert "STATUS:" in proc.stdout, (
         "expected the wrapper's compact STATUS: stdout projection to be "

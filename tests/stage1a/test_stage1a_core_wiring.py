@@ -178,3 +178,48 @@ def test_classify_main_drift_branches(over: dict, route: str, reason: str | None
     if route in {"scope_clean_reconciliation", "behind_fast_path"}:
         assert decision.evidence_epoch["drift_rebind_attempts"] == 1
         assert decision.reverify == {"snapshot": True, "ci": True, "review": True}
+
+
+@pytest.mark.parametrize(
+    ("script", "argv"),
+    [
+        (
+            ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+            ["--issue", "5", "--repo", "evil/other"],
+        ),
+        (
+            ".claude/skills/issue-refinement-loop/scripts/route_after_rewrite.py",
+            [
+                "--issue",
+                "5",
+                "--repo",
+                "evil/other",
+                "--state-path",
+                "x",
+                "--max-rewrite-attempts",
+                "2",
+            ],
+        ),
+    ],
+)
+def test_explicit_wrong_repo_is_rejected_before_any_gh_call(
+    tmp_path: Path, script: str, argv: list[str]
+) -> None:
+    """A fake `gh` on PATH records any call; an untrusted --repo must exit 2 without one."""
+    log = tmp_path / "gh.log"
+    gh = tmp_path / "bin" / "gh"
+    gh.parent.mkdir()
+    gh.write_text(f'#!/bin/sh\necho "$@" >> {log}\nexit 1\n', encoding="utf-8")
+    gh.chmod(0o755)
+    env = {"PATH": f"{gh.parent}:/usr/bin:/bin", "HOME": str(tmp_path)}
+    proc = subprocess.run(
+        [sys.executable, "-I", str(ROOT / script), *argv],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+        env=env,
+    )
+    assert proc.returncode == 2, proc.stdout + proc.stderr
+    assert "repository identity mismatch" in proc.stderr, proc.stderr
+    assert not log.exists(), log.read_text()

@@ -27,7 +27,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
-    "tests/stage1a/test_stage1a_core_wiring.py": 18
+    "tests/stage1a/test_stage1a_core_wiring.py": 20
   },
   "expected_ran": {
     ".claude/skills/issue-refinement-loop/scripts/tests/test_repair_issue_contract.py": 53,
@@ -46,7 +46,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
-    "tests/stage1a/test_stage1a_core_wiring.py": 18
+    "tests/stage1a/test_stage1a_core_wiring.py": 20
   },
   "deferred_tests": [
     {
@@ -184,7 +184,7 @@
       },
       {
         "script": "check_issue_contract.py",
-        "reason": "consume/apply lane only",
+        "reason": "consume/apply lane; also required by the route_after_rewrite.py --issue/--repo CLI, which is therefore not runnable until this lands (fails loudly; the in-process compute_implementation_allowed path used by the planner is unaffected)",
         "owner_stage": "stage_1b/2"
       },
       {
@@ -215,6 +215,51 @@
       {
         "script": "_test.py",
         "reason": "sample filename inside a repair_issue_contract string fixture, not a dependency",
+        "owner_stage": "n/a"
+      },
+      {
+        "script": "workflow_start_entry.py",
+        "reason": "preflight.run target (emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands); direct fixture success is not the canonical preflight.run",
+        "owner_stage": "stage_1a_2 (#9)"
+      },
+      {
+        "script": "skill_runtime_exec.py",
+        "reason": "skill runtime capability chain, Out of Scope of #8",
+        "owner_stage": "stage_1a_2 (#9)"
+      },
+      {
+        "script": "route_web_research_result.py",
+        "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "run_root_review_pipeline.py",
+        "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "run_scope_rollup_preflight.py",
+        "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "validate_review_compact_output.py",
+        "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "runtime_dependency_smoke.py",
+        "reason": "referenced by baseline_vc_preflight for runtime smoke; not on the read-only path",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "helper.py",
+        "reason": "sample filename inside a test string fixture, not a dependency",
+        "owner_stage": "n/a"
+      },
+      {
+        "script": "test_example_3020.py",
+        "reason": "sample filename inside a test string fixture, not a dependency",
         "owner_stage": "n/a"
       }
     ]

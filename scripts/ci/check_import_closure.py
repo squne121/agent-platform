@@ -48,7 +48,8 @@ def unresolved(root: Path, scan_dirs: list[str], closure_dirs: list[str]) -> dic
     return {m: sorted(files) for m, files in sorted(missing.items())}
 
 
-_SCRIPT_LITERAL = re.compile(r"[\w\-]+\.py")
+# bare `name.py`, or a path-qualified / f-string tail ending in `/name.py`
+_SCRIPT_LITERAL = re.compile(r"(?:[\w\-./]*/)?([\w\-]+\.py)")
 
 
 def unresolved_script_refs(
@@ -64,13 +65,11 @@ def unresolved_script_refs(
                 continue
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             for node in ast.walk(tree):
-                if (
-                    isinstance(node, ast.Constant)
-                    and isinstance(node.value, str)
-                    and _SCRIPT_LITERAL.fullmatch(node.value)
-                    and node.value not in local
-                ):
-                    missing.setdefault(node.value, set()).add(str(path.relative_to(root)))
+                if not (isinstance(node, ast.Constant) and isinstance(node.value, str)):
+                    continue
+                m = _SCRIPT_LITERAL.fullmatch(node.value)
+                if m and m.group(1) not in local:
+                    missing.setdefault(m.group(1), set()).add(str(path.relative_to(root)))
     return {m: sorted(files) for m, files in sorted(missing.items())}
 
 

@@ -167,6 +167,9 @@ def test_layout_shift_is_not_positive(tmp_path: Path) -> None:
     tree = _copy(tmp_path / "t", skill_prefix="shifted/")
     proc, result = _run(tree, CANONICAL, skill_prefix="shifted/")
     assert result is None or result["status"] not in OK_STATUS, proc.stdout
+    # The parents[4] shift hides scripts/agent-guards, so the identity import fails
+    # closed first; pin that reason so the control does not pass for an unrelated one.
+    assert "REPOSITORY_IDENTITY_UNAVAILABLE" in proc.stdout, proc.stdout
 
 
 def test_baseline_dependency_present_for_scope_reframe_check() -> None:
