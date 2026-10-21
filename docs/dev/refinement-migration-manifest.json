@@ -60,14 +60,10 @@
     "stage_2": [
       "edit_issue_txn",
       "create_issue_txn",
-      "repair_issue_contract",
       "dependency_materializer",
       "publish_termination_report",
       "controlled_skill_mutation_*",
-      "isolation_issue_comment_bridge",
-      "scope_signal_delta",
-      "decide_rewrite_route",
-      "route_after_rewrite"
+      "isolation_issue_comment_bridge"
     ],
     "stage_3": [
       "codebase-investigator",
@@ -87,7 +83,13 @@
     "manifest": "docs/dev/stage1a-core-manifest.json",
     "issue": "squne121/agent-platform#8",
     "retained_wire_identifiers": "`loop-protocol-json-c14n-v1` (CANONICALIZATION_ID) and `urn:loop-protocol:issue-execution-decision:v1` ($id) are protocol/hash identifiers, not repository identity; changing them would alter canonical hashes, so they are retained until an explicit protocol versioning decision.",
-    "lint_scope": "pyproject.toml ruff extend-exclude covers verbatim-migrated sources only; new code stays linted.",
-    "not_claimed": "Direct fixture preflight success is not the canonical production `preflight.run` (workflow_start_entry / root_entry_router, #9)."
+    "lint_scope": "see docs/dev/stage1a-core-manifest.json lint_scope",
+    "not_claimed": "Direct fixture preflight success is not the canonical production `preflight.run` (workflow_start_entry / root_entry_router, #9).",
+    "moved_from_stage_2": [
+      "decide_rewrite_route",
+      "repair_issue_contract",
+      "route_after_rewrite",
+      "scope_signal_delta"
+    ]
   }
 }

@@ -50,6 +50,12 @@ def main() -> int:
             print(f"FAIL: incomplete deferred entry {entry.get('id')!r}")
             return 1
 
+    present = {f.name for d in dirs for f in (ROOT / d).rglob("test_*.py")}
+    listed_but_present = sorted(present & set(manifest["not_migrated_source_tests"]["files"]))
+    if listed_but_present:
+        print(f"FAIL: not_migrated_source_tests lists migrated files: {listed_but_present}")
+        return 1
+
     co = _pytest("--co", "-q", *dirs)
     if co.returncode != 0:
         print(co.stdout + co.stderr)

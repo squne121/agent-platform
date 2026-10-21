@@ -8387,6 +8387,22 @@ def run_preflight(
     never performs a live read at all).
     """
     repo_root = _find_repo_root()
+
+    # Repository binding also guards direct callers; main() performs the same check first.
+    _identity_blocker = _repository_identity_blocker(repo)
+    if _identity_blocker is not None:
+        return _emit_failure_result(
+            repo_root=repo_root,
+            issue_number=issue_number,
+            repo=repo if isinstance(repo, str) else "",
+            status="blocked",
+            next_action="human_judgment_required",
+            blockers=[_identity_blocker],
+            planner_fail_closed_reason_codes=[],
+            required_sections=[],
+            required_contract_keys=[],
+            rewrite_constraints=None,
+        )
     blockers: list[str] = []
     planner_exit_code: Optional[int] = None
     planner_fail_closed: Optional[bool] = None

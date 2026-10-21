@@ -21,6 +21,8 @@ SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import run_refinement_preflight as wrapper  # noqa: E402
+
+TRUSTED_REPO = wrapper._repo_identity.load_trusted_repo_slug()
 import plan_refinement_loop as prl  # noqa: E402
 import validate_issue_execution_decision as vied  # noqa: E402
 
@@ -91,7 +93,7 @@ uv run python3 scripts/example.py
 """
 
 
-def make_minimal_fixture(issue_number: int = 300, repo: str = "testowner/testrepo", body: str = "") -> dict:
+def make_minimal_fixture(issue_number: int = 300, repo: str = TRUSTED_REPO, body: str = "") -> dict:
     return {
         "schema_version": "refinement_preflight_input/v1",
         "issue_number": issue_number,
@@ -110,7 +112,7 @@ def make_minimal_fixture(issue_number: int = 300, repo: str = "testowner/testrep
 
 SCOPE_ROLLUP_PLAN = {
     "schema_version": 2,
-    "repo": "testowner/testrepo",
+    "repo": TRUSTED_REPO,
     "generated_at": "2026-01-01T00:00:00Z",
     "source": "gh",
     "body_sha256": "sha256:" + "a" * 64,
@@ -120,7 +122,7 @@ SCOPE_ROLLUP_PLAN = {
             "kind": "issue",
             "number": 9101,
             "title": "predecessor",
-            "url": "https://github.com/testowner/testrepo/issues/9101",
+            "url": "https://github.com/squne121/agent-platform/issues/9101",
             "state": "OPEN",
             "confidence": "high",
             "dedupe_key": "9101",
@@ -174,7 +176,7 @@ def test_run_preflight_joins_persisted_scope_rollup_artifact(tmp_path):
     with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
         result, exit_code = wrapper.run_preflight(
             issue_number=9100,
-            repo="testowner/testrepo",
+            repo=TRUSTED_REPO,
             anchor_comment_urls=[],
             fixture_path=fixture_path,
         )
@@ -220,7 +222,7 @@ def test_run_preflight_without_scope_rollup_artifact_defaults_to_selected(tmp_pa
     with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
         result, exit_code = wrapper.run_preflight(
             issue_number=9200,
-            repo="testowner/testrepo",
+            repo=TRUSTED_REPO,
             anchor_comment_urls=[],
             fixture_path=fixture_path,
         )

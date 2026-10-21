@@ -1,5 +1,5 @@
 """Side-effect-free main-drift evidence policy (extracted from loop-protocol
-`route_loop_verdict_v2.py` lines 191-291 at tag pre-split-agent-platform-20261020).
+`route_loop_verdict_v2.py` lines 185-291 at tag pre-split-agent-platform-20261020).
 
 Only `classify_main_drift` and its types are carried over; the impl-review-loop
 routing (I-4) is not migrated. Pure: no gh, git, network or subprocess calls.

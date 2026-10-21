@@ -59,7 +59,7 @@ def load_fixture(name: str) -> dict:
 
 def make_minimal_fixture(
     issue_number: int = 200,
-    repo: str = "testowner/testrepo",
+    repo: str = TRUSTED_REPO,
     body: str = "",
     comments: list | None = None,
 ) -> dict:
@@ -243,7 +243,7 @@ class TestAC1BasicFixtureOutput:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=200,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -267,14 +267,14 @@ class TestAC1BasicFixtureOutput:
         seed_previous_snapshot(
             tmp_path,
             issue_number=200,
-            repo="testowner/testrepo",
+            repo=TRUSTED_REPO,
             body=VALID_ISSUE_BODY,
         )
 
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=200,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -298,7 +298,7 @@ class TestAC2AnchorNotInIssue:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -308,13 +308,13 @@ class TestAC2AnchorNotInIssue:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/999#issuecomment-9999001"
+                "https://github.com/squne121/agent-platform/issues/999#issuecomment-9999001"
             ],
             "anchor_comments": [
                 {
                     "id": 9999001,
                     "body": "some comment",
-                    "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/100",
+                    "issue_url": "https://api.github.com/repos/squne121/agent-platform/issues/100",
                 }
             ],
         }
@@ -324,7 +324,7 @@ class TestAC2AnchorNotInIssue:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -341,7 +341,7 @@ class TestAC2AnchorNotInIssue:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -361,7 +361,7 @@ class TestAC2AnchorNotInIssue:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -380,7 +380,7 @@ class TestAC2AnchorNotInIssue:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -390,7 +390,7 @@ class TestAC2AnchorNotInIssue:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/100#issuecomment-9999999"
+                "https://github.com/squne121/agent-platform/issues/100#issuecomment-9999999"
             ],
             # anchor_comments does NOT contain id 9999999
             "anchor_comments": [],
@@ -401,7 +401,7 @@ class TestAC2AnchorNotInIssue:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -428,7 +428,7 @@ class TestAC3RawIssueSnapshotNotInStdout:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=200,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -452,7 +452,7 @@ class TestAC3RawIssueSnapshotNotInStdout:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=300,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -505,7 +505,7 @@ class TestAC6SchemaAndProjectionConsistency:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=400,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -544,7 +544,7 @@ contract_schema_version: v1
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=3000,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -582,7 +582,7 @@ contract_schema_version: v1
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=3100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -630,7 +630,7 @@ class TestNonStringFailClosedPayload:
         ):
             result, exit_code = wrapper.run_preflight(
                 issue_number=3200,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -868,7 +868,7 @@ class TestAC9SentinelNotInStdout:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             wrapper.run_preflight(
                 issue_number=500,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -893,7 +893,7 @@ class TestAC9SentinelNotInStdout:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             wrapper.run_preflight(
                 issue_number=501,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -916,7 +916,7 @@ class TestAC9SentinelNotInStdout:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             wrapper.run_preflight(
                 issue_number=502,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -957,7 +957,7 @@ class TestAC10ByteStableFixture:
             ):
                 result, _ = wrapper.run_preflight(
                     issue_number=600,
-                    repo="testowner/testrepo",
+                    repo=TRUSTED_REPO,
                     anchor_comment_urls=[],
                     fixture_path=fixture_path,
                 )
@@ -990,7 +990,7 @@ class TestAC10ByteStableFixture:
             ):
                 result, _ = wrapper.run_preflight(
                     issue_number=601,
-                    repo="testowner/testrepo",
+                    repo=TRUSTED_REPO,
                     anchor_comment_urls=[],
                     fixture_path=fixture_path,
                 )
@@ -1019,7 +1019,7 @@ class TestAC11ArgvOnlyCommands:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=700,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1046,7 +1046,7 @@ class TestAC11ArgvOnlyCommands:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=701,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1066,7 +1066,7 @@ class TestAC11ArgvOnlyCommands:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=702,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1086,7 +1086,7 @@ class TestAC11ArgvOnlyCommands:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=703,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1124,7 +1124,7 @@ class TestAC12EnvironmentFailure:
         ):
             result, exit_code = wrapper.run_preflight(
                 issue_number=800,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=None,
             )
@@ -1149,7 +1149,7 @@ class TestAC12EnvironmentFailure:
         ):
             result, exit_code = wrapper.run_preflight(
                 issue_number=800,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=None,
             )
@@ -1191,19 +1191,19 @@ class TestAnchorCommentBatchValidation:
         """Multiple same URLs are deduped and processed once."""
         # Provide two identical URLs — should only validate once
         urls = [
-            "https://github.com/testowner/testrepo/issues/100#issuecomment-7777001",
-            "https://github.com/testowner/testrepo/issues/100#issuecomment-7777001",
+            "https://github.com/squne121/agent-platform/issues/100#issuecomment-7777001",
+            "https://github.com/squne121/agent-platform/issues/100#issuecomment-7777001",
         ]
         comments = [
             {
                 "id": 7777001,
                 "body": "ok comment",
-                "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/100",
+                "issue_url": "https://api.github.com/repos/squne121/agent-platform/issues/100",
             }
         ]
 
         sorted_urls, blockers = wrapper._validate_anchor_comments_batch(
-            urls, "testowner/testrepo", 100, fixture_comments=comments
+            urls, TRUSTED_REPO, 100, fixture_comments=comments
         )
 
         # After dedupe, only 1 unique URL
@@ -1213,16 +1213,16 @@ class TestAnchorCommentBatchValidation:
     def test_one_invalid_url_blocks_all(self):
         """One invalid URL in batch → all blocked."""
         urls = [
-            "https://github.com/testowner/testrepo/issues/100#issuecomment-7777001",
+            "https://github.com/squne121/agent-platform/issues/100#issuecomment-7777001",
             "https://github.com/OTHER/testrepo/issues/100#issuecomment-7777002",  # wrong owner
         ]
         comments = [
-            {"id": 7777001, "body": "ok", "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/100"},
-            {"id": 7777002, "body": "ok", "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/100"},
+            {"id": 7777001, "body": "ok", "issue_url": "https://api.github.com/repos/squne121/agent-platform/issues/100"},
+            {"id": 7777002, "body": "ok", "issue_url": "https://api.github.com/repos/squne121/agent-platform/issues/100"},
         ]
 
         sorted_urls, blockers = wrapper._validate_anchor_comments_batch(
-            urls, "testowner/testrepo", 100, fixture_comments=comments
+            urls, TRUSTED_REPO, 100, fixture_comments=comments
         )
 
         assert len(blockers) > 0, "Should have blockers for wrong owner"
@@ -1347,7 +1347,7 @@ class TestB1MultiPageSlurpFlatten:
 
         # Simulate _run_gh returning a slurp-wrapped list
         with mock.patch.object(wrapper, "_run_gh", return_value=(slurp_output, "")):
-            result, err = wrapper._fetch_issue_comments("testowner/testrepo", 100)
+            result, err = wrapper._fetch_issue_comments(TRUSTED_REPO, 100)
 
         assert err == "", f"Unexpected error: {err}"
         assert result is not None, "Expected a list, got None"
@@ -1362,7 +1362,7 @@ class TestB1MultiPageSlurpFlatten:
         slurp_output = [page1]
 
         with mock.patch.object(wrapper, "_run_gh", return_value=(slurp_output, "")):
-            result, err = wrapper._fetch_issue_comments("testowner/testrepo", 200)
+            result, err = wrapper._fetch_issue_comments(TRUSTED_REPO, 200)
 
         assert err == "", f"Unexpected error: {err}"
         assert result is not None
@@ -1378,7 +1378,7 @@ class TestB1MultiPageSlurpFlatten:
             [{"id": i} for i in range(10, 13)],
         ]
         with mock.patch.object(wrapper, "_run_gh", return_value=(pages, "")):
-            result, err = wrapper._fetch_issue_comments("testowner/testrepo", 300)
+            result, err = wrapper._fetch_issue_comments(TRUSTED_REPO, 300)
 
         assert err == "", f"Unexpected error: {err}"
         assert result is not None
@@ -1387,7 +1387,7 @@ class TestB1MultiPageSlurpFlatten:
     def test_empty_slurp_output(self):
         """B1: empty slurp output [] → empty list, no error."""
         with mock.patch.object(wrapper, "_run_gh", return_value=([], "")):
-            result, err = wrapper._fetch_issue_comments("testowner/testrepo", 400)
+            result, err = wrapper._fetch_issue_comments(TRUSTED_REPO, 400)
 
         assert err == ""
         assert result == []
@@ -1405,7 +1405,7 @@ class TestB2JsonSchemaRuntimeValidation:
         bad_fixture = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "issue": {
                 "number": 100,
                 "title": "Test",
@@ -1420,7 +1420,7 @@ class TestB2JsonSchemaRuntimeValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1435,7 +1435,7 @@ class TestB2JsonSchemaRuntimeValidation:
         bad_fixture = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "issue": {
                 "number": 100,
                 "title": "Test",
@@ -1449,7 +1449,7 @@ class TestB2JsonSchemaRuntimeValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1471,7 +1471,7 @@ class TestB2JsonSchemaRuntimeValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=900,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1632,7 +1632,7 @@ class TestB3WarnReachable:
         ):
             result, exit_code = wrapper.run_preflight(
                 issue_number=850,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1669,7 +1669,7 @@ class TestB4PlannerInputArtifact:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=1000,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1693,7 +1693,7 @@ class TestB4PlannerInputArtifact:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=1001,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1717,7 +1717,7 @@ class TestB4PlannerInputArtifact:
         seed_previous_snapshot(
             tmp_path,
             issue_number=1002,
-            repo="testowner/testrepo",
+            repo=TRUSTED_REPO,
             body=VALID_ISSUE_BODY,
         )
 
@@ -1732,7 +1732,7 @@ class TestB4PlannerInputArtifact:
             ):
                 result, _ = wrapper.run_preflight(
                     issue_number=1002,
-                    repo="testowner/testrepo",
+                    repo=TRUSTED_REPO,
                     anchor_comment_urls=[],
                     fixture_path=fixture_path,
                 )
@@ -1753,7 +1753,7 @@ class TestB4PlannerInputArtifact:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=1003,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1777,7 +1777,7 @@ class TestB5AnchorIssueUrlValidation:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -1787,7 +1787,7 @@ class TestB5AnchorIssueUrlValidation:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/100#issuecomment-5551001"
+                "https://github.com/squne121/agent-platform/issues/100#issuecomment-5551001"
             ],
             "anchor_comments": [
                 {
@@ -1803,7 +1803,7 @@ class TestB5AnchorIssueUrlValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1818,7 +1818,7 @@ class TestB5AnchorIssueUrlValidation:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -1828,7 +1828,7 @@ class TestB5AnchorIssueUrlValidation:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/100#issuecomment-5552001"
+                "https://github.com/squne121/agent-platform/issues/100#issuecomment-5552001"
             ],
             "anchor_comments": [
                 {
@@ -1844,7 +1844,7 @@ class TestB5AnchorIssueUrlValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1859,7 +1859,7 @@ class TestB5AnchorIssueUrlValidation:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -1869,13 +1869,13 @@ class TestB5AnchorIssueUrlValidation:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/100#issuecomment-5553001"
+                "https://github.com/squne121/agent-platform/issues/100#issuecomment-5553001"
             ],
             "anchor_comments": [
                 {
                     "id": 5553001,
                     "body": "anchor comment",
-                    "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/999",
+                    "issue_url": "https://api.github.com/repos/squne121/agent-platform/issues/999",
                     # points to issue 999, not 100
                 }
             ],
@@ -1886,7 +1886,7 @@ class TestB5AnchorIssueUrlValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1900,7 +1900,7 @@ class TestB5AnchorIssueUrlValidation:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -1910,7 +1910,7 @@ class TestB5AnchorIssueUrlValidation:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/100#issuecomment-5554001"
+                "https://github.com/squne121/agent-platform/issues/100#issuecomment-5554001"
             ],
             "anchor_comments": [
                 {
@@ -1927,7 +1927,7 @@ class TestB5AnchorIssueUrlValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1941,7 +1941,7 @@ class TestB5AnchorIssueUrlValidation:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -1951,7 +1951,7 @@ class TestB5AnchorIssueUrlValidation:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/pull/55#discussion_r9999999"
+                "https://github.com/squne121/agent-platform/pull/55#discussion_r9999999"
             ],
             "anchor_comments": [],
         }
@@ -1961,7 +1961,7 @@ class TestB5AnchorIssueUrlValidation:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -1972,12 +1972,12 @@ class TestB5AnchorIssueUrlValidation:
 
     def test_validate_anchor_issue_url_missing_unit(self):
         """B5: unit test — _validate_anchor_comment_url with missing issue_url → blocked."""
-        url = "https://github.com/testowner/testrepo/issues/100#issuecomment-5555001"
+        url = "https://github.com/squne121/agent-platform/issues/100#issuecomment-5555001"
         # Comment with no issue_url field
         fixture_comments = [{"id": 5555001, "body": "test"}]  # issue_url absent
 
         is_valid, blockers = wrapper._validate_anchor_comment_url(
-            url, "testowner/testrepo", 100, fixture_comments=fixture_comments
+            url, TRUSTED_REPO, 100, fixture_comments=fixture_comments
         )
 
         assert not is_valid
@@ -1985,11 +1985,11 @@ class TestB5AnchorIssueUrlValidation:
 
     def test_validate_anchor_issue_url_empty_unit(self):
         """B5: unit test — _validate_anchor_comment_url with empty issue_url → blocked."""
-        url = "https://github.com/testowner/testrepo/issues/100#issuecomment-5556001"
+        url = "https://github.com/squne121/agent-platform/issues/100#issuecomment-5556001"
         fixture_comments = [{"id": 5556001, "body": "test", "issue_url": ""}]
 
         is_valid, blockers = wrapper._validate_anchor_comment_url(
-            url, "testowner/testrepo", 100, fixture_comments=fixture_comments
+            url, TRUSTED_REPO, 100, fixture_comments=fixture_comments
         )
 
         assert not is_valid
@@ -2008,7 +2008,7 @@ class TestNonBlockerAFailurePathConsistency:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 100,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 100,
@@ -2018,7 +2018,7 @@ class TestNonBlockerAFailurePathConsistency:
             },
             "comments": [],
             "anchor_comment_urls": [
-                "https://github.com/testowner/testrepo/issues/999#issuecomment-6661001"
+                "https://github.com/squne121/agent-platform/issues/999#issuecomment-6661001"
             ],
             "anchor_comments": [],
         }
@@ -2028,7 +2028,7 @@ class TestNonBlockerAFailurePathConsistency:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -2050,7 +2050,7 @@ class TestNonBlockerAFailurePathConsistency:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, _ = wrapper.run_preflight(
                 issue_number=1100,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -2211,7 +2211,7 @@ class TestAC3AC7RewriteConstraintsInvariant:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 300,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 300,
@@ -2233,7 +2233,7 @@ class TestAC3AC7RewriteConstraintsInvariant:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=300,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -2261,7 +2261,7 @@ class TestAC3AC7RewriteConstraintsInvariant:
         fixture_data = {
             "schema_version": "refinement_preflight_input/v1",
             "issue_number": 301,
-            "repo": "testowner/testrepo",
+            "repo": TRUSTED_REPO,
             "now": "2026-01-01T00:00:00+00:00",
             "issue": {
                 "number": 301,
@@ -2278,7 +2278,7 @@ class TestAC3AC7RewriteConstraintsInvariant:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=301,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -2494,7 +2494,7 @@ class TestStructuralRepairWiring:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=995001,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -2540,7 +2540,7 @@ class TestStructuralRepairWiring:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=995002,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
@@ -2574,7 +2574,7 @@ class TestStructuralRepairWiring:
         with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
             result, exit_code = wrapper.run_preflight(
                 issue_number=995003,
-                repo="testowner/testrepo",
+                repo=TRUSTED_REPO,
                 anchor_comment_urls=[],
                 fixture_path=fixture_path,
             )
