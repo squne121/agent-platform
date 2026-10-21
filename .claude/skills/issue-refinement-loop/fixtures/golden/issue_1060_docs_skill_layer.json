@@ -1,0 +1,35 @@
+{
+  "description": "Regression fixture for #1060: ci-test-performance skill directory addition (docs/skill layer). Deterministic approval + no security flag must not require human escalation. Verified by tests/test_scope_signal_guard_lane_split.py::TestRegressionFixtures (AC5/AC12), disjoint from #1086.",
+  "source_issue": 1060,
+  "scope_signal_delta_input": {
+    "before_allowed_paths": ["docs/foo.md"],
+    "after_allowed_paths": ["docs/foo.md", ".claude/skills/ci-test-performance/references/policy.md"]
+  },
+  "cases": [
+    {
+      "name": "approval_present_trusted_owner_deterministic",
+      "scope_delta_approval_evidence": {
+        "marker_present": true,
+        "target_issue_number": 1060,
+        "author_association": "OWNER",
+        "comment_id": 234567,
+        "comment_url": "https://github.com/squne121/agent-platform/issues/1060#issuecomment-234567",
+        "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "created_at": "2026-07-01T00:00:00Z",
+        "issue_url": "https://github.com/squne121/agent-platform/issues/1060",
+        "rationale": "docs-only skill directory addition approved by owner"
+      },
+      "expected_scope_signal_guard_decision_v2": {
+        "raw_signal": {
+          "triggered": true,
+          "reason_code": "new_allowed_path_layer"
+        },
+        "scope_context": {
+          "path_layer": ["skill"]
+        },
+        "route": "proceed_with_notes",
+        "security_sensitive": false
+      }
+    }
+  ]
+}

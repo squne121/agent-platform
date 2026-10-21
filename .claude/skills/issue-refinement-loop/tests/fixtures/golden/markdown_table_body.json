@@ -1,0 +1,103 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": true,
+      "evidence_spans": [],
+      "unmaterialized_slots": [
+        {
+          "body_line": 21,
+          "child_title_hint": "| Tests | `tests/unit/button.test.ts` |  |",
+          "marker": "TBD"
+        }
+      ]
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "deterministic",
+      "evidence_spans": [
+        {
+          "end_line": 64,
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "text_sha256": "a8c6f943e1d82e13ea31a534c4f8069088b49f49ca8ef87a9841f03cd68a10fc"
+        }
+      ],
+      "reason_code": "target_paths_present",
+      "repo_claims": [
+        "| Skills | `.claude/skills/refinement` | Done |",
+        "| Source | `src/components/Button.tsx` | WIP |",
+        "| Tests | `tests/unit/button.test.ts` | TBD |"
+      ],
+      "required": true,
+      "target_paths": [
+        ".claude/skills/refinement",
+        "src/components/Button.tsx",
+        "tests/unit/button.test.ts"
+      ]
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [],
+      "excluded_by_anchor_reframe": false,
+      "reason_code": "no_scope_signal",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "unknown",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "reason_code": "no_critical_external_claim",
+      "required": false
+    }
+  },
+  "fail_closed": {
+    "human_message": "",
+    "reason_codes": [],
+    "required": false
+  },
+  "issue_execution_decision": {
+    "completeness": {
+      "dependencies_complete": false,
+      "issues_complete": false,
+      "unresolved_references": [
+        16
+      ]
+    },
+    "downstream_policy": {
+      "freshness_validation": "required",
+      "semantic_reclassification": "forbidden",
+      "stale_action": "rerun_issue_refinement"
+    },
+    "execution": {
+      "defer_reason": "scope rollup evidence incomplete (scope_rollup_artifact_absent); rerun issue-refinement-loop",
+      "predecessors": [],
+      "state": "deferred",
+      "target_issue_number": 16
+    },
+    "identity": {
+      "collection_digest": "sha256:42024e2bba2d7fbd9828bdc1c8baceb84d90ff703c31770a8a92676c2144ec10",
+      "generated_at": "2025-05-25T12:00:00+00:00",
+      "target_body_sha256": "sha256:a8c6f943e1d82e13ea31a534c4f8069088b49f49ca8ef87a9841f03cd68a10fc",
+      "target_issue_number": 16
+    },
+    "nodes": [
+      {
+        "body_sha256": "sha256:a8c6f943e1d82e13ea31a534c4f8069088b49f49ca8ef87a9841f03cd68a10fc",
+        "issue_number": 16
+      }
+    ],
+    "relations": [],
+    "schema_version": "ISSUE_EXECUTION_DECISION_V1"
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "a8c6f943e1d82e13ea31a534c4f8069088b49f49ca8ef87a9841f03cd68a10fc",
+    "issue_number": 16,
+    "known_context_sha256": null
+  }
+}

@@ -1,0 +1,83 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 3,
+    "issue_body_sha256": "0246c2f745929c2158c20236679799b9c262562f5d3443926b8c46f5e34d9a06",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.526001+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "repo_fact_claim_in_outcome_or_ac_or_vc",
+      "target_paths": [],
+      "repo_claims": [
+        "$ test -f .claude/worktrees/issue-392-test/scripts/check.py"
+      ],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": true,
+      "reason_code": "critical_external_spec_claim",
+      "critical_external_claims": [
+        {
+          "claim": "- Child issue: \"Update documentation\" (TBD)",
+          "affects": "InScope",
+          "source_hint": null
+        }
+      ],
+      "evidence_spans": [
+        {
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "end_line": 26,
+          "text_sha256": "0246c2f745929c2158c20236679799b9c262562f5d3443926b8c46f5e34d9a06"
+        }
+      ],
+      "confidence": "deterministic"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": true,
+      "unmaterialized_slots": [
+        {
+          "child_title_hint": "# Test Issue: delivery_rollup_",
+          "marker": "unmaterialized",
+          "body_line": 1
+        },
+        {
+          "child_title_hint": "- Child issue: \"Implement feature X\"",
+          "marker": "未起票",
+          "body_line": 9
+        },
+        {
+          "child_title_hint": "- Child issue: \"Add tests for feature X\" ()",
+          "marker": "unmaterialized",
+          "body_line": 10
+        },
+        {
+          "child_title_hint": "- Child issue: \"Update documentation\" ()",
+          "marker": "TBD",
+          "body_line": 11
+        }
+      ],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

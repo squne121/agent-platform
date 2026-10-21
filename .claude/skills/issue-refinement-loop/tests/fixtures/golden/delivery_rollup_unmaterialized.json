@@ -1,0 +1,122 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": true,
+      "evidence_spans": [],
+      "unmaterialized_slots": [
+        {
+          "body_line": 1,
+          "child_title_hint": "# Test Issue: Extract  child slots",
+          "marker": "unmaterialized"
+        },
+        {
+          "body_line": 8,
+          "child_title_hint": "goal_ref: \"delivery rollup identifies  child slots\"",
+          "marker": "unmaterialized"
+        },
+        {
+          "body_line": 24,
+          "child_title_hint": "未起票・・ の child slot を正しく拾い、親トラッカーの残件として扱える状態にする。",
+          "marker": "未起票"
+        },
+        {
+          "body_line": 33,
+          "child_title_hint": "-  child slot 抽出",
+          "marker": "unmaterialized"
+        },
+        {
+          "body_line": 57,
+          "child_title_hint": "- #100  - Initial planning document",
+          "marker": "未起票"
+        },
+        {
+          "body_line": 58,
+          "child_title_hint": "- #101 () - Implementation phase",
+          "marker": "unmaterialized"
+        },
+        {
+          "body_line": 59,
+          "child_title_hint": "- #102 () - Verification and testing",
+          "marker": "TBD"
+        },
+        {
+          "body_line": 60,
+          "child_title_hint": "- Code change tracking with (#103)  first sub-issue",
+          "marker": "未起票"
+        }
+      ]
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "unknown",
+      "evidence_spans": [],
+      "reason_code": "no_repo_fact_claim",
+      "repo_claims": [],
+      "required": false,
+      "target_paths": []
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [],
+      "excluded_by_anchor_reframe": false,
+      "reason_code": "no_scope_signal",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "unknown",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "reason_code": "no_critical_external_claim",
+      "required": false
+    }
+  },
+  "fail_closed": {
+    "human_message": "",
+    "reason_codes": [],
+    "required": false
+  },
+  "issue_execution_decision": {
+    "completeness": {
+      "dependencies_complete": false,
+      "issues_complete": false,
+      "unresolved_references": [
+        3
+      ]
+    },
+    "downstream_policy": {
+      "freshness_validation": "required",
+      "semantic_reclassification": "forbidden",
+      "stale_action": "rerun_issue_refinement"
+    },
+    "execution": {
+      "defer_reason": "scope rollup evidence incomplete (scope_rollup_artifact_absent); rerun issue-refinement-loop",
+      "predecessors": [],
+      "state": "deferred",
+      "target_issue_number": 3
+    },
+    "identity": {
+      "collection_digest": "sha256:12a680895822c501d9605c1f3ac77151b54bddd987f7385df945ed415074ea5e",
+      "generated_at": "2025-05-25T12:00:00+00:00",
+      "target_body_sha256": "sha256:d0034240a7b45b4855e3188520c952c3169aaaa5d74549f79a804f63448cc9b7",
+      "target_issue_number": 3
+    },
+    "nodes": [
+      {
+        "body_sha256": "sha256:d0034240a7b45b4855e3188520c952c3169aaaa5d74549f79a804f63448cc9b7",
+        "issue_number": 3
+      }
+    ],
+    "relations": [],
+    "schema_version": "ISSUE_EXECUTION_DECISION_V1"
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "d0034240a7b45b4855e3188520c952c3169aaaa5d74549f79a804f63448cc9b7",
+    "issue_number": 3,
+    "known_context_sha256": null
+  }
+}

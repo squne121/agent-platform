@@ -1,0 +1,14 @@
+{
+ "schema_version": "refinement_preflight_input/v1",
+ "issue_number": 100,
+ "repo": "squne121/agent-platform",
+ "now": "2026-01-01T00:00:00+00:00",
+ "issue": {
+  "number": 100,
+  "title": "Test Issue",
+  "body": "## Machine-Readable Contract\n\n```yaml\ncontract_schema_version: v1\nissue_kind: implementation\nparent_issue: \"#1\"\ngoal_ref: \"#1\"\nchange_kind: code\n```\n\n## Parent Issue\n\n#1\n\n## Parent Goal Ref\n\n- Goal: Test goal\n\n## Current Validated Scope\n\n- scripts/example.py\n\n## Remaining Parent Gaps\n\n- [ ] Nothing remaining\n\n## Runtime Verification Applicability\n\ndecision: not_applicable\nreason: 静的検証のみで完結するため\n\n## Outcome\n\nAdd `scripts/example.py`.\n\n## In Scope\n\n- scripts/example.py\n\n## Out of Scope\n\n- Unrelated changes\n\n## Acceptance Criteria\n\n- [ ] AC1: Script exists.\n\n## Verification Commands\n\n```bash\nuv run python3 scripts/example.py\n```\n\n## Allowed Paths\n\n- scripts/example.py\n\n## Stop Conditions\n\n- Allowed Paths 外の変更が必要な場合\n\n## Required Skills\n\nなし\n",
+  "labels": []
+ },
+ "comments": [],
+ "anchor_comment_urls": []
+}

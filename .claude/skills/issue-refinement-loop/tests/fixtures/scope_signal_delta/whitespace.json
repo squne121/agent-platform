@@ -1,0 +1,10 @@
+{
+  "before_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n",
+  "current_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n",
+  "after_body": "## Allowed Paths\n\n-   `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`   \n",
+  "source_refs": {
+    "before": "fixture:whitespace:before",
+    "current": "fixture:whitespace:current",
+    "after": "fixture:whitespace:after"
+  }
+}

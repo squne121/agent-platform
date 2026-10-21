@@ -1,0 +1,14 @@
+# Before-fail fixture: issue_kind が真の unknown kind（ISSUE_KIND_POLICY_V1 未定義）
+# plan_refinement_loop.py は fail-closed を返すべき
+scenario: issue_kind_unknown_before_fail
+description: "AC1 before-fail: issue_kind=spike は ISSUE_KIND_POLICY_V1 に未定義のため fail-closed"
+input:
+  issue_kind: spike
+  issue_number: 9999
+  title: "test: unknown kind issue"
+expected:
+  plan_refinement_loop:
+    status: fail_closed
+    reason: unknown_issue_kind
+  check_issue_contract:
+    issue_kind_normalized: "UNKNOWN"  # implementation にフォールバックしない

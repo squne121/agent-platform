@@ -1,0 +1,51 @@
+{
+  "description": "Regression fixture for #985: EnemySpawnSystem.ts runtime path expansion detected as new_allowed_path_layer. Verified by tests/test_scope_signal_guard_lane_split.py::TestRegressionFixtures (AC5/AC11), disjoint from #1086 (build_refinement_phase_state.py is out of this issue's scope).",
+  "source_issue": 985,
+  "scope_signal_delta_input": {
+    "before_allowed_paths": ["docs/foo.md"],
+    "after_allowed_paths": ["docs/foo.md", "src/systems/EnemySpawnSystem.ts"]
+  },
+  "cases": [
+    {
+      "name": "approval_missing",
+      "scope_delta_approval_evidence": null,
+      "expected_scope_signal_guard_decision_v2": {
+        "raw_signal": {
+          "triggered": true,
+          "reason_code": "new_allowed_path_layer"
+        },
+        "scope_context": {
+          "path_layer": ["runtime"]
+        },
+        "route": "human_judgment_required",
+        "security_sensitive": false
+      }
+    },
+    {
+      "name": "approval_present_trusted_owner",
+      "scope_delta_approval_evidence": {
+        "marker_present": true,
+        "target_issue_number": 985,
+        "author_association": "OWNER",
+        "comment_id": 123456,
+        "comment_url": "https://github.com/squne121/agent-platform/issues/985#issuecomment-123456",
+        "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "created_at": "2026-07-01T00:00:00Z",
+        "issue_url": "https://github.com/squne121/agent-platform/issues/985",
+        "rationale": "runtime scope expansion approved by owner"
+      },
+      "expected_scope_signal_guard_decision_v2": {
+        "raw_signal": {
+          "triggered": true,
+          "reason_code": "new_allowed_path_layer"
+        },
+        "scope_context": {
+          "path_layer": ["runtime"]
+        },
+        "route": "proceed_with_notes",
+        "security_sensitive": false
+      },
+      "note": "proceed_with_notes still requires issue-contract-review rerun; it is not implementation go."
+    }
+  ]
+}

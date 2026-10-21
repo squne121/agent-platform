@@ -1,0 +1,14 @@
+{
+  "schema_version": "refinement_preflight_input/v1",
+  "issue_number": 102,
+  "repo": "testowner/testrepo",
+  "now": "2026-01-01T00:00:00+00:00",
+  "issue": {
+    "number": 102,
+    "title": "Test issue triggering fail_closed (missing required sections)",
+    "body": "## Machine-Readable Contract\n\n```yaml\ncontract_schema_version: v1\nissue_kind: implementation\n```\n\nThis issue body is intentionally missing the Outcome, Acceptance Criteria, and Verification Commands sections to trigger planner fail_closed.\n",
+    "labels": []
+  },
+  "comments": [],
+  "anchor_comment_urls": []
+}

@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SCOPE_DELTA_AUTHORITY_TRANSPORT_V1",
+  "description": "Immutable authority transport manifest produced by the producer (run_refinement_preflight.py) for a single invocation, binding SCOPE_DELTA_AUTHORITY_EVIDENCE_V1 source identity to a canonical payload digest. Consumed by the router (decide_next_loop_action.py, command_registry.py `decide.run`) and, transitively, by the controlled consumer (run_refinement_preflight.py --consume-authority-transport). #2053.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "invocation_id",
+    "issue_number",
+    "repo",
+    "git_head_sha",
+    "generated_at",
+    "canonicalization_id",
+    "source_comment_id",
+    "source_comment_url",
+    "source_issue_body_sha256",
+    "source_kind",
+    "payload",
+    "payload_sha256"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "SCOPE_DELTA_AUTHORITY_TRANSPORT_V1"
+    },
+    "invocation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "git_head_sha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canonicalization_id": {
+      "type": "string",
+      "const": "loop-protocol-json-c14n-v1",
+      "description": "#2053 P2 fix-delta (iteration 2): narrowed to a const of the only canonicalization actually implemented by producer/router/consumer (plain json.dumps(sort_keys=True, separators=(',',':'), ensure_ascii=False)). 'rfc8785-jcs' was declared but never dispatched on -- removed until an actual RFC 8785 implementation (with its number/sorting semantics) exists."
+    },
+    "source_comment_id": {
+      "type": [
+        "string",
+        "integer",
+        "null"
+      ]
+    },
+    "source_comment_url": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_issue_body_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "source_kind": {
+      "type": "string",
+      "enum": [
+        "issue_comment",
+        "pull_request_review",
+        "parent_issue",
+        "related_issue",
+        "generated_by_agent",
+        "direct_interactive_human_instruction"
+      ]
+    },
+    "payload": {
+      "description": "The SCOPE_DELTA_AUTHORITY_EVIDENCE_V1 (or list thereof) whose canonical bytes are hashed into payload_sha256.",
+      "type": [
+        "object",
+        "array"
+      ]
+    },
+    "payload_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 2,
+    "issue_body_sha256": "a99ed6764402284310ab56dd1830ec360c75f909586c3104a82f28f09bd96d1d",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.501646+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "repo_fact_claim_in_outcome_or_ac_or_vc",
+      "target_paths": [],
+      "repo_claims": [
+        "$ test -f .claude/skills/verify/scripts/auth_test.py"
+      ],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": true,
+      "reason_code": "critical_external_spec_claim",
+      "critical_external_claims": [
+        {
+          "claim": "Add support for the official GitHub CLI API version 2.0 authentication.",
+          "affects": "Outcome",
+          "source_hint": null
+        },
+        {
+          "claim": "- Update to latest GitHub API specification",
+          "affects": "InScope",
+          "source_hint": null
+        },
+        {
+          "claim": "- Ensure compatibility with current CLI auth behavior",
+          "affects": "InScope",
+          "source_hint": null
+        },
+        {
+          "claim": "- [ ] AC1: Implementation follows official GitHub documentation",
+          "affects": "AC",
+          "source_hint": null
+        },
+        {
+          "claim": "- [ ] AC2: Authentication matches current migration behavior",
+          "affects": "AC",
+          "source_hint": null
+        },
+        {
+          "claim": "$ test -f .claude/skills/verify/scripts/auth_test.py",
+          "affects": "VC",
+          "source_hint": null
+        },
+        {
+          "claim": "- Backward compatibility with legacy authentication",
+          "affects": "StopCondition",
+          "source_hint": null
+        }
+      ],
+      "evidence_spans": [
+        {
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "end_line": 25,
+          "text_sha256": "a99ed6764402284310ab56dd1830ec360c75f909586c3104a82f28f09bd96d1d"
+        }
+      ],
+      "confidence": "deterministic"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

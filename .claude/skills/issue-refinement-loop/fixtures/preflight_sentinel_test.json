@@ -1,0 +1,20 @@
+{
+  "schema_version": "refinement_preflight_input/v1",
+  "issue_number": 101,
+  "repo": "testowner/testrepo",
+  "now": "2026-01-01T00:00:00+00:00",
+  "issue": {
+    "number": 101,
+    "title": "Test issue with sentinel in body",
+    "body": "## Machine-Readable Contract\n\n```yaml\ncontract_schema_version: v1\nissue_kind: implementation\n```\n\n## Outcome\n\nSECRET_SENTINEL_12345: This should never appear in stdout.\n\n## In Scope\n\n- scripts/bar.py\n\n## Acceptance Criteria\n\n- [ ] AC1: Script exists.\n\n## Verification Commands\n\n```bash\nuv run python3 scripts/bar.py\n```\n\n## Allowed Paths\n\n- scripts/bar.py\n",
+    "labels": []
+  },
+  "comments": [
+    {
+      "id": 8888001,
+      "body": "Comment with COMMENT_SENTINEL_67890 inside it.",
+      "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/101"
+    }
+  ],
+  "anchor_comment_urls": []
+}

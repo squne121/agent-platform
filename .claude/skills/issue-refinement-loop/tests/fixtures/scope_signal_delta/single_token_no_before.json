@@ -1,0 +1,10 @@
+{
+  "before_body": "## In Scope\n",
+  "current_body": "## In Scope\n",
+  "after_body": "## In Scope\n- `.claude/skills/foo/tests/test_bar.py` の配置を確認する\n",
+  "source_refs": {
+    "before": "fixture:single_token_no_before:before",
+    "current": "fixture:single_token_no_before:current",
+    "after": "fixture:single_token_no_before:after"
+  }
+}

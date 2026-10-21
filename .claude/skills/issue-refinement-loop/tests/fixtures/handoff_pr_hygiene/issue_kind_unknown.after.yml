@@ -1,0 +1,15 @@
+# After-pass fixture: unknown kind の fail-closed が正しく動作する
+scenario: issue_kind_unknown_after_pass
+description: "AC1 after-pass: ISSUE_KIND_POLICY_V1 SSOT 経由で unknown kind を検出し fail-closed を返す"
+input:
+  issue_kind: this_is_a_truly_unknown_kind_xyz_not_in_ssot
+  issue_number: 9999
+  title: "test: truly unknown kind issue"
+expected:
+  plan_refinement_loop:
+    fail_closed:
+      required: true
+      reason_codes:
+        - unknown_issue_kind
+  check_issue_contract:
+    issue_kind_normalized: "unknown_issue_kind"  # UNKNOWN_ISSUE_KIND_SENTINEL

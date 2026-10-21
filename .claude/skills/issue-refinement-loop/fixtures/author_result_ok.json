@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "ok",
+  "updated_fields": ["body"],
+  "mutation_result": {
+    "diff_summary": "Added ## Acceptance Criteria section",
+    "applied_feedback": ["added missing AC section"]
+  },
+  "unchanged_reason": null,
+  "validation_blockers": [],
+  "reflection_notes": [],
+  "parser_gap_repaired": false,
+  "contract_hygiene_repair_applied": false,
+  "checked_body_sha256": "abc123def456abc123def456abc123def456abc123def456abc123def456abc123",
+  "comment_url": null
+}

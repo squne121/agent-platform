@@ -1,0 +1,10 @@
+{
+  "before_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n- `.claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py`\n",
+  "current_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n- `.claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py`\n",
+  "after_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py`\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n",
+  "source_refs": {
+    "before": "fixture:reordered:before",
+    "current": "fixture:reordered:current",
+    "after": "fixture:reordered:after"
+  }
+}

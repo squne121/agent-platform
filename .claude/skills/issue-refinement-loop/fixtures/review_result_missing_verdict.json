@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "ok",
+  "generated_at": "2026-06-11T00:00:00Z",
+  "issue_url": "https://github.com/squne121/agent-platform/issues/42",
+  "blocking_issues": [],
+  "structured_blockers": [],
+  "non_blocking_improvements": [],
+  "diff_proposal": {"add": [], "remove": [], "rewrite": []},
+  "deterministic_checks": {}
+}

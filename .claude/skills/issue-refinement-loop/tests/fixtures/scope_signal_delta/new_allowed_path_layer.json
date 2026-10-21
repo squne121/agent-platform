@@ -1,0 +1,10 @@
+{
+  "before_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n\n## In Scope\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py` の scope 判定更新\n\n## Acceptance Criteria\n- [ ] AC1: Existing scope remains stable\n",
+  "current_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n\n## In Scope\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py` の scope 判定更新\n\n## Acceptance Criteria\n- [ ] AC1: Existing scope remains stable\n",
+  "after_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n- `docs/dev/workflow.md`\n\n## In Scope\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py` の scope 判定更新\n- `docs/dev/workflow.md` への契約追記\n\n## Acceptance Criteria\n- [ ] AC1: Existing scope remains stable\n",
+  "source_refs": {
+    "before": "fixture:new_allowed_path_layer:before",
+    "current": "fixture:new_allowed_path_layer:current",
+    "after": "fixture:new_allowed_path_layer:after"
+  }
+}

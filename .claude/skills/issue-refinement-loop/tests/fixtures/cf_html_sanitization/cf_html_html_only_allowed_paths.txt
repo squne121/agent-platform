@@ -1,0 +1,12 @@
+<html>
+<body>
+<!--StartFragment-->
+<h2>Allowed Paths</h2>
+<ul>
+<li>scripts/example.py</li>
+</ul>
+<!--EndFragment-->
+</body>
+</html>## Revised Acceptance Criteria
+
+- Add retry handling to the sync worker for transient network failures.

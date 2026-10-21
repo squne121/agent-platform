@@ -1,0 +1,120 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": false,
+      "evidence_spans": [],
+      "unmaterialized_slots": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "unknown",
+      "evidence_spans": [],
+      "reason_code": "no_repo_fact_claim",
+      "repo_claims": [],
+      "required": false,
+      "target_paths": []
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [],
+      "excluded_by_anchor_reframe": false,
+      "reason_code": "no_scope_signal",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "deterministic",
+      "critical_external_claims": [
+        {
+          "affects": "VC",
+          "claim": "# Verify against official API documentation: https://api.example.com/docs",
+          "role": "dispositive",
+          "source_hint": null
+        },
+        {
+          "affects": "InScope",
+          "claim": "- Analysis of current official API specification",
+          "role": "dispositive",
+          "source_hint": null
+        },
+        {
+          "affects": "InScope",
+          "claim": "- Validation of auth migration behavior",
+          "role": "dispositive",
+          "source_hint": null
+        },
+        {
+          "affects": "VC",
+          "claim": "Additional requirement: Verify current CLI authentication flow matches the official spec documentation.",
+          "role": "dispositive",
+          "source_hint": null
+        },
+        {
+          "affects": "Outcome",
+          "claim": "Need to verify official CLI API behavior and authentication flow against published documentation.",
+          "role": "dispositive",
+          "source_hint": null
+        }
+      ],
+      "evidence_spans": [
+        {
+          "end_line": 62,
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "text_sha256": "c8782259406b62defb29575768813c8d604ecd49c846e17432ecfe2397646cfd"
+        }
+      ],
+      "reason_code": "critical_external_spec_claim",
+      "required": true
+    }
+  },
+  "fail_closed": {
+    "human_message": "",
+    "reason_codes": [],
+    "required": false
+  },
+  "issue_execution_decision": {
+    "completeness": {
+      "dependencies_complete": false,
+      "issues_complete": false,
+      "unresolved_references": [
+        2
+      ]
+    },
+    "downstream_policy": {
+      "freshness_validation": "required",
+      "semantic_reclassification": "forbidden",
+      "stale_action": "rerun_issue_refinement"
+    },
+    "execution": {
+      "defer_reason": "scope rollup evidence incomplete (scope_rollup_artifact_absent); rerun issue-refinement-loop",
+      "predecessors": [],
+      "state": "deferred",
+      "target_issue_number": 2
+    },
+    "identity": {
+      "collection_digest": "sha256:df4fbd2aafc7a50225877d2588facc67337da934273de6e310cb1cc18b299ba5",
+      "generated_at": "2025-05-25T12:00:00+00:00",
+      "target_body_sha256": "sha256:c8782259406b62defb29575768813c8d604ecd49c846e17432ecfe2397646cfd",
+      "target_issue_number": 2
+    },
+    "nodes": [
+      {
+        "body_sha256": "sha256:c8782259406b62defb29575768813c8d604ecd49c846e17432ecfe2397646cfd",
+        "issue_number": 2
+      }
+    ],
+    "relations": [],
+    "schema_version": "ISSUE_EXECUTION_DECISION_V1"
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "c8782259406b62defb29575768813c8d604ecd49c846e17432ecfe2397646cfd",
+    "issue_number": 2,
+    "known_context_sha256": null
+  }
+}

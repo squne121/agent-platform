@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SCOPE_SIGNAL_DELTA_V1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "inputs",
+    "sections",
+    "signals",
+    "legacy_scope_signal_guard",
+    "suppressions"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "scope_signal_delta/v1"
+    },
+    "inputs": {
+      "type": "object",
+      "required": [
+        "before_body_sha256",
+        "current_body_sha256",
+        "after_body_sha256",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "before_body_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "current_body_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "after_body_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "source_refs": {
+          "type": "object",
+          "required": [
+            "before",
+            "current",
+            "after"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "before": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "current": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "sections": {
+      "type": "object",
+      "required": [
+        "allowed_paths",
+        "in_scope",
+        "acceptance_criteria"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "allowed_paths": {
+          "$ref": "#/$defs/allowedPaths"
+        },
+        "in_scope": {
+          "$ref": "#/$defs/inScope"
+        },
+        "acceptance_criteria": {
+          "$ref": "#/$defs/acceptanceCriteria"
+        }
+      }
+    },
+    "signals": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/signal"
+      }
+    },
+    "legacy_scope_signal_guard": {
+      "type": "object",
+      "required": [
+        "triggered",
+        "reason_code",
+        "excluded_by_anchor_reframe",
+        "triggering_lines"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "triggered": {
+          "type": "boolean"
+        },
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "new_in_scope_area",
+            "new_allowed_path_layer",
+            "new_unverifiable_ac",
+            "no_scope_signal"
+          ]
+        },
+        "excluded_by_anchor_reframe": {
+          "type": "boolean"
+        },
+        "triggering_lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/triggeringLine"
+          }
+        }
+      }
+    },
+    "suppressions": {
+      "type": "object",
+      "required": [
+        "anchor_reframe"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "anchor_reframe": {
+          "type": "object",
+          "required": [
+            "status",
+            "implementation_go",
+            "required_rerun"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "approved_by_trusted_anchor",
+                "not_applicable",
+                "fail_closed"
+              ]
+            },
+            "implementation_go": {
+              "type": "boolean"
+            },
+            "required_rerun": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "stringArray": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "triggeringLine": {
+      "type": "object",
+      "required": [
+        "body_version",
+        "source_ref",
+        "coordinate_space",
+        "start_line",
+        "end_line",
+        "text_sha256"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "body_version": {
+          "type": "string",
+          "enum": [
+            "before",
+            "current",
+            "after"
+          ]
+        },
+        "start_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "end_line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "text_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[a-f0-9]{64}$"
+        },
+        "coordinate_space": {
+          "type": "string",
+          "enum": [
+            "body_absolute_1_based"
+          ]
+        },
+        "source_ref": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "signal": {
+      "type": "object",
+      "required": [
+        "reason_code",
+        "triggered",
+        "normalized_value",
+        "triggering_lines"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "reason_code": {
+          "type": "string",
+          "enum": [
+            "new_in_scope_area",
+            "new_allowed_path_layer",
+            "new_unverifiable_ac"
+          ]
+        },
+        "triggered": {
+          "type": "boolean"
+        },
+        "normalized_value": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "triggering_lines": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/triggeringLine"
+          }
+        }
+      }
+    },
+    "scopeSignalDeltaInputV1": {
+      "type": "object",
+      "required": [
+        "before_body",
+        "current_body",
+        "after_body",
+        "source_refs"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "before_body": {
+          "type": "string"
+        },
+        "current_body": {
+          "type": "string"
+        },
+        "after_body": {
+          "type": "string"
+        },
+        "source_refs": {
+          "type": "object",
+          "required": [
+            "before",
+            "current",
+            "after"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "before": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "current": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "after": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "allowedPaths": {
+      "type": "object",
+      "required": [
+        "before",
+        "current",
+        "after",
+        "added",
+        "removed",
+        "repeated_existing",
+        "before_layers",
+        "current_layers",
+        "after_layers",
+        "added_layers",
+        "removed_layers",
+        "repeated_existing_layers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "before": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "current": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "after": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "added": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "removed": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "repeated_existing": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "before_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "current_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "after_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "added_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "removed_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "repeated_existing_layers": {
+          "$ref": "#/$defs/stringArray"
+        }
+      }
+    },
+    "inScope": {
+      "type": "object",
+      "required": [
+        "before_layers",
+        "after_layers",
+        "added_layers",
+        "repeated_existing_layers"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "before_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "after_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "added_layers": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "repeated_existing_layers": {
+          "$ref": "#/$defs/stringArray"
+        }
+      }
+    },
+    "acceptanceCriteria": {
+      "type": "object",
+      "required": [
+        "added_low_verifiability_items",
+        "before",
+        "after"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "added_low_verifiability_items": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "before": {
+          "$ref": "#/$defs/stringArray"
+        },
+        "after": {
+          "$ref": "#/$defs/stringArray"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "scenario": "issue_kind_unknown_before_fail",
+  "plan_refinement_loop": {
+    "status": "fail_closed",
+    "reason": "unknown_issue_kind"
+  },
+  "check_issue_contract": {
+    "issue_kind_normalized": "UNKNOWN"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "before_body": "## In Scope\n- 既存のコアロジックを確認する\n",
+  "current_body": "## In Scope\n- 既存のコアロジックを確認する\n",
+  "after_body": "## In Scope\n- 既存のコアロジックを確認する\n\n```text\n.claude/skills/foo/tests/test_bar.py\n```\n",
+  "source_refs": {
+    "before": "fixture:fenced_code_nested_path_ignored_in_scope:before",
+    "current": "fixture:fenced_code_nested_path_ignored_in_scope:current",
+    "after": "fixture:fenced_code_nested_path_ignored_in_scope:after"
+  }
+}

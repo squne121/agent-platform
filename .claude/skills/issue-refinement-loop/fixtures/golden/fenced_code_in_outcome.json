@@ -1,0 +1,65 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 13,
+    "issue_body_sha256": "ef61c960cab75b50d76f862c15213fa448829e2cb2f314d0a60c5a3fa3684443",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.768511+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "target_paths_present",
+      "target_paths": [
+        "docs/implementation.md",
+        "src/real/file.ts",
+        "src/utils/Real.ts"
+      ],
+      "repo_claims": [
+        "$ test -f src/real/file.ts",
+        "- Real implementation in `docs/implementation.md`",
+        "// This path should be ignored: src/example/NotReal.ts",
+        "Real target path: `src/utils/Real.ts`",
+        "This issue includes `src/real/file.ts` as a target path.",
+        "import { utils } from 'src/utils/Real.ts';"
+      ],
+      "evidence_spans": [
+        {
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "end_line": 35,
+          "text_sha256": "ef61c960cab75b50d76f862c15213fa448829e2cb2f314d0a60c5a3fa3684443"
+        }
+      ],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": false,
+      "reason_code": "no_critical_external_claim",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "confidence": "unknown"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

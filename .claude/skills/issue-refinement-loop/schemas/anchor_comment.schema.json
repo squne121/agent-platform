@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "anchor_comment.schema.json",
+  "title": "AnchorComment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "url",
+    "id",
+    "issue_number",
+    "html_url",
+    "api_url",
+    "user_login",
+    "author_association",
+    "snapshot",
+    "captured_at",
+    "fetched_at",
+    "comment_created_at",
+    "comment_updated_at",
+    "preliminary_classification",
+    "final_classification",
+    "classification_reason",
+    "verified_claims",
+    "unresolved_claims",
+    "scope_impact",
+    "requires_fact_check"
+  ],
+  "properties": {
+    "url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "id": {
+      "type": [
+        "integer",
+        "string"
+      ]
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "html_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "api_url": {
+      "type": "string",
+      "minLength": 1
+    },
+    "user_login": {
+      "type": "string",
+      "minLength": 1
+    },
+    "author_association": {
+      "type": "string",
+      "enum": [
+        "OWNER",
+        "MEMBER",
+        "COLLABORATOR",
+        "CONTRIBUTOR",
+        "NONE"
+      ]
+    },
+    "snapshot": {
+      "type": "string"
+    },
+    "captured_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "fetched_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "comment_created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "comment_updated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "preliminary_classification": {
+      "type": "string",
+      "enum": [
+        "superseded_by_decision",
+        "reframe_in_place",
+        "feedback_update_required",
+        "human_escalation"
+      ]
+    },
+    "final_classification": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "superseded_by_decision",
+        "reframe_in_place",
+        "feedback_update_required",
+        "human_escalation",
+        null
+      ]
+    },
+    "classification_reason": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "verified_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unresolved_claims": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "scope_impact": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "none",
+        "amend",
+        "replace",
+        "ambiguous",
+        null
+      ]
+    },
+    "requires_fact_check": {
+      "type": "boolean"
+    }
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 1024,
+    "issue_body_sha256": "789abc123def789abc123def789abc123def789abc123def789abc123def789abc",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-01-01T00:00:00+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": false,
+      "reason_code": "no_repo_fact_claim",
+      "target_paths": [],
+      "repo_claims": [],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": false,
+      "reason_code": "no_critical_external_claim",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "scope_signal_guard": {
+      "triggered": true,
+      "reason_code": "new_in_scope_area",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": ["## In Scope\n- new feature area"]
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

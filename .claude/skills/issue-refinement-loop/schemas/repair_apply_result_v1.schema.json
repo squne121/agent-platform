@@ -1,0 +1,1288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RepairApplyResultV1",
+  "description": "Output schema for the repair_action.apply consumer (Issue #2039). Bridges a repair_issue_contract auto_apply_safe candidate to a controlled edit_issue_txn.py Issue-body mutation, with lossless receipt projection, provenance binding, and fresh validation. Producer: run_refinement_preflight.py (repair_action.apply command lane). Consumers: skill_runtime_exec.py caller / impl-review-loop routing. Strict: additionalProperties false.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "phase",
+    "mutation_outcome",
+    "repo",
+    "issue_number",
+    "provenance",
+    "rebase",
+    "retry",
+    "receipt",
+    "fresh_validation",
+    "historical_artifacts"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "repair_apply_result/v1",
+      "description": "Schema version sentinel."
+    },
+    "phase": {
+      "type": "string",
+      "enum": [
+        "not_started",
+        "candidate_load",
+        "provenance_validation",
+        "precondition_read",
+        "rebase",
+        "transaction_prepare",
+        "transaction_execute",
+        "final_readback",
+        "fresh_validation",
+        "complete"
+      ],
+      "description": "Last phase reached. Separate from mutation_outcome/failure_code so failures are attributable to a specific stage (repair lane never emits contract_patch_plan_missing)."
+    },
+    "mutation_outcome": {
+      "type": "string",
+      "enum": [
+        "not_attempted",
+        "no_change",
+        "applied",
+        "unknown"
+      ],
+      "description": "Lossless projection of the underlying edit_issue_txn.py outcome. unknown MUST NOT be collapsed into failed/not_attempted/no_change by any consumer."
+    },
+    "failure_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "multiple_mutation_intents",
+        "no_mutation_intent",
+        "invalid_disposition",
+        "cross_issue_provenance_mismatch",
+        "stale_run_provenance_mismatch",
+        "replacement_provenance_mismatch",
+        "digest_mismatch",
+        "second_body_drift",
+        "non_safe_disposition_after_rerun",
+        "provenance_unreconstructable",
+        "secure_open_rejected",
+        "transaction_execute_error",
+        "final_readback_unresolvable",
+        "source_lane_mismatch",
+        "fresh_validation_failed",
+        null
+      ],
+      "description": "Present only when phase did not reach complete with a definitive success. Repair lane never emits contract_patch_plan_missing (that code is reserved for the contract_update lane)."
+    },
+    "repo": {
+      "type": "string",
+      "description": "owner/repo string."
+    },
+    "issue_number": {
+      "type": "integer",
+      "description": "GitHub Issue number targeted by this repair_action.apply run."
+    },
+    "provenance": {
+      "type": "object",
+      "description": "Full provenance binding validated before any GitHub mutation. Any mismatch here is fail-closed and precedes transaction_execute.",
+      "additionalProperties": false,
+      "required": [
+        "repo",
+        "issue_number",
+        "original_body_sha256",
+        "original_updated_at",
+        "preflight_run_identity",
+        "producer_schema_version",
+        "producer_policy_version",
+        "repair_action_core_sha256",
+        "candidate_digest",
+        "source_lane",
+        "source_refs_digest"
+      ],
+      "properties": {
+        "repo": {
+          "type": "string"
+        },
+        "issue_number": {
+          "type": "integer"
+        },
+        "original_body_sha256": {
+          "type": "string"
+        },
+        "original_updated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "GitHub Issue updatedAt captured at candidate-generation time. Null only when the producer run predates this field (immutable historical artifact replay)."
+        },
+        "preflight_run_identity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identity of the preflight run that produced the candidate (e.g. result_core_sha256 of that run), used to reject stale/old-run candidates."
+        },
+        "producer_schema_version": {
+          "type": "string",
+          "const": "repair_action/v1"
+        },
+        "producer_policy_version": {
+          "type": "string",
+          "const": "deterministic-issue-repair/v1"
+        },
+        "repair_action_core_sha256": {
+          "type": "string",
+          "description": "SHA256 of the environment-independent repair_action_core projection (schema_version, policy_version, disposition, body SHAs, repair_kinds, reason_codes)."
+        },
+        "candidate_digest": {
+          "type": "string",
+          "description": "SHA256 of the candidate body artifact actually read via secure_read_repair_apply_artifact()."
+        },
+        "source_lane": {
+          "type": "string",
+          "enum": [
+            "human_context",
+            "anchor",
+            "unanchored"
+          ],
+          "description": "The provenance lane the original preflight run was executed under. Must be preserved through rebase and fresh validation; lane promotion/mix-up is rejected."
+        },
+        "source_refs_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Digest binding source refs (anchor comment URL/id, human-context evidence) used by the original run. Null only for unanchored lane runs that carry no source refs."
+        }
+      }
+    },
+    "rebase": {
+      "type": "object",
+      "description": "Pre-dispatch body-drift handling. Distinct from post-dispatch retry (see `retry`).",
+      "additionalProperties": false,
+      "required": [
+        "attempted",
+        "producer_reruns",
+        "drift_detected",
+        "second_drift"
+      ],
+      "properties": {
+        "attempted": {
+          "type": "boolean"
+        },
+        "producer_reruns": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Number of times the producer (repair_issue_contract lane) was rerun against a fresh live body. Budget is 1; a second drift is fail-closed, never a second rerun."
+        },
+        "drift_detected": {
+          "type": "boolean"
+        },
+        "second_drift": {
+          "type": "boolean",
+          "description": "true only when drift was detected again after the single allowed producer rerun. When true, mutation_outcome MUST be not_attempted."
+        }
+      }
+    },
+    "retry": {
+      "type": "object",
+      "description": "Post-dispatch retry budget. Always 0; unknown post-dispatch outcomes are resolved via authoritative readback, never blind retry.",
+      "additionalProperties": false,
+      "required": [
+        "post_dispatch_retry_budget",
+        "retries_used"
+      ],
+      "properties": {
+        "post_dispatch_retry_budget": {
+          "type": "integer",
+          "const": 0
+        },
+        "retries_used": {
+          "type": "integer",
+          "const": 0
+        }
+      }
+    },
+    "receipt": {
+      "type": "object",
+      "description": "Lossless projection of the edit_issue_txn.py transaction receipt. No field here may be synthesized/inferred beyond what the transaction actually reported.",
+      "additionalProperties": false,
+      "required": [
+        "patch_attempted",
+        "executor_status",
+        "mutation_outcome",
+        "failure_code",
+        "final_readback"
+      ],
+      "properties": {
+        "patch_attempted": {
+          "type": "boolean"
+        },
+        "executor_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mutation_outcome": {
+          "type": "string",
+          "enum": [
+            "not_attempted",
+            "no_change",
+            "applied",
+            "unknown"
+          ]
+        },
+        "failure_code": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "final_readback": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "digest",
+            "digest_class"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "verified",
+                "unresolved",
+                "not_applicable"
+              ]
+            },
+            "digest": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "digest_class": {
+              "type": "string",
+              "enum": [
+                "candidate",
+                "old",
+                "third",
+                "unknown",
+                "not_applicable"
+              ],
+              "description": "Authoritative readback classification of `digest` relative to the candidate and pre-dispatch (old) digest. third means neither candidate nor old, e.g. a concurrent human edit."
+            }
+          }
+        }
+      }
+    },
+    "fresh_validation": {
+      "type": "object",
+      "description": "Post-transaction fresh validation. Must preserve the original source_lane and reject actionable-repair-remaining/digest-mismatch as success.",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "source_lane_preserved",
+        "actionable_repair_remaining",
+        "final_body_digest_match"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_run",
+            "success",
+            "failed"
+          ]
+        },
+        "source_lane_preserved": {
+          "type": "boolean"
+        },
+        "actionable_repair_remaining": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "final_body_digest_match": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "historical_artifacts": {
+      "type": "object",
+      "description": "Historical preflight/result/candidate/receipt artifacts are immutable evidence; success never deletes them, it only invalidates the latest-action reference.",
+      "additionalProperties": false,
+      "required": [
+        "physically_deleted",
+        "latest_action_reference_invalidated"
+      ],
+      "properties": {
+        "physically_deleted": {
+          "type": "boolean",
+          "const": false
+        },
+        "latest_action_reference_invalidated": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "failure_code": {
+            "const": "multiple_mutation_intents"
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "not_attempted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "rebase": {
+            "type": "object",
+            "properties": {
+              "second_drift": {
+                "const": true
+              }
+            },
+            "required": [
+              "second_drift"
+            ]
+          }
+        },
+        "required": [
+          "rebase"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "not_attempted"
+          },
+          "failure_code": {
+            "const": "second_body_drift"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "applied"
+          }
+        },
+        "required": [
+          "mutation_outcome"
+        ]
+      },
+      "then": {
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "patch_attempted": {
+                "const": true
+              },
+              "final_readback": {
+                "type": "object",
+                "description": "PR #2202 review fix-delta (P1-3): an `applied` outcome must carry independently-verified evidence of the resulting body state -- never an unresolved final readback.",
+                "properties": {
+                  "status": {
+                    "const": "verified"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              }
+            },
+            "required": [
+              "patch_attempted",
+              "final_readback"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "PR #2202 review fix-delta (P1-3): top-level mutation_outcome must always equal receipt.mutation_outcome (never a divergent/synthesized top-level value).",
+      "if": {
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "mutation_outcome": {
+                "const": "not_attempted"
+              }
+            },
+            "required": [
+              "mutation_outcome"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "not_attempted"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "mutation_outcome": {
+                "const": "no_change"
+              }
+            },
+            "required": [
+              "mutation_outcome"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "no_change"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "mutation_outcome": {
+                "const": "applied"
+              }
+            },
+            "required": [
+              "mutation_outcome"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "applied"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "mutation_outcome": {
+                "const": "unknown"
+              }
+            },
+            "required": [
+              "mutation_outcome"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "unknown"
+          },
+          "phase": {
+            "const": "final_readback"
+          },
+          "failure_code": {
+            "const": "final_readback_unresolvable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "multiple_mutation_intents"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "multiple_mutation_intents"
+          }
+        }
+      },
+      "description": "PR #2202 review fix-delta (P1-3): top-level failure_code must equal receipt.failure_code EXCEPT when phase==fresh_validation, where the top-level code is deliberately re-derived to surface a post-mutation control-plane consistency failure that is distinct from (and may not exist on) the underlying GitHub-transaction receipt. One if/then branch per receipt.failure_code enum value (standard JSON Schema has no cross-property $data equality operator in this draft)."
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "no_mutation_intent"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "no_mutation_intent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "invalid_disposition"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "invalid_disposition"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "cross_issue_provenance_mismatch"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "cross_issue_provenance_mismatch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "stale_run_provenance_mismatch"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "stale_run_provenance_mismatch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "replacement_provenance_mismatch"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "replacement_provenance_mismatch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "digest_mismatch"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "digest_mismatch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "second_body_drift"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "second_body_drift"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "non_safe_disposition_after_rerun"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "non_safe_disposition_after_rerun"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "provenance_unreconstructable"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "provenance_unreconstructable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "secure_open_rejected"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "secure_open_rejected"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "transaction_execute_error"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "transaction_execute_error"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "final_readback_unresolvable"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "final_readback_unresolvable"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "source_lane_mismatch"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "source_lane_mismatch"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": "fresh_validation_failed"
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": "fresh_validation_failed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "not": {
+              "const": "fresh_validation"
+            }
+          },
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "failure_code": {
+                "const": null
+              }
+            },
+            "required": [
+              "failure_code"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "const": null
+          }
+        }
+      }
+    },
+    {
+      "description": "phase=complete is always a definitively-resolved terminal state: applied/no_change (a genuine mutation outcome), or a not_attempted outcome that itself reached a terminal resolution (e.g. a pre-dispatch reject, or a dispatched-but-declined edit_issue_txn.py outcome such as human_judgment/failed_no_mutation -- see the `receipt.failure_code == failure_code` equality invariant above for the applicable failure_code in that case). Never `unknown` -- an unresolved outcome sits at phase=final_readback instead (see the receipt.mutation_outcome==unknown rule above).",
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "phase"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "enum": [
+              "no_change",
+              "applied",
+              "not_attempted"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "PR #2202 review fix-delta (P1-3): applied + phase=complete requires fresh validation to have genuinely succeeded (a failed fresh validation moves phase to fresh_validation instead -- see the phase==fresh_validation rule below).",
+      "if": {
+        "properties": {
+          "mutation_outcome": {
+            "const": "applied"
+          },
+          "phase": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "mutation_outcome",
+          "phase"
+        ]
+      },
+      "then": {
+        "properties": {
+          "fresh_validation": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "const": "success"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "description": "PR #2202 review fix-delta (P1-3): the converse of the phase==fresh_validation rule below -- a reported fresh_validation failure that follows a definitive (applied/no_change/not_attempted) outcome must always be surfaced via phase=fresh_validation, never silently left at phase=complete. Scoped to mutation_outcome != unknown: an `unknown` outcome already sits at phase=final_readback (its own genuinely-unconfirmed-result phase, unrelated to this post-mutation consistency check) and a fresh_validation failure on top of that does not relocate it.",
+      "if": {
+        "properties": {
+          "mutation_outcome": {
+            "not": {
+              "const": "unknown"
+            }
+          },
+          "fresh_validation": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "const": "failed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "mutation_outcome",
+          "fresh_validation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "phase": {
+            "const": "fresh_validation"
+          }
+        }
+      }
+    },
+    {
+      "description": "PR #2202 review fix-delta (P1-3): an actually-dispatched mutation (receipt.patch_attempted) must carry a full, non-null ABA-protection provenance binding -- original_updated_at and preflight_run_identity are never null once dispatch has been attempted (mirrors the run_repair_action_apply() pre-dispatch fail-closed gate at the code level).",
+      "if": {
+        "properties": {
+          "receipt": {
+            "type": "object",
+            "properties": {
+              "patch_attempted": {
+                "const": true
+              }
+            },
+            "required": [
+              "patch_attempted"
+            ]
+          }
+        },
+        "required": [
+          "receipt"
+        ]
+      },
+      "then": {
+        "properties": {
+          "provenance": {
+            "type": "object",
+            "properties": {
+              "original_updated_at": {
+                "type": "string"
+              },
+              "preflight_run_identity": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "original_updated_at",
+              "preflight_run_identity"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "fresh_validation"
+          }
+        },
+        "required": [
+          "phase"
+        ]
+      },
+      "then": {
+        "properties": {
+          "failure_code": {
+            "enum": [
+              "source_lane_mismatch",
+              "fresh_validation_failed"
+            ]
+          },
+          "fresh_validation": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "const": "failed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "failure_code"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "complete"
+          }
+        },
+        "required": [
+          "phase"
+        ]
+      },
+      "then": {
+        "properties": {
+          "mutation_outcome": {
+            "enum": [
+              "no_change",
+              "applied",
+              "not_attempted"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "fresh_validation": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "const": "success"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          }
+        },
+        "required": [
+          "fresh_validation"
+        ]
+      },
+      "then": {
+        "properties": {
+          "fresh_validation": {
+            "type": "object",
+            "properties": {
+              "actionable_repair_remaining": {
+                "const": false
+              },
+              "final_body_digest_match": {
+                "const": true
+              },
+              "source_lane_preserved": {
+                "const": true
+              }
+            },
+            "required": [
+              "actionable_repair_remaining",
+              "final_body_digest_match",
+              "source_lane_preserved"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

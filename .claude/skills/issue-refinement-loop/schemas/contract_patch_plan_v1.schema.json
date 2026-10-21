@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CONTRACT_PATCH_PLAN_V1",
+  "description": "Generation-only plan describing how an Issue contract (In Scope / Out of Scope / Acceptance Criteria / Stop Conditions / Verification Commands) should be patched from an explicit human-review directive (#1323). direct_github_write is never performed from this schema's producer -- application happens via issue-editor / edit-issue skill.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "target_issue_number",
+    "base_issue_body_sha256",
+    "source_evidence",
+    "operations",
+    "forbidden",
+    "required_next_step"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "CONTRACT_PATCH_PLAN_V1"
+    },
+    "target_issue_number": { "type": ["integer", "null"], "minimum": 1 },
+    "base_issue_body_sha256": {
+      "description": "PR #1332 review fix (P1): non-null and required whenever this plan is generated for a contract_update_required route -- build_contract_patch_plan_v1() (the sole producer) fails closed rather than emitting a plan with a null base sha256, to prevent downstream stale-issue-body / wrong-section application.",
+      "type": "string",
+      "minLength": 1
+    },
+    "source_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "source_ref",
+          "source_body_sha256",
+          "author_association",
+          "source_comment_id",
+          "extracted_text_sha256",
+          "captured_at"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "source_ref": { "type": ["string", "null"] },
+          "source_body_sha256": { "type": ["string", "null"] },
+          "author_association": {
+            "type": ["string", "null"],
+            "enum": ["OWNER", "MEMBER", "COLLABORATOR", "CONTRIBUTOR", "NONE", null]
+          },
+          "source_comment_id": { "type": ["integer", "string", "null"] },
+          "extracted_text_sha256": {
+            "description": "sha256 of the deterministically-joined extracted_directives text for this evidence entry (never the raw comment body, AC14).",
+            "type": ["string", "null"]
+          },
+          "captured_at": { "type": ["string", "null"], "format": "date-time" },
+          "start_line": { "type": ["integer", "null"], "minimum": 1 },
+          "end_line": { "type": ["integer", "null"], "minimum": 1 }
+        }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["section", "op", "text", "rationale", "source_evidence_index"],
+        "additionalProperties": false,
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": [
+              "In Scope",
+              "Out of Scope",
+              "Acceptance Criteria",
+              "Stop Conditions",
+              "Verification Commands",
+              "Allowed Paths"
+            ]
+          },
+          "op": {
+            "type": "string",
+            "enum": ["append"]
+          },
+          "text": { "type": "string", "minLength": 1 },
+          "rationale": { "type": "string", "minLength": 1 },
+          "source_evidence_index": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "forbidden": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["direct_github_write", "implementation_phase_transition"]
+      },
+      "minItems": 2,
+      "uniqueItems": true
+    },
+    "required_next_step": {
+      "type": "string",
+      "const": "rerun_refinement_after_contract_update"
+    }
+  }
+}

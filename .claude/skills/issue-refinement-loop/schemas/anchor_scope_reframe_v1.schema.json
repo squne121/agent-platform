@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ANCHOR_SCOPE_REFRAME_V1",
+  "description": "Schema for trusted anchor comment that approves a scope delta in issue-refinement-loop",
+  "type": "object",
+  "required": ["schema_version", "target", "decision", "rationale", "required_rerun"],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {"decision": {"const": "approve_scope_delta"}},
+        "required": ["decision"]
+      },
+      "then": {"required": ["allowed_path_deltas"]}
+    },
+    {
+      "if": {
+        "properties": {"decision": {"const": "close_not_planned"}},
+        "required": ["decision"]
+      },
+      "then": {"not": {"required": ["allowed_path_deltas"]}}
+    }
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "ANCHOR_SCOPE_REFRAME_V1"
+    },
+    "target": {
+      "type": "object",
+      "required": ["repo", "issue_number"],
+      "additionalProperties": false,
+      "properties": {
+        "repo": {
+          "type": "string",
+          "description": "Bound to the trusted slug in config/repository_identity.v1.json by the preflight, not by this schema."
+        },
+        "issue_number": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["approve_scope_delta", "close_not_planned"]
+    },
+    "allowed_path_deltas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1
+    },
+    "rationale": {
+      "type": "string",
+      "minLength": 1
+    },
+    "required_rerun": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["contract_review", "refinement_preflight", "allowed_paths_gate"]
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  }
+}

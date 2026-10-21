@@ -1,0 +1,81 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": false,
+      "evidence_spans": [],
+      "unmaterialized_slots": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "unknown",
+      "evidence_spans": [],
+      "reason_code": "no_repo_fact_claim",
+      "repo_claims": [],
+      "required": false,
+      "target_paths": []
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [],
+      "excluded_by_anchor_reframe": false,
+      "reason_code": "no_scope_signal",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "unknown",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "reason_code": "no_critical_external_claim",
+      "required": false
+    }
+  },
+  "fail_closed": {
+    "human_message": "",
+    "reason_codes": [],
+    "required": false
+  },
+  "issue_execution_decision": {
+    "completeness": {
+      "dependencies_complete": false,
+      "issues_complete": false,
+      "unresolved_references": [
+        9
+      ]
+    },
+    "downstream_policy": {
+      "freshness_validation": "required",
+      "semantic_reclassification": "forbidden",
+      "stale_action": "rerun_issue_refinement"
+    },
+    "execution": {
+      "defer_reason": "scope rollup evidence incomplete (scope_rollup_artifact_absent); rerun issue-refinement-loop",
+      "predecessors": [],
+      "state": "deferred",
+      "target_issue_number": 9
+    },
+    "identity": {
+      "collection_digest": "sha256:1a7a5ca83e496d94acb61371ee27df37c033e9b6e0e39cd8511054b20e1c2886",
+      "generated_at": "2025-05-25T12:00:00+00:00",
+      "target_body_sha256": "sha256:ad6e771664b20deebe7287365f48d76e057e6b027b4e26dba743c3d154ed248a",
+      "target_issue_number": 9
+    },
+    "nodes": [
+      {
+        "body_sha256": "sha256:ad6e771664b20deebe7287365f48d76e057e6b027b4e26dba743c3d154ed248a",
+        "issue_number": 9
+      }
+    ],
+    "relations": [],
+    "schema_version": "ISSUE_EXECUTION_DECISION_V1"
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "ad6e771664b20deebe7287365f48d76e057e6b027b4e26dba743c3d154ed248a",
+    "issue_number": 9,
+    "known_context_sha256": null
+  }
+}

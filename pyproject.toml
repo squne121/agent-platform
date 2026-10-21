@@ -3,7 +3,10 @@ name = "agent-platform"
 version = "0.1.0"
 description = "AI development platform"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "jsonschema>=4.18",
+    "pyyaml>=6.0",
+]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]
@@ -19,3 +22,11 @@ xfail_strict = true
 
 [tool.ruff]
 line-length = 100
+# Verbatim-migrated sources (see docs/dev/stage1a-core-manifest.json): kept byte-comparable
+# with the source tag, so they are not reformatted. New code stays linted.
+extend-exclude = [
+    ".claude/skills",
+    "scripts/agent-ops/allowed_paths_policy.py",
+    "scripts/agent-ops/context_budget_report.py",
+    "scripts/agent-ops/evidence_index.py",
+]
