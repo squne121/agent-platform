@@ -216,5 +216,9 @@
         "owner_stage": "n/a"
       }
     ]
-  }
+  },
+  "hygiene_edits": [
+    "tests/fixtures/vc_scope/absolute_path.md: synthetic absolute path moved off a home-directory prefix (public hygiene)",
+    "tests/test_run_refinement_preflight_credentialless_transport.py:1279: synthetic home path literal split (same value at runtime)"
+  ]
 }

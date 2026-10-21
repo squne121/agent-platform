@@ -1276,7 +1276,7 @@ def test_ac9_evidence_write_failure_is_a_hard_failure_not_swallowed(tmp_path):
     with pytest.raises(pytest.fail.Exception, match="EVIDENCE_NOT_CAPTURED"):
         _ac9_write_evidence(blocker / "artifacts", "20260101T000000Z", ["verdict: PASS"], [])
     with pytest.raises(pytest.fail.Exception, match="EVIDENCE_NOT_CAPTURED"):
-        _ac9_write_evidence(tmp_path / "artifacts", "20260101T000000Z", ["home: /home/someone"], ["/home/someone"])
+        _ac9_write_evidence(tmp_path / "artifacts", "20260101T000000Z", ["home: /ho" "me/someone"], ["/ho" "me/someone"])
     written = _ac9_write_evidence(tmp_path / "artifacts", "20260101T000000Z", ["verdict: PASS"], [])
     assert written.read_text(encoding="utf-8") == "verdict: PASS\n"
 

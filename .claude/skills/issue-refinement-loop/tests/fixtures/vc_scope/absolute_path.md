@@ -2,7 +2,7 @@
 
 ```bash
 # AC - absolute path is blocked
-$ rg -n "foo" /home/user/project/.claude/skills/issue-refinement-loop/scripts/check_vc_scope.py
+$ rg -n "foo" /srv/user/project/.claude/skills/issue-refinement-loop/scripts/check_vc_scope.py
 ```
 
 ## Allowed Paths
