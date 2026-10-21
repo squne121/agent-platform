@@ -118,6 +118,19 @@ def test_run_preflight_direct_call_rejects_wrong_repo(tmp_path: Path) -> None:
     assert code != 0
 
 
+def test_run_preflight_direct_call_fails_closed_when_identity_unavailable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    mod = _load("rrp_direct_unavail", SCRIPTS / "run_refinement_preflight.py")
+    broken = tmp_path / "identity.json"
+    broken.write_text("{not json", encoding="utf-8")
+    monkeypatch.setattr(mod._repo_identity, "DEFAULT_CONFIG_PATH", broken)
+    result, code = mod.run_preflight(100, "squne121/agent-platform", [])
+    assert result["status"] == "blocked"
+    assert "REPOSITORY_IDENTITY_UNAVAILABLE" in result["blockers"]
+    assert code != 0
+
+
 SHA = {c: c * 40 for c in "abcdef"}
 
 

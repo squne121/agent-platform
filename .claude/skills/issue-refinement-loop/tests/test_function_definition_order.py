@@ -190,7 +190,7 @@ def test_module_imports_without_nameerror() -> None:
 # ---------------------------------------------------------------------------
 
 _DIRECT_CLI_ISSUE_NUMBER = 99991334
-_DIRECT_CLI_REPO = "testowner/testrepo"
+_DIRECT_CLI_REPO = "squne121/agent-platform"
 _DIRECT_CLI_COMMENT_ID = 88881334
 _DIRECT_CLI_ANCHOR_URL = (
     f"https://github.com/{_DIRECT_CLI_REPO}/issues/{_DIRECT_CLI_ISSUE_NUMBER}"
@@ -377,6 +377,10 @@ def test_direct_cli_anchor_comment_path_has_no_nameerror(tmp_path) -> None:
         "0 (pass) / 1 (warn) / 2 (blocked) / 3 (environment_failure) -- a "
         "code outside this range signals an unhandled interpreter-level "
         f"exception; stdout={proc.stdout}\nstderr={proc.stderr}"
+    )
+    # The anchor path is only exercised if the run got past the repository identity gate.
+    assert "REPOSITORY_IDENTITY" not in combined_output, (
+        f"stopped at the identity gate before the anchor path:\n{proc.stdout}"
     )
     assert "STATUS:" in proc.stdout, (
         "expected the wrapper's compact STATUS: stdout projection to be "

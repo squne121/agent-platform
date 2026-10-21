@@ -27,7 +27,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
-    "tests/stage1a/test_stage1a_core_wiring.py": 17
+    "tests/stage1a/test_stage1a_core_wiring.py": 18
   },
   "expected_ran": {
     ".claude/skills/issue-refinement-loop/scripts/tests/test_repair_issue_contract.py": 53,
@@ -46,7 +46,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
-    "tests/stage1a/test_stage1a_core_wiring.py": 17
+    "tests/stage1a/test_stage1a_core_wiring.py": 18
   },
   "deferred_tests": [
     {
