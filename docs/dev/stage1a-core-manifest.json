@@ -17,7 +17,7 @@
     ".claude/skills/issue-refinement-loop/scripts/tests/test_root_entry_router_workflow_capability.py": 3,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_skill_runtime_exec_env_allowlist.py": 30,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry.py": 30,
-    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 3,
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 14,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_compact_stdout_grammar.py": 10,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry.py": 85,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry_security.py": 25,
@@ -48,7 +48,7 @@
     ".claude/skills/issue-refinement-loop/scripts/tests/test_root_entry_router_workflow_capability.py": 3,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_skill_runtime_exec_env_allowlist.py": 30,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry.py": 30,
-    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 3,
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 14,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_compact_stdout_grammar.py": 10,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry.py": 85,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry_security.py": 25,
@@ -389,7 +389,30 @@
       "no_worktree hook-guard tests (local_main_branch_guard / worktree_scope_guard)": ".claude/hooks/* is out of scope",
       "test_workflow_capability_preflight.py::test_workflow_capability_returns_structured_result / test_launch_check_only_contract_not_regressed": "depend on the launcher preflight.sh (not migrated)",
       "test_malformed_spark_probe_output_is_irrelevant_to_the_retired_decision": "asserted on the removed env-only probe",
-      "test_timeout_taxonomy_compat.py, Spark evidence tests": "Stage 2 / retired Spark"
-    }
+      "test_timeout_taxonomy_compat.py, Spark evidence tests": "Stage 2 / retired Spark",
+      "test_root_entry_router_workflow_capability.py (6 of 9 dropped: consumes_structured_workflow_capabilities, advances_once_on_positive_fixture, capability_preflight_blocked_publishes_no_audit_comment, gh_cli_transport_* x3)": "depend on run_root_transition / GhCliGitHubEntryTransport (Stage 1b / 2 / I-4); the two real-producer tests were rewritten against capability_preflight_result",
+      "test_skill_runtime_preflight_no_worktree.py (7 of 11 dropped)": "exercise .claude/hooks/* (out of scope); executor-level wrong branch / detached HEAD / wrong cwd / wrong repo / linked worktree negatives are covered by test_workflow_start_entry_canonical_executor.py"
+    },
+    "canonical_e2e_boundaries": {
+      "real": [
+        "skill_runtime_exec",
+        "skill_runtime_command_policy",
+        "worktree_bootstrap_*",
+        "worktree_catalog",
+        "workflow_start_entry",
+        "root_entry_router",
+        "workflow_capability_preflight",
+        "trusted_runtime_capabilities",
+        "command_registry"
+      ],
+      "fake": [
+        "gh (fixed-PATH controlled stub)",
+        "inner run_refinement_preflight.py (marker-writing stub)",
+        "local bare origin replacing the GitHub remote",
+        "skill_runtime_exec source-patched for the remote URL constant and the system PATH dirs"
+      ],
+      "real_github_access": "none"
+    },
+    "skill_md_note": "SKILL.md is byte-identical to the source tag. It references scripts owned by Stage 1b / 2 / I-4 (review pipeline, publish, root_entry_router CLI / run_root_transition); those references are expected to dangle until those stages land. Only preflight.run is the Stage 1a-2 canonical entrypoint."
   }
 }

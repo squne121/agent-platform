@@ -58,6 +58,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+import pytest
+
 
 def _load_trusted_slug() -> str:
     """Trusted slug from the single identity source (config/repository_identity.v1.json)."""
@@ -346,6 +348,9 @@ def _run_executor(
     repo: Path,
     inner_marker_path: Path,
     extra_env: dict[str, str] | None = None,
+    *,
+    repo_arg: str | None = None,
+    cwd: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = {
         **os.environ,
@@ -357,15 +362,17 @@ def _run_executor(
     return subprocess.run(
         [
             sys.executable,
-            "scripts/agent-guards/skill_runtime_exec.py",
+            str(repo / "scripts/agent-guards/skill_runtime_exec.py")
+            if cwd is not None
+            else "scripts/agent-guards/skill_runtime_exec.py",
             "--command-id",
             "preflight.run",
             "--issue-number",
             "1228",
             "--repo",
-            f"{_REPO}",
+            repo_arg if repo_arg is not None else f"{_REPO}",
         ],
-        cwd=str(repo),
+        cwd=str(cwd if cwd is not None else repo),
         capture_output=True,
         text=True,
         env=env,
@@ -577,3 +584,154 @@ def test_canonical_executor_fails_closed_with_no_declared_capability_request(tmp
     assert parsed["status"] == "blocked"
     assert parsed["blockers"] == ["caller_capability_request_missing_or_malformed"]
     assert not inner_marker.exists()
+
+
+# --- Stage 1a-2 additions: read-only ready path and executor-level negative controls ----------
+# Real boundaries: skill_runtime_exec, workflow_start_entry, root_entry_router, the producer and
+# trusted_runtime_capabilities. Fake boundaries: the fixed-PATH `gh` stub, the inner
+# run_refinement_preflight.py (marker-writing stub), the stub worktree_catalog is NOT used here
+# (the real one is copied), and a local bare origin replaces the GitHub remote.
+
+_READ_ONLY_OPERATIONS = [
+    {
+        "phase": "workflow_start",
+        "actor_role": "issue-refinement-loop",
+        "operation": "issue_comment",
+        "requires_mutation": False,
+    }
+]
+
+
+def _clean_gh_env(tmp_path: Path, **extra: str) -> dict[str, str]:
+    home = tmp_path / "isolated-home"
+    home.mkdir(exist_ok=True)
+    return {"HOME": str(home), "GH_TOKEN": "", "GITHUB_TOKEN": "", **extra}
+
+
+def test_canonical_executor_read_only_declaration_reaches_inner_preflight(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    trusted_gh_bin = tmp_path / "trusted-gh-bin"
+    _write_controlled_gh(trusted_gh_bin)
+    _install_real_capability_preflight_fixture(repo, trusted_gh_bin=trusted_gh_bin)
+    gh_config_dir = tmp_path / "launcher-gh-config"
+    gh_config_dir.mkdir()
+    inner_marker = tmp_path / "inner-ran.marker"
+    probe_log = tmp_path / "probe-order.log"
+
+    result = _run_executor(
+        repo,
+        inner_marker,
+        extra_env=_clean_gh_env(
+            tmp_path,
+            GH_CONFIG_DIR=str(gh_config_dir),
+            SKILL_RUNTIME_TEST_EXPECTED_GH_CONFIG_DIR=str(gh_config_dir),
+            SKILL_RUNTIME_TEST_GH_PROBE_LOG=str(probe_log),
+            LOOP_PLANNED_OPERATIONS_JSON=json.dumps(_READ_ONLY_OPERATIONS),
+        ),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert inner_marker.exists()
+    assert probe_log.read_text(encoding="utf-8").splitlines()[-1] == "inner-preflight-start"
+    assert "unverified" not in result.stdout  # permission stays a producer detail, never a grant
+
+
+@pytest.mark.parametrize(
+    "declaration",
+    [
+        "{not json",
+        "[]",
+        '{"phase": "x"}',
+        json.dumps([{"phase": "p", "actor_role": "r", "operation": "o"}]),
+        json.dumps([{"phase": "p", "actor_role": "r", "operation": "o", "requires_mutation": "no"}]),
+    ],
+)
+def test_canonical_executor_malformed_planned_operations_fail_closed(
+    tmp_path: Path, declaration: str
+) -> None:
+    repo = _make_repo(tmp_path)
+    _install_real_capability_preflight_fixture(repo)
+    inner_marker = tmp_path / "inner-ran.marker"
+
+    result = _run_executor(
+        repo, inner_marker, extra_env={"LOOP_PLANNED_OPERATIONS_JSON": declaration}
+    )
+
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert _parse_compact_stdout(result.stdout)["status"] == "blocked"
+    assert not inner_marker.exists()
+
+
+def _assert_executor_rejects(result: subprocess.CompletedProcess[str], inner_marker: Path, reason: str):
+    # Either the exact-command policy gate ("exact command class rejected") or the executor's
+    # own runtime-context check (`reason`) must refuse; the inner preflight must never start.
+    output = result.stdout + result.stderr
+    assert result.returncode != 0, output
+    assert "exact command class rejected" in output or reason in output, output
+    assert not inner_marker.exists()
+
+
+def test_canonical_executor_rejects_non_default_branch(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _install_real_capability_preflight_fixture(repo)
+    _git("checkout", "-q", "-b", "feature/x", cwd=repo)
+    marker = tmp_path / "inner-ran.marker"
+    result = _run_executor(
+        repo, marker, extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)}
+    )
+    _assert_executor_rejects(result, marker, "root_not_default_branch")
+
+
+def test_canonical_executor_rejects_detached_head(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _install_real_capability_preflight_fixture(repo)
+    _git("checkout", "-q", "--detach", cwd=repo)
+    marker = tmp_path / "inner-ran.marker"
+    result = _run_executor(
+        repo, marker, extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)}
+    )
+    _assert_executor_rejects(result, marker, "root_not_default_branch")
+
+
+def test_canonical_executor_rejects_wrong_cwd(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _install_real_capability_preflight_fixture(repo)
+    sub = repo / "sub"
+    sub.mkdir()
+    marker = tmp_path / "inner-ran.marker"
+    result = _run_executor(
+        repo,
+        marker,
+        extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)},
+        cwd=sub,
+    )
+    _assert_executor_rejects(result, marker, "cwd_not_canonical_main_root")
+
+
+def test_canonical_executor_rejects_wrong_repo_argument(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _install_real_capability_preflight_fixture(repo)
+    marker = tmp_path / "inner-ran.marker"
+    result = _run_executor(
+        repo,
+        marker,
+        extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)},
+        repo_arg="example/other-repo",
+    )
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert not marker.exists()
+
+
+def test_canonical_executor_rejects_linked_worktree_execution(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _install_real_capability_preflight_fixture(repo)
+    linked = tmp_path / "linked"
+    _git("worktree", "add", "-q", "-b", "task/x", str(linked), cwd=repo)
+    marker = tmp_path / "inner-ran.marker"
+    result = _run_executor(
+        linked,
+        marker,
+        extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)},
+    )
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert not marker.exists()

@@ -46,7 +46,9 @@ jobs:
           version: "0.11.29"
       - run: uv sync --locked
       - name: real-subprocess canonical preflight chain (fake gh boundary only)
+        shell: bash
         run: |
+          set -eo pipefail
           uv run --locked pytest -q -rsxX -p no:cacheprovider \
             tests/stage1a/test_stage1a_2_canonical_preflight.py \
             .claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py \
