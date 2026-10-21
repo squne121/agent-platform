@@ -779,6 +779,8 @@ def _crpd_install_dispatch_fixture(repo_root: Path) -> None:
     repo_module_root = Path(__file__).resolve().parents[4]
 
     for rel in (
+        "scripts/agent-guards/repo_identity.py",
+        "config/repository_identity.v1.json",
         "scripts/agent-guards/skill_runtime_exec.py",
         "scripts/agent-guards/skill_runtime_command_policy.py",
         ".claude/skills/issue-refinement-loop/scripts/command_registry.py",
@@ -786,6 +788,19 @@ def _crpd_install_dispatch_fixture(repo_root: Path) -> None:
         ".claude/skills/issue-refinement-loop/scripts/run_refinement_preflight.py",
     ):
         _crpd_write_text(repo_root / rel, (repo_module_root / rel).read_text())
+
+    # The executor resolves uv against the project's pinned `required-version`; mirror the
+    # real project's pin so this fixture does not depend on the host uv version.
+    import tomllib
+
+    pin = tomllib.loads((repo_module_root / "pyproject.toml").read_text())["tool"]["uv"][
+        "required-version"
+    ]
+    _crpd_write_text(
+        repo_root / "pyproject.toml",
+        f'[project]\nname = "dispatch-fixture"\nversion = "0.0.0"\n\n'
+        f'[tool.uv]\nrequired-version = "{pin}"\nmanaged = false\n',
+    )
 
     schemas_src = repo_module_root / ".claude" / "skills" / "issue-refinement-loop" / "schemas"
     schemas_dst = repo_root / ".claude" / "skills" / "issue-refinement-loop" / "schemas"

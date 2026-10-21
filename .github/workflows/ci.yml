@@ -37,6 +37,22 @@ jobs:
       - run: uv sync --locked
       - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
       - run: uv run --locked python3 -I scripts/ci/run_stage1a_tests.py
+  stage1a-2-canonical-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - name: real-subprocess canonical preflight chain (fake gh boundary only)
+        run: |
+          uv run --locked pytest -q -rsxX -p no:cacheprovider \
+            tests/stage1a/test_stage1a_2_canonical_preflight.py \
+            .claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py \
+            .claude/skills/issue-refinement-loop/scripts/tests/test_skill_runtime_exec_env_allowlist.py \
+            | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
   lint:
     runs-on: ubuntu-latest
     steps:
