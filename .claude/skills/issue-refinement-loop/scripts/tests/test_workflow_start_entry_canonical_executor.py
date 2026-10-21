@@ -662,12 +662,15 @@ def test_canonical_executor_malformed_planned_operations_fail_closed(
     assert not inner_marker.exists()
 
 
-def _assert_executor_rejects(result: subprocess.CompletedProcess[str], inner_marker: Path, reason: str):
-    # Either the exact-command policy gate ("exact command class rejected") or the executor's
-    # own runtime-context check (`reason`) must refuse; the inner preflight must never start.
+def _assert_executor_rejects(
+    result: subprocess.CompletedProcess[str], inner_marker: Path, reason: str
+) -> None:
+    """Branch / repo / worktree violations are refused by the exact-command policy gate before
+    the executor's own `_validate_runtime_context` (defence in depth; that layer is pinned by
+    the wrong-cwd test). Assert the gate's refusal explicitly, not just a non-zero exit."""
     output = result.stdout + result.stderr
-    assert result.returncode != 0, output
-    assert "exact command class rejected" in output or reason in output, output
+    assert result.returncode == 2, output
+    assert "exact command class rejected" in output, output
     assert not inner_marker.exists()
 
 
@@ -705,7 +708,11 @@ def test_canonical_executor_rejects_wrong_cwd(tmp_path: Path) -> None:
         extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)},
         cwd=sub,
     )
-    _assert_executor_rejects(result, marker, "cwd_not_canonical_main_root")
+    # Refused by the executor's own runtime-context check (not the policy gate).
+    output = result.stdout + result.stderr
+    assert result.returncode != 0, output
+    assert "cwd_not_canonical_main_root" in output, output
+    assert not marker.exists()
 
 
 def test_canonical_executor_rejects_wrong_repo_argument(tmp_path: Path) -> None:
@@ -718,8 +725,7 @@ def test_canonical_executor_rejects_wrong_repo_argument(tmp_path: Path) -> None:
         extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)},
         repo_arg="example/other-repo",
     )
-    assert result.returncode != 0, result.stdout + result.stderr
-    assert not marker.exists()
+    _assert_executor_rejects(result, marker, "repo_binding_mismatch")
 
 
 def test_canonical_executor_rejects_linked_worktree_execution(tmp_path: Path) -> None:
@@ -733,5 +739,4 @@ def test_canonical_executor_rejects_linked_worktree_execution(tmp_path: Path) ->
         marker,
         extra_env={"LOOP_PLANNED_OPERATIONS_JSON": json.dumps(_READ_ONLY_OPERATIONS)},
     )
-    assert result.returncode != 0, result.stdout + result.stderr
-    assert not marker.exists()
+    _assert_executor_rejects(result, marker, "repo_binding_mismatch")
