@@ -1,0 +1,124 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": false,
+      "evidence_spans": [],
+      "unmaterialized_slots": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "deterministic",
+      "evidence_spans": [
+        {
+          "end_line": 59,
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "text_sha256": "8e3a86e12b1fb23fe5222386d2d871ca11dfa30fc9b420bddc3feebfb910a4c2"
+        }
+      ],
+      "reason_code": "target_paths_present",
+      "repo_claims": [
+        "- Changes to `.claude/skills` layer (refactoring)",
+        "- Updates to `docs/product` layer (coordination)"
+      ],
+      "required": true,
+      "target_paths": [
+        ".claude/skills",
+        "docs/product"
+      ]
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [
+        {
+          "end_line": 1,
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "text_sha256": "32c648cc60c3ceed112438ad5a88ac5193264ed50cd8233ffe63e3daa28fdb43"
+        }
+      ],
+      "excluded_by_anchor_reframe": true,
+      "reason_code": "anchor_reframe_exclusion",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "deterministic",
+      "critical_external_claims": [
+        {
+          "affects": "AC",
+          "claim": "- AC2: Both manual and API changes are in scope",
+          "role": "dispositive",
+          "source_hint": null
+        },
+        {
+          "affects": "InScope",
+          "claim": "- API surface remains stable",
+          "role": "dispositive",
+          "source_hint": null
+        }
+      ],
+      "evidence_spans": [
+        {
+          "end_line": 59,
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "text_sha256": "8e3a86e12b1fb23fe5222386d2d871ca11dfa30fc9b420bddc3feebfb910a4c2"
+        }
+      ],
+      "reason_code": "critical_external_spec_claim",
+      "required": true
+    }
+  },
+  "fail_closed": {
+    "human_message": "",
+    "reason_codes": [],
+    "required": false
+  },
+  "issue_execution_decision": {
+    "completeness": {
+      "dependencies_complete": false,
+      "issues_complete": false,
+      "unresolved_references": [
+        4
+      ]
+    },
+    "downstream_policy": {
+      "freshness_validation": "required",
+      "semantic_reclassification": "forbidden",
+      "stale_action": "rerun_issue_refinement"
+    },
+    "execution": {
+      "defer_reason": "scope rollup evidence incomplete (scope_rollup_artifact_absent); rerun issue-refinement-loop",
+      "predecessors": [],
+      "state": "deferred",
+      "target_issue_number": 4
+    },
+    "identity": {
+      "collection_digest": "sha256:ba0ee21e676c50bf90d0f82a5e7e539e453f6cd7a7e61afd948c894411906327",
+      "generated_at": "2025-05-25T12:00:00+00:00",
+      "target_body_sha256": "sha256:8e3a86e12b1fb23fe5222386d2d871ca11dfa30fc9b420bddc3feebfb910a4c2",
+      "target_issue_number": 4
+    },
+    "nodes": [
+      {
+        "body_sha256": "sha256:8e3a86e12b1fb23fe5222386d2d871ca11dfa30fc9b420bddc3feebfb910a4c2",
+        "issue_number": 4
+      }
+    ],
+    "relations": [],
+    "schema_version": "ISSUE_EXECUTION_DECISION_V1"
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "8e3a86e12b1fb23fe5222386d2d871ca11dfa30fc9b420bddc3feebfb910a4c2",
+    "issue_number": 4,
+    "known_context_sha256": "8ce0e21497805d28f35c8f0d4032e8ab2ca0b2a1464678cd5879229065576b41"
+  }
+}

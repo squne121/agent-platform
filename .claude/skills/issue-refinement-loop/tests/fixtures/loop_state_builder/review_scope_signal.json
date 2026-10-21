@@ -1,0 +1,10 @@
+{
+  "STATUS": "ok",
+  "VERDICT": "needs-fix",
+  "SUMMARY": "1 blocker(s); first=scope_signal_detected",
+  "BLOCKERS": "1",
+  "NEXT_ACTION": "request_changes",
+  "MUST_READ": "",
+  "EVIDENCE": "",
+  "ARTIFACT": ""
+}

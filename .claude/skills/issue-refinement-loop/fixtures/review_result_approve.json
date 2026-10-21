@@ -1,0 +1,32 @@
+{
+  "schema": "REVIEW_ISSUE_RESULT_V1",
+  "schema_version": "review_issue_result/v1",
+  "status": "ok",
+  "generated_at": "2026-06-11T00:00:00Z",
+  "issue_url": "https://github.com/squne121/agent-platform/issues/42",
+  "body_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "issue_kind": "implementation",
+  "verdict": "approve",
+  "needs_second_pass": false,
+  "failure_class": null,
+  "blocking_issues": [],
+  "structured_blockers": [],
+  "findings": [],
+  "non_blocking_improvements": [],
+  "diff_proposal": {"add": [], "remove": [], "rewrite": []},
+  "parsed_vc_commands": [],
+  "deterministic_checks": {
+    "C1": "pass",
+    "C2": "pass",
+    "C3": "pass",
+    "C4": "pass",
+    "C5": "pass",
+    "C6": "pass",
+    "C7": "pass",
+    "C8": "pass",
+    "C9": "pass",
+    "C10": "pass",
+    "C11": "pass",
+    "C12": "pass"
+  }
+}

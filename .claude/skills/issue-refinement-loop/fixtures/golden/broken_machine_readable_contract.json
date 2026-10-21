@@ -1,0 +1,19 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 9,
+    "issue_body_sha256": "97a6f21366fccf8f890bbf397dd03128bc2bda21dbd738129323ba06c2c52fbc",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.671075+00:00"
+  },
+  "decisions": {},
+  "fail_closed": {
+    "required": true,
+    "reason_codes": [
+      "malformed_machine_readable_contract",
+      "missing_required_section"
+    ],
+    "human_message": "Issue contract malformation detected: malformed_machine_readable_contract, missing_required_section"
+  }
+}

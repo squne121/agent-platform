@@ -1,0 +1,64 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 7,
+    "issue_body_sha256": "759843f4f30a150c6ac3ccef8fa342602e8608fd72188bd9e984a36b2d0d8a00",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.624392+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "repo_fact_claim_in_outcome_or_ac_or_vc",
+      "target_paths": [],
+      "repo_claims": [
+        "$ cat src/example/not_real.ts",
+        "// src/components/ExampleComponent.ts",
+        "import { utilities } from './.claude/skills/internal/utils';"
+      ],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": true,
+      "reason_code": "critical_external_spec_claim",
+      "critical_external_claims": [
+        {
+          "claim": "Improve code examples in documentation.",
+          "affects": "Outcome",
+          "source_hint": null
+        }
+      ],
+      "evidence_spans": [
+        {
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "end_line": 33,
+          "text_sha256": "759843f4f30a150c6ac3ccef8fa342602e8608fd72188bd9e984a36b2d0d8a00"
+        }
+      ],
+      "confidence": "deterministic"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema_version": "refinement_preflight_input/v1",
+  "issue_number": 100,
+  "repo": "testowner/testrepo",
+  "now": "2026-01-01T00:00:00+00:00",
+  "issue": {
+    "number": 100,
+    "title": "Test issue for anchor mismatch",
+    "body": "## Machine-Readable Contract\n\n```yaml\ncontract_schema_version: v1\nissue_kind: implementation\n```\n\n## Outcome\n\nSome outcome.\n\n## In Scope\n\n- scripts/foo.py\n\n## Acceptance Criteria\n\n- [ ] AC1: Something.\n\n## Verification Commands\n\n```bash\nuv run python3 scripts/foo.py\n```\n\n## Allowed Paths\n\n- scripts/foo.py\n",
+    "labels": []
+  },
+  "comments": [
+    {
+      "id": 9999001,
+      "body": "This is a comment on issue 100",
+      "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/100"
+    }
+  ],
+  "anchor_comment_urls": [
+    "https://github.com/testowner/testrepo/issues/999#issuecomment-9999001"
+  ],
+  "anchor_comments": [
+    {
+      "id": 9999001,
+      "body": "This is a comment on issue 100",
+      "issue_url": "https://api.github.com/repos/testowner/testrepo/issues/100"
+    }
+  ]
+}

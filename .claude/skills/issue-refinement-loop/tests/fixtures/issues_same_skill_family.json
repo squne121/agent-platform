@@ -1,0 +1,17 @@
+[
+  {
+    "number": 100,
+    "title": "実装: issue-refinement-loop に Step X を追加する",
+    "body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/SKILL.md`\n\n## Outcome\nStep X が追加される。\n\n## Acceptance Criteria\n- AC1: SKILL.md に Step X が存在する\n"
+  },
+  {
+    "number": 101,
+    "title": "実装: issue-refinement-loop に Step Y を追加する",
+    "body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/SKILL.md`\n\n## Outcome\nStep Y が追加される。\n\n## Acceptance Criteria\n- AC1: SKILL.md に Step Y が存在する\n"
+  },
+  {
+    "number": 102,
+    "title": "実装: issue-refinement-loop のドキュメントを更新する",
+    "body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/references/new-policy.md`\n\n## Outcome\nnew-policy.md が作成される。\n"
+  }
+]

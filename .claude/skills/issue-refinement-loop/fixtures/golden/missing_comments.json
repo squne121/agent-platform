@@ -1,0 +1,48 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 11,
+    "issue_body_sha256": "5ca3d39cd95374c6393ca209159fa96910e21e07fe6c13e8af61c4d4f51cbb52",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.720503+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "repo_fact_claim_in_outcome_or_ac_or_vc",
+      "target_paths": [],
+      "repo_claims": [
+        "$ test -f test.txt"
+      ],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": false,
+      "reason_code": "no_critical_external_claim",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "confidence": "unknown"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

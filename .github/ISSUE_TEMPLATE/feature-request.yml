@@ -1,0 +1,38 @@
+name: Feature request
+description: MVP 範囲内の改善や拡張を提案する
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: 目的
+      description: この変更で何を改善したいかを書いてください
+      placeholder: 戦闘後に resource を使った強化導線を追加したい
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: 変更範囲
+      description: 1 Issue = 1 PR で扱える最小差分に絞ってください
+      placeholder: HUD に resource 表示を追加し、保存データへ反映する
+    validations:
+      required: true
+  - type: dropdown
+    id: mvp
+    attributes:
+      label: MVP 範囲
+      options:
+        - MVP 範囲内
+        - MVP 範囲外
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 完了条件
+      description: 確認方法を含めて記載してください
+      placeholder: pnpm test / pnpm build が通り、resource が保存される
+    validations:
+      required: true

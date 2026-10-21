@@ -1,0 +1,95 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": false,
+      "evidence_spans": [],
+      "unmaterialized_slots": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "deterministic",
+      "evidence_spans": [
+        {
+          "end_line": 71,
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "text_sha256": "067bf30ae46de7f73698df0bacf09664b688ce4632dee874cb72d38151a77604"
+        }
+      ],
+      "reason_code": "target_paths_present",
+      "repo_claims": [
+        "- `src/real/file.ts`",
+        "- `src/utils/Real.ts`"
+      ],
+      "required": true,
+      "target_paths": [
+        "src/real/file.ts",
+        "src/utils/Real.ts"
+      ]
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [],
+      "excluded_by_anchor_reframe": false,
+      "reason_code": "no_scope_signal",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "unknown",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "reason_code": "no_critical_external_claim",
+      "required": false
+    }
+  },
+  "fail_closed": {
+    "human_message": "",
+    "reason_codes": [],
+    "required": false
+  },
+  "issue_execution_decision": {
+    "completeness": {
+      "dependencies_complete": false,
+      "issues_complete": false,
+      "unresolved_references": [
+        17
+      ]
+    },
+    "downstream_policy": {
+      "freshness_validation": "required",
+      "semantic_reclassification": "forbidden",
+      "stale_action": "rerun_issue_refinement"
+    },
+    "execution": {
+      "defer_reason": "scope rollup evidence incomplete (scope_rollup_artifact_absent); rerun issue-refinement-loop",
+      "predecessors": [],
+      "state": "deferred",
+      "target_issue_number": 17
+    },
+    "identity": {
+      "collection_digest": "sha256:fa587fa3eb02610e656b79a4859981bab5958c6a4f502c32ebd6469f45d2905c",
+      "generated_at": "2025-05-25T12:00:00+00:00",
+      "target_body_sha256": "sha256:067bf30ae46de7f73698df0bacf09664b688ce4632dee874cb72d38151a77604",
+      "target_issue_number": 17
+    },
+    "nodes": [
+      {
+        "body_sha256": "sha256:067bf30ae46de7f73698df0bacf09664b688ce4632dee874cb72d38151a77604",
+        "issue_number": 17
+      }
+    ],
+    "relations": [],
+    "schema_version": "ISSUE_EXECUTION_DECISION_V1"
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "067bf30ae46de7f73698df0bacf09664b688ce4632dee874cb72d38151a77604",
+    "issue_number": 17,
+    "known_context_sha256": null
+  }
+}

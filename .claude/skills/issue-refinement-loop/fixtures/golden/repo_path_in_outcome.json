@@ -1,0 +1,67 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 1,
+    "issue_body_sha256": "4a0c2d83a987f0052d76381da6cc6eb107958fa9a2d813e41cdd5e2f28f1d84a",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.476906+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "target_paths_present",
+      "target_paths": [
+        ".claude/skills/test-skill/scripts/test_script.py",
+        "docs/dev/test.md",
+        "src/components/Test.ts",
+        "tests/test_suite.py"
+      ],
+      "repo_claims": [
+        "$ pnpm typecheck src/",
+        "$ test -f scripts/verify.sh",
+        "- Add `src/components/Test.ts`",
+        "- Update `docs/dev/test.md`",
+        "- [ ] AC1: `tests/test_suite.py` passes all assertions",
+        "- [ ] AC2: Code changes in `src/` are properly validated",
+        "Implement `.claude/skills/test-skill/scripts/test_script.py` to validate the refinement loop."
+      ],
+      "evidence_spans": [
+        {
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "end_line": 26,
+          "text_sha256": "4a0c2d83a987f0052d76381da6cc6eb107958fa9a2d813e41cdd5e2f28f1d84a"
+        }
+      ],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": false,
+      "reason_code": "no_critical_external_claim",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "confidence": "unknown"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

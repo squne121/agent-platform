@@ -1,0 +1,1293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RefinementPreflightResultV1",
+  "description": "Output schema for run_refinement_preflight.py result artifact. Strict: additionalProperties false.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "issue_number",
+    "repo",
+    "planner_exit_code",
+    "planner_fail_closed",
+    "next_action",
+    "must_read",
+    "do_not_read",
+    "commands",
+    "blockers",
+    "artifacts",
+    "hashes"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "refinement_preflight_result/v1",
+      "description": "Schema version sentinel."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "warn",
+        "needs_fix",
+        "blocked",
+        "environment_failure"
+      ],
+      "description": "Wrapper-level status after applying exit_code_mapping table."
+    },
+    "issue_number": {
+      "type": "integer",
+      "description": "GitHub Issue number."
+    },
+    "repo": {
+      "type": "string",
+      "description": "owner/repo string."
+    },
+    "planner_exit_code": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Exit code returned by plan_refinement_loop.py. Null if planner was not invoked."
+    },
+    "planner_fail_closed": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Value of plan.fail_closed.required from planner output. Null if planner was not invoked."
+    },
+    "next_action": {
+      "type": "string",
+      "description": "Suggested next action for the orchestrator (e.g. 'proceed', 'human_judgment_required', 'fix_environment')."
+    },
+    "must_read": {
+      "type": "array",
+      "description": "Files/paths the orchestrator must read before proceeding.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "do_not_read": {
+      "type": "array",
+      "description": "Files/paths the orchestrator must not read to conserve context.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "commands": {
+      "type": "array",
+      "description": "Suggested commands. Each item must use argv array only (no shell strings).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "argv",
+          "shell",
+          "source"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "Command kind (e.g. 'run_planner', 'validate_schema')."
+          },
+          "argv": {
+            "type": "array",
+            "description": "Argument vector. Must not contain shell-interpolated strings.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "shell": {
+            "type": "boolean",
+            "const": false,
+            "description": "Always false. Shell execution is prohibited."
+          },
+          "source": {
+            "type": "string",
+            "description": "Origin of this command template.",
+            "enum": [
+              "static_wrapper_template",
+              "registry"
+            ]
+          }
+        }
+      }
+    },
+    "planner_fail_closed_reason_codes": {
+      "type": "array",
+      "description": "Planner fail_closed reason codes mirrored for schema-safe forwarding.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_sections": {
+      "type": "array",
+      "description": "Sections required by FAIL_CLOSED_REWRITE_CONSTRAINTS_V1.required_sections (planner-derived).",
+      "items": {
+        "type": "string"
+      }
+    },
+    "required_contract_keys": {
+      "type": "array",
+      "description": "Contract keys required by FAIL_CLOSED_REWRITE_CONSTRAINTS_V1.required_contract_keys (planner-derived).",
+      "items": {
+        "type": "string"
+      }
+    },
+    "rewrite_constraints": {
+      "type": "object",
+      "description": "Planner fail_closed rewrite constraints mirrored for artifact/compact passthrough.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "required_sections",
+        "required_contract_keys",
+        "rewrite_constraints",
+        "override_policy",
+        "max_rewrite_attempts",
+        "no_progress_route"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "FAIL_CLOSED_REWRITE_CONSTRAINTS_V1"
+        },
+        "required_sections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_contract_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rewrite_constraints": {
+          "type": "object",
+          "required": [
+            "must_add_sections",
+            "must_add_contract_keys",
+            "freeform_rewrite_forbidden"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "must_add_sections": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "must_add_contract_keys": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "freeform_rewrite_forbidden": {
+              "type": "boolean",
+              "const": true
+            }
+          }
+        },
+        "override_policy": {
+          "type": "object",
+          "required": [
+            "allowed_reason_codes",
+            "never_override_reason_codes",
+            "overridable_in_current_result",
+            "non_overridable_in_current_result"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "allowed_reason_codes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "missing_required_section",
+                  "missing_required_contract_key"
+                ]
+              }
+            },
+            "never_override_reason_codes": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "unknown_issue_kind",
+                  "issue_kind_policy_load_error",
+                  "contract_schema_parse_error",
+                  "template_resolution_error",
+                  "checker_internal_error"
+                ]
+              }
+            },
+            "overridable_in_current_result": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "missing_required_section",
+                  "missing_required_contract_key"
+                ]
+              }
+            },
+            "non_overridable_in_current_result": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "unknown_issue_kind",
+                  "issue_kind_policy_load_error",
+                  "contract_schema_parse_error",
+                  "template_resolution_error",
+                  "checker_internal_error",
+                  "malformed_machine_readable_contract",
+                  "unknown_input_schema",
+                  "planner_internal_error",
+                  "missing_required_parent_section",
+                  "template_required_sections_unavailable"
+                ]
+              }
+            }
+          }
+        },
+        "max_rewrite_attempts": {
+          "type": "integer"
+        },
+        "no_progress_route": {
+          "type": "string"
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "description": "Blocker reason codes (e.g. 'ANCHOR_NOT_IN_ISSUE').",
+      "items": {
+        "type": "string"
+      }
+    },
+    "contract_update": {
+      "type": "object",
+      "description": "Optional bounded handoff emitted only by contract_update.run.with_anchor. It contains no Issue body or raw anchor text.",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "writes",
+        "iterations",
+        "final_readback",
+        "fresh_preflight",
+        "fresh_review",
+        "fresh_readiness"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "applied",
+            "no_change",
+            "rebased",
+            "failed",
+            "handoff_required"
+          ]
+        },
+        "disposition": {
+          "description": "PR #2057 OWNER review P1-3: echoes the single canonical scope-reframe classifier's disposition (decide_rewrite_route.classify_scope_reframe_disposition). null when the mutation attempt predates that classification (pre-#2048 non-scope-reframe callers).",
+          "enum": [
+            "patch",
+            "proven_no_change",
+            "full_rewrite_required",
+            "invalid",
+            null
+          ]
+        },
+        "reason_code": {
+          "description": "Bounded failure reason (required for failed) or canonical full-rewrite handoff reason (required for handoff_required). Forbidden for applied/no_change/rebased. Never raw OWNER text.",
+          "type": "string",
+          "enum": [
+            "unsafe_unstructured_patch_operation",
+            "contract_patch_plan_missing",
+            "contract_patch_plan_operations_not_list",
+            "invalid_scope_delta_decision_binding",
+            "invalid_scope_delta_decision",
+            "invalid_patch_plan_producer_unavailable",
+            "invalid_operations_key_missing",
+            "invalid_operations_not_list",
+            "invalid_allowed_path_deltas_not_list",
+            "invalid_blank_delta_entry",
+            "invalid_anchor_binding_mismatch",
+            "invalid_source_evidence_binding_mismatch",
+            "invalid_allowed_paths_parser_unavailable",
+            "human_review_directive_route_import_failed",
+            "human_review_directive_route_classifier_error",
+            "human_review_directive_route_fresh_readback_failed",
+            "scope_reframe_router_import_failed",
+            "scope_delta_status_required_when_allowed_path_deltas_present",
+            "candidate_readiness_not_go",
+            "anchor_identity_or_trust_changed",
+            "body_drift_retry_exhausted",
+            "final_readback_postcondition_failed",
+            "section_postcondition_failed",
+            "post_update_gate_failed",
+            "contract_update_failed",
+            "approved_scope_requires_full_contract_rewrite",
+            "explicit_trusted_human_directive_requires_issue_editor"
+          ]
+        },
+        "writes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "iterations": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "final_readback": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "failed",
+            "not_applicable"
+          ]
+        },
+        "fresh_preflight": {
+          "type": "string"
+        },
+        "fresh_review": {
+          "type": "string"
+        },
+        "fresh_readiness": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"status": {"enum": ["failed", "handoff_required"]}},
+            "required": ["status"]
+          },
+          "then": {"required": ["reason_code"]},
+          "else": {"not": {"required": ["reason_code"]}}
+        },
+        {
+          "if": {
+            "properties": {"status": {"const": "handoff_required"}},
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {"reason_code": {"enum": [
+              "approved_scope_requires_full_contract_rewrite",
+              "explicit_trusted_human_directive_requires_issue_editor"
+            ]}}
+          },
+          "else": {
+            "properties": {"reason_code": {"not": {"enum": [
+              "approved_scope_requires_full_contract_rewrite",
+              "explicit_trusted_human_directive_requires_issue_editor"
+            ]}}}
+          }
+        }
+      ]
+    },
+    "artifacts": {
+      "type": "object",
+      "description": "Paths to artifact files written by this wrapper.",
+      "additionalProperties": false,
+      "properties": {
+        "raw_issue_snapshot": {
+          "type": "string",
+          "description": "Path to raw_issue_snapshot.json"
+        },
+        "planner_input": {
+          "type": "string",
+          "description": "Path to planner_input.json"
+        },
+        "refinement_preflight_result_v1": {
+          "type": "string",
+          "description": "Path to refinement_preflight_result_v1.json"
+        },
+        "repair_diagnostics": {
+          "type": "string",
+          "description": "Path to repair_diagnostics.json (Issue #2016 iteration-3 P1-1; present when status: needs_fix)."
+        },
+        "repair_candidate_body": {
+          "type": "string",
+          "description": "Path to repaired_issue_body.md, the auto_apply_safe candidate body (Issue #2016 iteration-3 P1-1; present when status: needs_fix)."
+        }
+      }
+    },
+    "hashes": {
+      "type": "object",
+      "description": "SHA256 hashes of key artifacts for byte-stability verification.",
+      "additionalProperties": false,
+      "properties": {
+        "raw_issue_snapshot_sha256": {
+          "type": "string",
+          "description": "SHA256 of canonical JSON of raw_issue_snapshot."
+        },
+        "planner_input_sha256": {
+          "type": "string",
+          "description": "SHA256 of canonical JSON of planner_input."
+        },
+        "result_core_sha256": {
+          "type": "string",
+          "description": "SHA256 of canonical JSON of result core fields (excl. artifacts, hashes). When status: needs_fix, also binds a stable environment-independent projection of repair_action (schema_version, policy_version, disposition, original/repaired body SHA, repair_kinds, reason_codes -- excluding absolute artifact paths) under result_core.repair_action_core (Issue #2016 iteration-3 P1-2)."
+        }
+      }
+    },
+    "repair_action": {
+      "type": "object",
+      "description": "Versioned repair_action disposition projection (Issue #2016). Present only when status == needs_fix (disposition: auto_apply_safe). Mirrors the producer repair_action contract (repair_issue_contract_result_v1.schema.json) with wrapper-owned diagnostics_artifact / candidate_body_artifact paths filled in. Migrated for Issue #2039 repair_action.apply consumer: adds optional provenance-lane fields (source_lane, preflight_run_identity, original_updated_at, source_refs_digest). These are additive/optional; absence (older artifacts) does not invalidate the payload.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "policy_version",
+        "disposition",
+        "original_body_sha256",
+        "repaired_body_sha256",
+        "diagnostics_artifact",
+        "candidate_body_artifact",
+        "repair_kinds",
+        "reason_codes"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "repair_action/v1"
+        },
+        "policy_version": {
+          "type": "string",
+          "const": "deterministic-issue-repair/v1"
+        },
+        "disposition": {
+          "type": "string",
+          "enum": [
+            "auto_apply_safe",
+            "human_review_required",
+            "informational",
+            "invalid_payload"
+          ]
+        },
+        "original_body_sha256": {
+          "type": "string"
+        },
+        "repaired_body_sha256": {
+          "type": "string"
+        },
+        "diagnostics_artifact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "candidate_body_artifact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "repair_kinds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "source_lane": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "human_context",
+            "anchor",
+            "unanchored",
+            null
+          ],
+          "description": "Provenance lane the producer run executed under (Issue #2039 AC9). Null for pre-migration historical artifacts."
+        },
+        "preflight_run_identity": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identity of the preflight run that produced this repair_action (e.g. result_core_sha256 of that run). Null for pre-migration historical artifacts."
+        },
+        "original_updated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "GitHub Issue updatedAt captured at candidate-generation time. Null for pre-migration historical artifacts."
+        },
+        "source_refs_digest": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Digest binding source refs (anchor comment URL/id, human-context evidence) used by the producer run. Null for unanchored lane or pre-migration historical artifacts."
+        }
+      }
+    },
+    "structural_repair_action": {
+      "type": "object",
+      "description": "Versioned template-derived structural-repair handoff bundle (Issue #995). One producer run batches every missing/duplicate/empty/placeholder-only required template section and Machine-Readable Contract key into this single bundle. Optional/additive: absent when the producer was not invoked in structural-repair mode.",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "policy_version",
+        "issue_kind",
+        "repo",
+        "issue_number",
+        "original_body_sha256",
+        "original_updated_at",
+        "items",
+        "disposition_summary"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string",
+          "const": "structural_repair_action/v1"
+        },
+        "policy_version": {
+          "type": "string",
+          "const": "template-derived-structural-repair/v1"
+        },
+        "issue_kind": {
+          "type": "string"
+        },
+        "repo": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "issue_number": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "original_body_sha256": {
+          "type": "string"
+        },
+        "original_updated_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "field_id",
+              "label",
+              "required",
+              "template_field_order",
+              "template_path",
+              "template_digest",
+              "expected_cardinality",
+              "observed_cardinality",
+              "disposition",
+              "derivation",
+              "reason_codes",
+              "repo",
+              "issue_number",
+              "original_body_sha256",
+              "original_updated_at",
+              "insertion"
+            ],
+            "properties": {
+              "field_id": {
+                "type": "string"
+              },
+              "label": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean",
+                "const": true
+              },
+              "template_field_order": {
+                "type": "integer",
+                "minimum": -1
+              },
+              "template_path": {
+                "type": "string"
+              },
+              "template_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "expected_cardinality": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "observed_cardinality": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "disposition": {
+                "type": "string",
+                "enum": [
+                  "auto_apply_safe",
+                  "human_review_required"
+                ]
+              },
+              "derivation": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "template_value_exact",
+                  "source_span_exact",
+                  "derived_scalar_exact",
+                  null
+                ]
+              },
+              "reason_codes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1
+              },
+              "candidate_value": {
+                "type": "string"
+              },
+              "candidate_digest": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "source_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "source_span": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "line_start": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "line_end": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "authority_kind": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "parent_issue",
+                      "owner_anchor",
+                      "design_reference",
+                      "current_issue",
+                      null
+                    ]
+                  },
+                  "source_repo": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^[^/\\s]+/[^/\\s]+$|^$"
+                  },
+                  "source_object_kind": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "issue_body",
+                      "issue_comment",
+                      "git_blob",
+                      null
+                    ]
+                  },
+                  "source_object_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "source_revision": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "source_text_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "candidate_sha256": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "repo": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "issue_number": {
+                "type": [
+                  "integer",
+                  "null"
+                ]
+              },
+              "original_body_sha256": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "original_updated_at": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "insertion": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "disposition",
+                  "relation",
+                  "anchor_field_id",
+                  "anchor_heading",
+                  "anchor_start_line",
+                  "anchor_digest",
+                  "rendered_heading",
+                  "candidate_section_digest"
+                ],
+                "properties": {
+                  "disposition": {
+                    "type": "string",
+                    "enum": [
+                      "exact",
+                      "ambiguous"
+                    ]
+                  },
+                  "relation": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "before",
+                      "after",
+                      "replace_section_content",
+                      "insert_contract_key",
+                      null
+                    ]
+                  },
+                  "anchor_field_id": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "anchor_heading": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "anchor_start_line": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ],
+                    "minimum": 1
+                  },
+                  "anchor_digest": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "rendered_heading": {
+                    "type": "string"
+                  },
+                  "candidate_section_digest": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                },
+                "allOf": [
+                  {
+                    "if": {
+                      "properties": {
+                        "disposition": {
+                          "const": "ambiguous"
+                        }
+                      },
+                      "required": [
+                        "disposition"
+                      ]
+                    },
+                    "then": {
+                      "properties": {
+                        "anchor_field_id": {
+                          "const": null
+                        }
+                      }
+                    }
+                  }
+                ]
+              },
+              "content_state": {
+                "type": "string",
+                "enum": [
+                  "nonempty",
+                  "empty",
+                  "placeholder",
+                  "malformed"
+                ],
+                "description": "Issue #995 P1-3: observed content state, kept independent of observed_cardinality (a heading observed once but empty/placeholder-only still has observed_cardinality: 1)."
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "disposition": {
+                      "const": "auto_apply_safe"
+                    }
+                  },
+                  "required": [
+                    "disposition"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "derivation": {
+                      "type": "string",
+                      "enum": [
+                        "template_value_exact",
+                        "source_span_exact",
+                        "derived_scalar_exact"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "candidate_value",
+                    "candidate_digest"
+                  ]
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "disposition": {
+                      "const": "human_review_required"
+                    }
+                  },
+                  "required": [
+                    "disposition"
+                  ]
+                },
+                "then": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "candidate_value"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "candidate_digest"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "source_url"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "source_span"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "disposition_summary": {
+          "type": "string",
+          "enum": [
+            "auto_apply_safe",
+            "human_review_required",
+            "no_missing_fields_detected"
+          ]
+        },
+        "template_git_blob_sha": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Issue #995 fix_delta (P1-3): git blob SHA (`git hash-object`) of the `.github/ISSUE_TEMPLATE/*.yml` file this bundle was diffed against, as resolved by the caller (this producer never shells out to git itself). Null when the caller did not supply one (e.g. standalone unit tests constructing template_text in-memory)."
+        },
+        "template_source_ref": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Issue #995 fix_delta (P1-3): `<repo>@<commit-sha>` the caller resolved the template from, additive alongside template_git_blob_sha. Null when the caller did not supply one."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "disposition_summary": {
+                "const": "no_missing_fields_detected"
+              }
+            },
+            "required": [
+              "disposition_summary"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition_summary": {
+                "const": "auto_apply_safe"
+              }
+            },
+            "required": [
+              "disposition_summary"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "minItems": 1,
+                "contains": {
+                  "properties": {
+                    "disposition": {
+                      "const": "auto_apply_safe"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "disposition_summary": {
+                "const": "human_review_required"
+              }
+            },
+            "required": [
+              "disposition_summary"
+            ]
+          },
+          "then": {
+            "properties": {
+              "items": {
+                "minItems": 1,
+                "contains": {
+                  "properties": {
+                    "disposition": {
+                      "const": "human_review_required"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "reason_code": {
+      "type": "string",
+      "enum": [
+        "unexpected_authentication_dependency",
+        "rate_limited",
+        "http_403_forbidden",
+        "canonical_resource_missing",
+        "upstream_environment_failure",
+        "transport_connectivity_failure",
+        "malformed_response_body",
+        "cross_repository_read_rejected",
+        "invalid_issue_number",
+        "invalid_comment_id",
+        "credentialless_read_error",
+        "credentialless_transport_unavailable",
+        "credentialless_comments_unexpected_type",
+        "gh_auth_required",
+        "gh_not_found",
+        "gh_timeout",
+        "gh_json_decode_error",
+        "gh_unexpected_error",
+        "gh_exit_error",
+        "gh_unclassified_error",
+        "transport_internal_error",
+        "planner_internal_error",
+        "planner_invocation_missing"
+      ],
+      "description": "Issue #2257 AC10: sanitized, closed-enum classification of an environment_failure. Required when status == \"environment_failure\", forbidden otherwise. Never a transcribed exception message -- an unrecognized underlying failure always maps to the fixed fallback 'transport_internal_error'."
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "credentialless_transport",
+        "gh_cli",
+        "internal"
+      ],
+      "description": "Issue #2257 AC10: which read authority (or internal subsystem) the environment_failure originated from. Required when status == \"environment_failure\", forbidden otherwise."
+    },
+    "operation": {
+      "type": "string",
+      "enum": [
+        "read_issue",
+        "list_issue_comments",
+        "read_issue_comment",
+        "write_artifacts",
+        "load_fixture",
+        "planner_invocation",
+        "unspecified"
+      ],
+      "description": "Issue #2257 AC10: which operation was in progress when the environment_failure occurred. Required when status == \"environment_failure\", forbidden otherwise."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "planner_fail_closed": {
+            "const": true
+          }
+        },
+        "required": [
+          "planner_fail_closed"
+        ]
+      },
+      "then": {
+        "required": [
+          "planner_fail_closed_reason_codes",
+          "required_sections",
+          "required_contract_keys",
+          "rewrite_constraints"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "needs_fix"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "anyOf": [
+          {
+            "required": [
+              "repair_action",
+              "artifacts"
+            ],
+            "properties": {
+              "repair_action": {
+                "type": "object",
+                "required": [
+                  "disposition",
+                  "diagnostics_artifact",
+                  "candidate_body_artifact"
+                ],
+                "properties": {
+                  "disposition": {
+                    "const": "auto_apply_safe"
+                  },
+                  "diagnostics_artifact": {
+                    "type": "string"
+                  },
+                  "candidate_body_artifact": {
+                    "type": "string"
+                  }
+                }
+              },
+              "artifacts": {
+                "type": "object",
+                "required": [
+                  "repair_diagnostics",
+                  "repair_candidate_body"
+                ],
+                "properties": {
+                  "repair_diagnostics": {
+                    "type": "string"
+                  },
+                  "repair_candidate_body": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "required": [
+              "structural_repair_action"
+            ],
+            "properties": {
+              "structural_repair_action": {
+                "properties": {
+                  "disposition_summary": {
+                    "const": "auto_apply_safe"
+                  }
+                },
+                "required": [
+                  "disposition_summary"
+                ]
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "structural_repair_action": {
+            "properties": {
+              "disposition_summary": {
+                "const": "auto_apply_safe"
+              }
+            },
+            "required": [
+              "disposition_summary"
+            ]
+          }
+        },
+        "required": [
+          "structural_repair_action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "needs_fix"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "structural_repair_action": {
+            "properties": {
+              "disposition_summary": {
+                "const": "human_review_required"
+              }
+            },
+            "required": [
+              "disposition_summary"
+            ]
+          }
+        },
+        "required": [
+          "structural_repair_action"
+        ]
+      },
+      "then": {
+        "properties": {
+          "status": {
+            "const": "blocked"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "environment_failure"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "reason_code",
+          "source",
+          "operation"
+        ]
+      },
+      "else": {
+        "not": {
+          "anyOf": [
+            {
+              "required": [
+                "reason_code"
+              ]
+            },
+            {
+              "required": [
+                "source"
+              ]
+            },
+            {
+              "required": [
+                "operation"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

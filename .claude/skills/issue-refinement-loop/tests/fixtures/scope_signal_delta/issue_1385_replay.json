@@ -1,0 +1,10 @@
+{
+  "before_body": "## Allowed Paths\n- `src/main.ts`\n- `tests/main.test.ts`\n\n## In Scope\n- `src/main.ts` と `tests/main.test.ts` の既存修正を維持する\n\n## Acceptance Criteria\n- [ ] AC1: Existing scope remains stable\n",
+  "current_body": "## Allowed Paths\n- `src/main.ts`\n- `tests/main.test.ts`\n\n## In Scope\n- `src/main.ts` と `tests/main.test.ts` の既存修正を維持する\n\n## Acceptance Criteria\n- [ ] AC1: Existing scope remains stable\n",
+  "after_body": "## Allowed Paths\n- `src/main.ts`\n- `tests/main.test.ts`\n\n## In Scope\n- `src/main.ts` と `tests/main.test.ts` の既存修正を維持する\n\n## Acceptance Criteria\n- [ ] AC1: Existing scope remains stable\n",
+  "source_refs": {
+    "before": "fixture:issue_1385_replay:before",
+    "current": "fixture:issue_1385_replay:current",
+    "after": "fixture:issue_1385_replay:after"
+  }
+}

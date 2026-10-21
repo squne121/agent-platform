@@ -1,0 +1,48 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 4,
+    "issue_body_sha256": "f4606ae2f7655705aa430ab4eb09dce5c4b2d148f6f3dd39aa1604cbbd83f29e",
+    "comments_sha256": null,
+    "known_context_sha256": "e7d1b9f390521cc8b05e64296d6387089b1c9254939ff78cdbbc000c0fd37265",
+    "generated_at": "2026-05-25T14:27:05.551096+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "repo_fact_claim_in_outcome_or_ac_or_vc",
+      "target_paths": [],
+      "repo_claims": [
+        "$ test -f .claude/worktrees/test/scripts/anchor_test.sh"
+      ],
+      "evidence_spans": [],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": false,
+      "reason_code": "no_critical_external_claim",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "confidence": "unknown"
+    },
+    "scope_signal_guard": {
+      "triggered": true,
+      "reason_code": "anchor_reframe_exclusion",
+      "excluded_by_anchor_reframe": true,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

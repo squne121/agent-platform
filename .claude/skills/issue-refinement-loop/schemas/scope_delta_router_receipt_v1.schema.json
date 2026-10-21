@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SCOPE_DELTA_ROUTER_RECEIPT_V1",
+  "description": "Immutable receipt produced by the router (decide_next_loop_action.py, invoked via command_registry.py `decide.run`) after reading a SCOPE_DELTA_AUTHORITY_TRANSPORT_V1 manifest and independently recomputing its payload digest. #2053.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "invocation_id",
+    "issue_number",
+    "git_head_sha",
+    "generated_at",
+    "transport_manifest_path",
+    "transport_payload_sha256",
+    "recomputed_payload_sha256",
+    "status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "SCOPE_DELTA_ROUTER_RECEIPT_V1"
+    },
+    "invocation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "git_head_sha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "transport_manifest_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transport_payload_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "recomputed_payload_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "environment_failure"
+      ]
+    },
+    "reason_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "missing_file",
+        "malformed_json",
+        "digest_mismatch",
+        "wrong_issue",
+        "wrong_git_head",
+        "wrong_invocation_id",
+        "write_failure",
+        "wrong_repo",
+        "schema_invalid",
+        null
+      ]
+    }
+  }
+}

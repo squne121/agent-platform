@@ -1,0 +1,14 @@
+{
+  "schema_version": "refinement_preflight_input/v1",
+  "issue_number": 100,
+  "repo": "testowner/testrepo",
+  "now": "2026-01-01T00:00:00+00:00",
+  "issue": {
+    "number": 100,
+    "title": "Test issue for preflight pass",
+    "body": "## Machine-Readable Contract\n\n```yaml\ncontract_schema_version: v1\nissue_kind: implementation\n```\n\n## Outcome\n\nAdd a new script `scripts/do_something.py`.\n\n## In Scope\n\n- scripts/do_something.py\n\n## Acceptance Criteria\n\n- [ ] AC1: Script exists and runs without error.\n\n## Verification Commands\n\n```bash\nuv run python3 scripts/do_something.py\n```\n\n## Allowed Paths\n\n- scripts/do_something.py\n",
+    "labels": ["enhancement", "agent/implementer"]
+  },
+  "comments": [],
+  "anchor_comment_urls": []
+}

@@ -1,0 +1,12 @@
+{
+  "scenario": "issue_kind_unknown_after_pass",
+  "plan_refinement_loop": {
+    "fail_closed": {
+      "required": true,
+      "reason_codes": ["unknown_issue_kind"]
+    }
+  },
+  "check_issue_contract": {
+    "issue_kind_normalized": "unknown_issue_kind"
+  }
+}

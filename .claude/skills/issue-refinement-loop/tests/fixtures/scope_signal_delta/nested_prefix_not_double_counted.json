@@ -1,0 +1,10 @@
+{
+  "before_body": "## In Scope\n- `.claude/skills/foo` を更新する\n",
+  "current_body": "## In Scope\n- `.claude/skills/foo` を更新する\n",
+  "after_body": "## In Scope\n- `.claude/skills/foo` を更新する\n- `.claude/skills/foo/tests/test_bar.py` を追加する\n",
+  "source_refs": {
+    "before": "fixture:nested_prefix_not_double_counted:before",
+    "current": "fixture:nested_prefix_not_double_counted:current",
+    "after": "fixture:nested_prefix_not_double_counted:after"
+  }
+}

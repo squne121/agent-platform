@@ -1,0 +1,161 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RefinementPreflightInput",
+  "description": "Input schema for run_refinement_preflight.py (--fixture mode). Provides pre-fetched issue/comment data to bypass gh CLI calls in tests.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue_number",
+    "repo",
+    "issue"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "refinement_preflight_input/v1",
+      "description": "Schema version sentinel."
+    },
+    "issue_number": {
+      "type": "integer",
+      "description": "GitHub Issue number (int-normalized)."
+    },
+    "repo": {
+      "type": "string",
+      "pattern": "^[^/]+/[^/]+$",
+      "description": "owner/repo string."
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "number",
+        "title",
+        "body",
+        "labels"
+      ],
+      "properties": {
+        "number": {
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "body": {
+          "type": "string"
+        },
+        "labels": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "updatedAt": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "PR #2202 review fix (P0-2): optional fixture-mode GitHub Issue updatedAt, mirroring the field live mode already fetches via _fetch_issue(). Lets fixture-driven tests exercise the repair_action.apply provenance-binding original_updated_at capture without a live gh call."
+        }
+      }
+    },
+    "comments": {
+      "type": "array",
+      "description": "Issue comments. Each item must include id and body.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "body"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "issue_url": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "anchor_comments": {
+      "type": "array",
+      "description": "Pre-validated anchor comment objects (used in --fixture mode). issue_url is required by anchor validation runtime — absence or empty string triggers ANCHOR_NOT_IN_ISSUE blocked. Optional GitHub comment metadata fields (html_url/url/user/author_association/created_at/updated_at) may also be supplied so _build_anchor_comment_state() can normalize a schema-conformant anchor_comment record (anchor_comment.schema.json) purely from fixture data, without any live gh API call (#1339).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "body"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "body": {
+            "type": "string"
+          },
+          "issue_url": {
+            "type": "string"
+          },
+          "html_url": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "user": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "login"
+            ],
+            "properties": {
+              "login": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              }
+            }
+          },
+          "author_association": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "anchor_comment_urls": {
+      "type": "array",
+      "description": "Anchor comment URLs to validate structurally (used in fixture mode to trigger anchor validation with fixture data).",
+      "items": {
+        "type": "string"
+      }
+    },
+    "known_context": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Optional known_context forwarded to plan_refinement_loop.py.",
+      "additionalProperties": true
+    },
+    "now": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Optional ISO timestamp override for deterministic output."
+    }
+  }
+}

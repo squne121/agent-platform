@@ -1,0 +1,82 @@
+{
+  "decisions": {
+    "delivery_rollup": {
+      "applicable": false,
+      "evidence_spans": [],
+      "unmaterialized_slots": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    },
+    "investigation_policy": {
+      "confidence": "unknown",
+      "evidence_spans": [],
+      "reason_code": "unknown_input_schema",
+      "repo_claims": [],
+      "required": false,
+      "target_paths": []
+    },
+    "scope_delta_decision": null,
+    "scope_signal_guard": {
+      "evidence_spans": [],
+      "excluded_by_anchor_reframe": false,
+      "reason_code": "no_scope_signal",
+      "triggered": false
+    },
+    "web_research_policy": {
+      "confidence": "unknown",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "reason_code": "unknown_input_schema",
+      "required": false
+    }
+  },
+  "fail_closed": {
+    "human_message": "Issue contract malformation detected: missing_required_section",
+    "reason_codes": [
+      "missing_required_section"
+    ],
+    "required": true,
+    "rewrite_constraints": {
+      "max_rewrite_attempts": 2,
+      "no_progress_route": "human_judgment_required",
+      "override_policy": {
+        "allowed_reason_codes": [
+          "missing_required_section",
+          "missing_required_contract_key"
+        ],
+        "never_override_reason_codes": [
+          "unknown_issue_kind",
+          "issue_kind_policy_load_error",
+          "contract_schema_parse_error",
+          "template_resolution_error",
+          "checker_internal_error"
+        ],
+        "non_overridable_in_current_result": [],
+        "overridable_in_current_result": [
+          "missing_required_section"
+        ]
+      },
+      "required_contract_keys": [],
+      "required_sections": [
+        "Outcome"
+      ],
+      "rewrite_constraints": {
+        "freeform_rewrite_forbidden": true,
+        "must_add_contract_keys": [],
+        "must_add_sections": [
+          "Outcome"
+        ]
+      },
+      "schema_version": "FAIL_CLOSED_REWRITE_CONSTRAINTS_V1"
+    }
+  },
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "comments_sha256": null,
+    "generated_at": "2025-05-25T12:00:00+00:00",
+    "issue_body_sha256": "9970257abcfecc4e65bd48da490048f75a2d3ff260bce758a789d3eb90c11a06",
+    "issue_number": 13,
+    "known_context_sha256": null
+  }
+}

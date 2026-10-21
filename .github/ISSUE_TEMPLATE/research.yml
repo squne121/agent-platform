@@ -1,0 +1,159 @@
+name: Research
+description: 仕様調査・比較検討用の child issue。次のアクションに進める状態を成果物とし、Allowed Paths、runtime applicability、必要な evidence、成果物の納品先、停止条件を research 本文に明記する。
+title: "調査: "
+labels:
+  - phase/research
+  - state/queued
+  - agent/research
+body:
+  - type: markdown
+    attributes:
+      value: |
+        必須項目を埋めてから submit してください。skill 側で本テンプレの見出しを正規表現で機械判定します。
+
+        **AC に実装変更（`src/` 改修・`tests/` 追加）を含む場合は `Implementation` テンプレートを使用してください。**
+
+        本テンプレートの **既定の成果物は「次の implementation Issue が起票可能になる状態」** です。
+        リポジトリ資産（`docs/research/<topic>.md` 等）への出力は、品質調査など特別な目的のときのみ任意で行います。
+
+  - type: textarea
+    id: machine-readable-contract
+    attributes:
+      label: Machine-Readable Contract
+      description: skill 側の preflight で parse される YAML 契約。値だけ書き換える。
+      value: |
+        ```yaml
+        contract_schema_version: v1
+        issue_kind: research
+        parent_issue: "#<parent-issue-number>|none"
+        goal_ref: "<調査が前進させる目的>"
+        change_kind: research-only
+        ```
+    validations:
+      required: true
+
+  - type: input
+    id: parent-issue
+    attributes:
+      label: Parent Issue
+      description: 親 Issue 番号（無ければ "none"）
+      placeholder: "#42 または none"
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: |
+        調査ゴールのコンテクストが明確になり、**次のアクションに進める状態** になることを 1 文で書く。
+        揮発的な比較表だけ作って閉じる、では受け入れない。次に何が起こるか（どの implementation Issue が起票可能になるか等）を明示する。
+      placeholder: 自機 / 敵キャラの当たり判定アルゴリズム候補を比較し、採用案を選定して implementation Issue が起票可能な状態
+    validations:
+      required: true
+
+  - type: textarea
+    id: in-scope
+    attributes:
+      label: In Scope
+      placeholder: |
+        - 候補アルゴリズム 3 件の比較
+        - 各候補の性能オーダーと実装複雑度
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of Scope
+      placeholder: |
+        - 実装コード
+        - テスト追加
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: |
+        調査完了時に **次のアクションに進める** ことを検証可能にする。例: 「結論をもとに implementation Issue が起票され、本 Issue がその issue を link している」
+
+        必要な調査を行っても結論が確定しない場合は、不足している evidence を記録して `inconclusive` として終了できる。`inconclusive` を expected behavior や defect 不存在へ再分類しない。
+        必須の runtime 観測を実行できなかった場合は `SKIP`（規定の exit 77）として記録し、当該 AC は未充足とする。`SKIP` を PASS や研究完了の根拠にしない。
+        観測を実施したが結論を確定できなかった `inconclusive` と、観測自体が未実施の `SKIP` を混同しない。
+      placeholder: |
+        - [ ] 比較結果が本 Issue 本文に記載されている
+        - [ ] 採用案を実装する implementation Issue が起票され、本 Issue がそれを link している
+        - [ ] 本 Issue は close 可能、もしくは追加調査要件が明示されている
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification-commands
+    attributes:
+      label: Verification Commands
+      description: |
+        成果物の検証コマンドを列挙する。次 Issue 起票がゴールの場合は `gh issue list` で起票確認、
+        リポジトリ出力がある場合は `test -f <path>` 等で存在確認。
+
+        runtime applicability（`not_applicable | immediate | deferred`）は research-only を根拠に決めず、調査で実際に必要な観測方法で選ぶ。
+        プロセス起動・並行実行・一時ファイルの寿命を観測することが AC の場合は、`docs/dev/runtime-verification-policy.md` に従い、AC/VC・必要な evidence・SKIP の扱いを明示する。
+        純粋な静的調査に runtime smoke を強制しない。
+
+        runtime applicability は、research 本文に `## Runtime Verification Applicability` を独立セクションとして書く。この Issue Form の `description` は入力ガイダンスで提出されず、専用セクションも生成しないため、提出後に Issue 本文を編集して追記する。
+        `decision`・`reason`・対象 AC・VC・evidence・`SKIP` 方針は、実際に必要な観測内容に合わせて指定する。`not_applicable` を research-only という理由だけで選ばない。
+        `deferred` を選ぶ場合は、`docs/dev/runtime-verification-policy.md` の必須項目 `deferred_destination.destination_type`・`deferred_destination.destination_ref`・`deferred_verification_condition` をすべて揃える。
+      placeholder: |
+        - `gh issue view <new-implementation-issue-number>` — 後続 Issue が起票されている
+    validations:
+      required: true
+
+  - type: textarea
+    id: allowed-paths
+    attributes:
+      label: Allowed Paths
+      description: |
+        **既定: 読み取り専用（リポジトリ変更なし）**。成果物は次 Issue 本文・コメント・link で表現する。
+        品質調査などで成果物をリポジトリ資産として書き出す必要がある場合のみ、具体パスを記載する（例: `docs/research/<topic>.md`）。
+
+        `(none)` は tracked repository source（既存ファイルの編集に加え、新規 repository source file の追加を含む）に対する no-path marker である。次の 2 点は別の軸として、調査契約（AC）に対象と操作を明記する。
+        owned/isolated な ephemeral fixture の必要最小限の一時 I/O（プロセス起動、一時ファイルの作成・削除）は、調査契約が fixture と操作範囲を明記した場合に行える。無制限の `tmp/**` や owned でない workspace への書き込みは許可しない。
+        fixture は invocation-owned かつ isolated であることに加え、実際の配置が既存 executor の監視対象 root・filesystem guard と衝突しないことを調査契約で確認する。必要に応じて `TMPDIR`・symlink・resolved real path の影響も確認する。
+        owned/isolated の宣言だけでは guard の例外は成立せず、正規 guard が拒否する配置を「owned だから安全」と扱わない。検証目的の一時 I/O は必要最小限に留める（guard の緩和や新規例外ではなく、契約の書き方の注意である）。
+        成果物の納品先（sanitized な Issue コメント、成果物リンク、後続 Issue の起票、許可された Issue 本文更新）への書き込みは、調査契約が対象と操作を明記した場合に行える。
+      value: |
+        - (none)
+    validations:
+      required: true
+
+  - type: textarea
+    id: stop-conditions
+    attributes:
+      label: Stop Conditions
+      value: |
+        - Outcome / Scope / AC が検索可能な形で記載されていない場合は即停止
+        - Allowed Paths 外への書き込みを試みた場合は即停止
+        - 権限不足（permission denied）により操作が完了できない場合は即停止
+        - 成果物の書き込みに失敗した場合（I/O エラー等）は即停止
+
+        上記の適用範囲を補足する。書き込み制限は、tracked repository source（新規 repository source file の追加を含む）と owned でない workspace に適用する。
+        即停止の対象とする禁止操作は、検証・再現のために実サービスの本文・状態・データを変更する操作である。
+        owned/isolated な ephemeral fixture の必要最小限の一時 I/O と、調査契約が対象・操作を明記した成果物の納品先への書き込み（sanitized な Issue コメント、成果物リンク、後続 Issue の起票、許可された Issue 本文更新）は別扱いで、既存 workflow の範囲で行える。ただし fixture の owned/isolated の宣言だけでは filesystem guard の例外にならず、guard が拒否する配置は停止対象のままとする。
+        必須の runtime 観測を実行できなかった場合は SKIP（規定の exit 77）として記録し、当該 AC は未充足とする。SKIP を PASS や研究完了の根拠にせず、必要な観測を実施したが結論を確定できなかった場合は inconclusive として不足している evidence を記録する。inconclusive を defect 不存在や expected behavior へ再分類せず、観測未実施の SKIP と観測済みで結論未確定の inconclusive を混同しない。
+    validations:
+      required: true
+
+  - type: textarea
+    id: handoff-contract
+    attributes:
+      label: Handoff Contract
+      description: research 完了時に implementation child issue へ引き継ぐ場合の構造。
+      value: |
+        - `Current Objective`
+        - `Bounded Current Context`
+        - `Open Questions`
+        - `Next Action`
+        - `Artifact Refs`
+    validations:
+      required: true

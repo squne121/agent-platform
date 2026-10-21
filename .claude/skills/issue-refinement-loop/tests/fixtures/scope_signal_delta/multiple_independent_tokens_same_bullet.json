@@ -1,0 +1,10 @@
+{
+  "before_body": "## In Scope\n",
+  "current_body": "## In Scope\n",
+  "after_body": "## In Scope\n- `.claude/skills/foo` と `docs/foo.md` を更新する\n",
+  "source_refs": {
+    "before": "fixture:multiple_independent_tokens_same_bullet:before",
+    "current": "fixture:multiple_independent_tokens_same_bullet:current",
+    "after": "fixture:multiple_independent_tokens_same_bullet:after"
+  }
+}

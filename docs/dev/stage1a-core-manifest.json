@@ -1,0 +1,220 @@
+{
+  "schema": "STAGE1A_CORE_MANIFEST_V1",
+  "issue": "squne121/agent-platform#8",
+  "source": {
+    "repository_tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "test_dirs": [
+    "tests/stage1a",
+    ".claude/skills/issue-refinement-loop/tests",
+    ".claude/skills/issue-refinement-loop/scripts/tests"
+  ],
+  "expected_collect_total": {
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_repair_issue_contract.py": 53,
+    ".claude/skills/issue-refinement-loop/tests/test_command_registry.py": 85,
+    ".claude/skills/issue-refinement-loop/tests/test_command_registry_security.py": 25,
+    ".claude/skills/issue-refinement-loop/tests/test_command_registry_validate_cli.py": 4,
+    ".claude/skills/issue-refinement-loop/tests/test_decide_next_loop_action.py": 26,
+    ".claude/skills/issue-refinement-loop/tests/test_decide_next_loop_action_contract_update.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_fail_closed.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_function_definition_order.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_idempotent.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py": 51,
+    ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop_priority.py": 16,
+    ".claude/skills/issue-refinement-loop/tests/test_preflight_run_with_anchor.py": 59,
+    ".claude/skills/issue-refinement-loop/tests/test_refinement_preflight.py": 89,
+    ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
+    ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
+    "tests/stage1a/test_stage1a_core_closure.py": 11
+  },
+  "expected_ran": {
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_repair_issue_contract.py": 53,
+    ".claude/skills/issue-refinement-loop/tests/test_command_registry.py": 75,
+    ".claude/skills/issue-refinement-loop/tests/test_command_registry_security.py": 25,
+    ".claude/skills/issue-refinement-loop/tests/test_command_registry_validate_cli.py": 4,
+    ".claude/skills/issue-refinement-loop/tests/test_decide_next_loop_action.py": 25,
+    ".claude/skills/issue-refinement-loop/tests/test_decide_next_loop_action_contract_update.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_fail_closed.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_function_definition_order.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_idempotent.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py": 50,
+    ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop_priority.py": 16,
+    ".claude/skills/issue-refinement-loop/tests/test_preflight_run_with_anchor.py": 59,
+    ".claude/skills/issue-refinement-loop/tests/test_refinement_preflight.py": 88,
+    ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
+    ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
+    "tests/stage1a/test_stage1a_core_closure.py": 11
+  },
+  "deferred_tests": [
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportCommandIdsRegisteredInRuntimePolicy::test_command_id_registered[decide.run]",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportCommandIdsRegisteredInRuntimePolicy::test_command_id_registered[authority_transport.produce]",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportCommandIdsRegisteredInRuntimePolicy::test_command_id_registered[authority_transport.consume]",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportCommandIdsRegisteredInRuntimePolicy::test_execution_class_matches_registry[decide.run]",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportCommandIdsRegisteredInRuntimePolicy::test_execution_class_matches_registry[authority_transport.produce]",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportCommandIdsRegisteredInRuntimePolicy::test_execution_class_matches_registry[authority_transport.consume]",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportConsumeContractPatchPlanPlaceholders::test_network_effect_matches_runtime_policy",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportPrivilegedExecutorRealSubprocessDispatch::test_decide_run_dispatches_to_real_subprocess",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportPrivilegedExecutorRealSubprocessDispatch::test_authority_transport_produce_dispatches_to_real_subprocess",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_command_registry.py::TestAuthorityTransportPrivilegedExecutorRealSubprocessDispatch::test_authority_transport_consume_dispatches_to_real_subprocess",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "imports/executes scripts/agent-guards/skill_runtime_command_policy.py / skill_runtime_exec.py (capability chain), Out of Scope of #8. The registry entries it checks are migrated and covered by the remaining test_command_registry tests; this verifies registry <-> privileged runtime policy parity.",
+      "rerun_condition": "skill_runtime_command_policy.py and skill_runtime_exec.py migrated (with repo_identity unification)"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_decide_next_loop_action.py::test_script_does_not_reference_bare_python3_in_skill_md",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "asserts on .claude/skills/issue-refinement-loop/SKILL.md, which is not migrated (canonical entrypoint belongs to 1a-2)",
+      "rerun_condition": "SKILL.md migrated"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py::TestSkillMdWiring::test_skill_md_exists",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "asserts on .claude/skills/issue-refinement-loop/SKILL.md, which is not migrated (canonical entrypoint belongs to 1a-2)",
+      "rerun_condition": "SKILL.md migrated"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_refinement_preflight.py::test_operator_intervention_not_triggered_by_no_path_marker",
+      "owner_stage": "stage_1b",
+      "reason": "drives issue-contract-review contract_readiness_check (static readiness of a candidate body); runtime-measured as reachable only via --consume-contract-patch-plan / --apply-* (mutation lane), not the read-only path",
+      "rerun_condition": "contract_readiness_check.py, check_issue_contract.py and their closure migrated"
+    }
+  ],
+  "excluded_untracked_copies": [
+    {
+      "file": ".claude/skills/issue-refinement-loop/tests/test_step_0f_parent_owned_preflight.py",
+      "owner_stage": "stage_1a_2 (#9)",
+      "reason": "verifies unmigrated SKILL.md and the canonical entrypoint",
+      "rerun_condition": "re-migrate from source tag together with SKILL.md / workflow_start_entry"
+    },
+    {
+      "file": ".claude/skills/issue-refinement-loop/scripts/tests/test_producer_fail_closed.py",
+      "owner_stage": "stage_1b",
+      "reason": "covers review/publish producers (Stage 1b and later)",
+      "rerun_condition": "re-migrate from source tag with the producers"
+    }
+  ],
+  "transferred_beyond_issue_list": [
+    {
+      "files": [
+        "issue-contract-review/scripts/baseline_vc_preflight.py",
+        "issue-contract-review/scripts/pnpm_gate_registry.py",
+        "issue-contract-review/scripts/vc_runtime_history.py",
+        "create-issue/scripts/prose_boundary_policy.py"
+      ],
+      "reason": "not required by the normal read-only run (traced), but loaded by _check_scope_reframe_deltas_reflected, which swallows load errors into invalid_or_unavailable (silent degrade), and used by repair/producer parity tests that are in scope. Stdlib-only. Changes: --repo default resolved from repo identity config (fail closed); state dir and comment URLs de-slugged."
+    }
+  ],
+  "readiness_measurement": "read-only fixture run reaches status=warn, planner_exit_code=0 with none of contract_readiness_check / baseline_vc_preflight / vc_runtime_history invoked. They are reached only through --consume-contract-patch-plan / --consume-authority-transport / --apply-* (mutation lane) and stay deferred.",
+  "import_closure": {
+    "scan_dirs": [
+      ".claude/skills/issue-refinement-loop/scripts",
+      ".claude/skills/issue-contract-review/scripts",
+      ".claude/skills/create-issue/scripts",
+      "scripts/agent-ops",
+      "scripts/agent-guards"
+    ],
+    "closure_dirs": [
+      ".claude/skills/issue-refinement-loop/scripts",
+      ".claude/skills/issue-contract-review/scripts",
+      ".claude/skills/create-issue/scripts",
+      "scripts/agent-ops",
+      "scripts/agent-guards"
+    ],
+    "deferred_imports": [
+      {
+        "module": "reviewer_transport",
+        "reason": "imported only when --reviewer-transport-result-file is passed (Stage 1b producer); an ImportError is surfaced as reviewer_transport_result_invalid environment_failure, not swallowed",
+        "owner_stage": "stage_1b"
+      }
+    ],
+    "deferred_script_refs": [
+      {
+        "script": "contract_readiness_check.py",
+        "reason": "consume/apply lane only (measured)",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "check_issue_contract.py",
+        "reason": "consume/apply lane only",
+        "owner_stage": "stage_1b/2"
+      },
+      {
+        "script": "edit_issue_txn.py",
+        "reason": "mutation transaction (Stage 2)",
+        "owner_stage": "stage_2"
+      },
+      {
+        "script": "owner_reaction_decision.py",
+        "reason": "mutation gate (Stage 2)",
+        "owner_stage": "stage_2"
+      },
+      {
+        "script": "allowed_paths_review_gate.py",
+        "reason": "mutation gate (Stage 2)",
+        "owner_stage": "stage_2"
+      },
+      {
+        "script": "skill_runtime_command_policy.py",
+        "reason": "capability chain, Out of Scope of #8",
+        "owner_stage": "stage_1a_2 (#9)"
+      },
+      {
+        "script": "match_ssot.py",
+        "reason": "string pattern used to classify VC commands, not a dependency",
+        "owner_stage": "n/a"
+      },
+      {
+        "script": "_test.py",
+        "reason": "sample filename inside a repair_issue_contract string fixture, not a dependency",
+        "owner_stage": "n/a"
+      }
+    ]
+  }
+}

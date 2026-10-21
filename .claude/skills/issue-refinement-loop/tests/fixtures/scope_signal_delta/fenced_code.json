@@ -1,0 +1,10 @@
+{
+  "before_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n",
+  "current_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n",
+  "after_body": "## Allowed Paths\n- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n\n## Verification Commands\n```bash\nuv run pytest docs/new-layer/example.py -q\n```\n",
+  "source_refs": {
+    "before": "fixture:fenced_code:before",
+    "current": "fixture:fenced_code:current",
+    "after": "fixture:fenced_code:after"
+  }
+}

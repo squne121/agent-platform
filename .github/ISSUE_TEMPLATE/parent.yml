@@ -1,0 +1,167 @@
+name: Parent
+description: 親 Issue（複数 child issue を束ねるトラッカー）を起票する
+title: "導入: "
+labels:
+  - tracking
+  - state/in-progress
+body:
+  - type: markdown
+    attributes:
+      value: |
+        親 Issue（parent tracker）テンプレートです。child issue（implementation / research）を束ねて運用します。
+        `parent_mode` × `closure_mode` の組み合わせを Machine-Readable Contract で固定してください。
+
+  - type: textarea
+    id: machine-readable-contract
+    attributes:
+      label: Machine-Readable Contract
+      description: |
+        `parent_mode` と `closure_mode` の組み合わせは以下のいずれか:
+        - `delivery-rollup` → `child-complete`
+        - `quality-gate` → `measurement-ready | quality-validated`
+        - `routing-map` → `routing-complete`
+        - `decision-log` → `decision-recorded`
+      value: |
+        ```yaml
+        contract_schema_version: v1
+        issue_kind: parent
+        goal_ref: "<親トラッカーが維持する目的>"
+        change_kind: workflow
+        parent_mode: "<required: delivery-rollup | quality-gate | routing-map | decision-log>"
+        closure_mode: "<required: child-complete | measurement-ready | quality-validated | routing-complete | decision-recorded>"
+        ```
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired-destination
+    attributes:
+      label: Desired Destination
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-validated-scope
+    attributes:
+      label: Current Validated Scope
+    validations:
+      required: true
+
+  - type: textarea
+    id: decisions-fixed
+    attributes:
+      label: Decisions Fixed
+      description: "決定日（YYYY-MM-DD）と確定した方針を箇条書きで。"
+      placeholder: |
+        - 2026-05-18: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: quality-decision-record
+    attributes:
+      label: Quality Decision Record
+      description: |
+        `quality-gate` parent では必須。それ以外は `N/A` 扱いでよい。
+      value: |
+        - `Status`: <quality-gate の場合: measurement-ready / quality-unvalidated / quality-validated / N/A>
+        - `Decision Date`: <YYYY-MM-DD または未記録>
+        - `Does this prove the parent goal complete?`: <Yes / No / N/A>
+        - `Reason`: <判定根拠>
+        - `Evidence`: <benchmark / review / routing evidence / N/A>
+        - `Next Action`: <次に必要な child issue または decision>
+    validations:
+      required: true
+
+  - type: textarea
+    id: parent-closure-rule
+    attributes:
+      label: Parent Closure Rule
+      description: |
+        `parent_mode` ごとの close 条件を記載する。`<required: ...>` placeholder や enum 外値は invalid であり、
+        close 判定へ進めない。
+      value: |
+        - `delivery-rollup`: <child issue rollup 完了で close する条件>
+        - `quality-gate`: <Quality Decision Record が確定するまで close しない条件>
+        - `routing-map`: <routing / destination mapping 完了で close する条件>
+        - `decision-log`: <decision record と next action 固定で close する条件>
+        - `quality-gate` parent では `closure_mode` と `Quality Decision Record` を同一編集で更新する
+        - 非 `quality-gate` parent の `Quality Decision Record` は `N/A` 扱いでよく、close 判定の必須材料にしない
+    validations:
+      required: true
+
+  - type: textarea
+    id: child-issues
+    attributes:
+      label: Child Issues
+      description: 着手順に並べる（リストの順序がそのまま依存順を表す）。前提となる Issue が後続より上に来るように記載する。
+      placeholder: |
+        - [ ] #101 — 前提となる research
+        - [ ] #102 — それを使う implementation
+        - [ ] #103 — 後続の cleanup
+    validations:
+      required: true
+
+  - type: textarea
+    id: remaining-parent-gaps
+    attributes:
+      label: Remaining Parent Gaps
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: phase-handoff-contract
+    attributes:
+      label: Phase Handoff Contract
+      description: child issue 起票時に implementation / research に引き継ぐ構造。
+      value: |
+        - `Desired Destination`
+        - `Current Validated Scope`
+        - `Remaining Parent Gaps`
+        - `Current Objective`
+        - `Bounded Current Context`
+        - `Normative References`
+        - `Allowed Paths`
+        - `Required Skills`
+        - `Validation Commands`
+        - `Stop Conditions`
+        - `Open Questions`
+        - `Next Action`
+        - `Artifact Refs`
+        - `Handoff Prompt Draft`
+        - `Linked PR` (implementation のみ)
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      placeholder: |
+        - [ ] ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes
+      value: "なし"
+    validations:
+      required: false

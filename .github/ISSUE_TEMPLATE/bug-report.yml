@@ -1,0 +1,36 @@
+name: Bug report
+description: 期待どおりに動かない問題を報告する
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: 概要
+      description: 何が起きたかを簡潔に書いてください
+      placeholder: 戦闘開始後すぐに HUD が更新されない
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: 再現手順
+      description: 再現に必要な最小手順を書いてください
+      placeholder: |
+        1. pnpm dev を起動
+        2. 画面を開く
+        3. Quick save を押す
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待する動作
+      placeholder: 保存後に状態が維持される
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: 補足情報
+      description: ログ、スクリーンショット、環境情報があれば記載してください

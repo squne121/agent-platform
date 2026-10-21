@@ -1,0 +1,60 @@
+{
+  "schema_version": "refinement_loop_plan/v1",
+  "source": {
+    "issue_number": 12,
+    "issue_body_sha256": "28bf8f69d965a76a509293f0de179204a1953e9a82cca107e28e6d813a931112",
+    "comments_sha256": null,
+    "known_context_sha256": null,
+    "generated_at": "2026-05-25T14:27:05.744276+00:00"
+  },
+  "decisions": {
+    "investigation_policy": {
+      "required": true,
+      "reason_code": "target_paths_present",
+      "target_paths": [
+        ".claude/skills/test",
+        "src/components"
+      ],
+      "repo_claims": [
+        "- [ ] AC1: Table paths `.claude/skills/test/` are extracted",
+        "- [ ] AC2: Table paths `src/components/` are extracted"
+      ],
+      "evidence_spans": [
+        {
+          "source": "issue_body",
+          "source_ref": null,
+          "start_line": 1,
+          "end_line": 31,
+          "text_sha256": "28bf8f69d965a76a509293f0de179204a1953e9a82cca107e28e6d813a931112"
+        }
+      ],
+      "confidence": "deterministic"
+    },
+    "web_research_policy": {
+      "required": false,
+      "reason_code": "no_critical_external_claim",
+      "critical_external_claims": [],
+      "evidence_spans": [],
+      "confidence": "unknown"
+    },
+    "scope_signal_guard": {
+      "triggered": false,
+      "reason_code": "no_scope_signal",
+      "excluded_by_anchor_reframe": false,
+      "evidence_spans": []
+    },
+    "delivery_rollup": {
+      "applicable": false,
+      "unmaterialized_slots": [],
+      "evidence_spans": []
+    },
+    "follow_up_materialization": {
+      "candidates": []
+    }
+  },
+  "fail_closed": {
+    "required": false,
+    "reason_codes": [],
+    "human_message": ""
+  }
+}

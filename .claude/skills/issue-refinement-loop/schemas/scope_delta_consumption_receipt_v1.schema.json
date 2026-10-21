@@ -1,0 +1,188 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SCOPE_DELTA_CONSUMPTION_RECEIPT_V1",
+  "description": "Immutable receipt produced by the controlled consumer (run_refinement_preflight.py --consume-authority-transport) after verifying the router receipt digest, performing at most one mutation, a readback, and a fresh rerun. #2053.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "invocation_id",
+    "issue_number",
+    "git_head_sha",
+    "generated_at",
+    "router_receipt_path",
+    "transport_payload_sha256",
+    "consumed_payload_sha256",
+    "mutation_applied",
+    "readback_verified",
+    "fresh_rerun_performed",
+    "status",
+    "mutation_lane",
+    "contract_update_status"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "SCOPE_DELTA_CONSUMPTION_RECEIPT_V1"
+    },
+    "invocation_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "git_head_sha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "router_receipt_path": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transport_payload_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "consumed_payload_sha256": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mutation_applied": {
+      "type": "boolean"
+    },
+    "readback_verified": {
+      "type": "boolean"
+    },
+    "fresh_rerun_performed": {
+      "type": "boolean"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "environment_failure"
+      ]
+    },
+    "reason_code": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "missing_file",
+        "malformed_json",
+        "digest_mismatch",
+        "wrong_issue",
+        "wrong_git_head",
+        "wrong_invocation_id",
+        "stale_previous_invocation",
+        "write_failure",
+        "router_receipt_not_ok",
+        "fresh_rerun_route_drift",
+        "fresh_rerun_error",
+        "path_confinement_symlink_rejected",
+        "path_confinement_resolve_failed",
+        "path_confinement_outside_artifact_root",
+        "path_confinement_not_regular_file",
+        "wrong_repo",
+        "schema_invalid",
+        "contract_patch_plan_consumer_error",
+        "contract_patch_plan_consumer_failed",
+        null
+      ]
+    },
+    "generated_artifact": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "description": "#2053 AC10: termination telemetry -- relative path + sha256 of the generated artifact, independently confirmed to exist on disk (never a fixed mutable sidecar)."
+    },
+    "received_artifact": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "description": "#2053 AC10: termination telemetry -- relative path + sha256 of the received artifact, independently confirmed to exist on disk (never a fixed mutable sidecar)."
+    },
+    "consumed_artifact": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "relative_path",
+        "sha256"
+      ],
+      "properties": {
+        "relative_path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      },
+      "description": "#2053 AC10: termination telemetry -- relative path + sha256 of the consumed artifact, independently confirmed to exist on disk (never a fixed mutable sidecar)."
+    },
+    "mutation_lane": {
+      "type": "string",
+      "enum": [
+        "artifact_only",
+        "contract_patch_plan_consumer"
+      ],
+      "description": "#2053 P0 fix-delta (iteration 3): which mutation lane produced mutation_applied -- `artifact_only` (bounded local consumed_authority_payload_v1.json write only) or `contract_patch_plan_consumer` (delegated to the real consume_trusted_anchor_contract_patch_plan() -> edit_issue_txn.py lane)."
+    },
+    "contract_update_status": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "#2053 P0 fix-delta (iteration 3): the _bounded_contract_update_handoff() status (`applied` / `no_change` / `rebased` / `failed`) from the real controlled-mutation lane when mutation_lane is `contract_patch_plan_consumer`; an exception type:message string on unexpected consumer error; null when mutation_lane is `artifact_only`."
+    }
+  }
+}

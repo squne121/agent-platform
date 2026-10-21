@@ -1,0 +1,204 @@
+name: Implementation
+description: "`1 Issue = 1 PR` 前提で implementation child issue を起票する"
+title: "実装: "
+labels:
+  - enhancement
+  - phase/implementation
+  - triage-required
+  - agent/implementer
+body:
+  - type: markdown
+    attributes:
+      value: |
+        必須項目を埋めてから submit してください。skill 側で本テンプレの見出しを正規表現で機械判定します。
+        非該当な任意セクションは「N/A」または「なし」と明記してください（空のまま submit すると skill のガードで弾かれます）。
+
+  - type: textarea
+    id: machine-readable-contract
+    attributes:
+      label: Machine-Readable Contract
+      description: "skill 側の preflight で parse される YAML 契約。値だけ書き換える。"
+      value: |
+        ```yaml
+        contract_schema_version: v1
+        issue_kind: implementation
+        parent_issue: "#<parent-issue-number>|none"
+        goal_ref: "<親 Goal または単独改善の目的>"
+        change_kind: docs|code|mixed|workflow|data
+        ```
+    validations:
+      required: true
+
+  - type: input
+    id: parent-issue
+    attributes:
+      label: Parent Issue
+      description: 親 Issue 番号（無ければ "none"）
+      placeholder: "#42 または none"
+    validations:
+      required: true
+
+  - type: textarea
+    id: parent-goal-ref
+    attributes:
+      label: Parent Goal Ref
+      description: |
+        Goal と Desired Destination を 1 行ずつ。Desired Destination は **parent** のスコープのみ示す（本 Issue の write-capable scope ではない）。
+      placeholder: |
+        - Goal: …
+        - Desired Destination: …
+    validations:
+      required: true
+
+  - type: textarea
+    id: current-validated-scope
+    attributes:
+      label: Current Validated Scope
+      description: 本 Issue の write-capable scope のみを書く。
+      placeholder: |
+        - src/systems/MovementSystem.ts に境界クランプを追加
+        - tests/movement-system.test.ts に境界値テストを追加
+    validations:
+      required: true
+
+  - type: textarea
+    id: remaining-parent-gaps
+    attributes:
+      label: Remaining Parent Gaps
+      description: 本 Issue で塞がない parent gap を列挙（任意）。なければ "なし" と書く。
+      placeholder: |
+        - [ ] 衝突応答処理（別 Issue 化予定）
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Outcome
+      description: 1 文で。完了したと判断できる状態を具体的に。
+      placeholder: 自機が Canvas 範囲内に常にクランプされ、Vitest が PASS している状態
+    validations:
+      required: true
+
+  - type: textarea
+    id: runtime-verification-applicability
+    attributes:
+      label: Runtime Verification Applicability
+      description: "動作検証の適用判定を明示する。decision を推測で省略しない。"
+      value: |
+        - decision: not_applicable
+        - reason: 静的検証のみで完結するため
+    validations:
+      required: true
+
+  - type: textarea
+    id: in-scope
+    attributes:
+      label: In Scope
+      placeholder: |
+        - MovementSystem の境界クランプ実装
+        - 対応する unit test
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of Scope
+      placeholder: |
+        - 弾の境界処理
+        - 衝突応答
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance Criteria
+      description: 検証可能な `- [ ]` 形式で。
+      placeholder: |
+        - [ ] 自機 x 座標が [radius, width-radius] にクランプされる
+        - [ ] 既存テストが破壊されていない
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification-commands
+    attributes:
+      label: Verification Commands
+      description: |
+        各 AC に対応するターミナルで実行可能なコマンドを列挙。test-runner が自律実行する前提のため、
+        実行不可能なコマンド・存在しないファイル参照は含めない。
+      value: |
+        - `pnpm typecheck` — TypeScript 型エラーなし
+        - `pnpm lint` — ESLint エラーなし
+        - `pnpm test` — Vitest 全件 PASS
+        - `pnpm build` — vite build 成功
+    validations:
+      required: true
+
+  - type: textarea
+    id: allowed-paths
+    attributes:
+      label: Allowed Paths
+      description: 編集可の具体パスを列挙。`assets/` / `LICENSES/` は AI 編集禁止（CLAUDE.md）。
+      placeholder: |
+        - src/systems/MovementSystem.ts
+        - tests/movement-system.test.ts
+    validations:
+      required: true
+
+  - type: textarea
+    id: stop-conditions
+    attributes:
+      label: Stop Conditions
+      description: |
+        実装中にこれらの状況が発生したら直ちに作業を停止し、Issue comment に状況を記録して人間の判断を待つ。
+        定型 6 項目はそのまま残し、Issue 固有の停止条件があれば追記する。
+      value: |
+        - Allowed Paths 外の変更が必要と判明した場合
+        - In Scope の固定契約（キー集合・スキーマ・型定義）の変更が必要になった場合
+        - 新規 Issue の起票が必要と判断した場合（スコープ分割が発生する場合）
+        - 後続 Phase / 別スコープへの波及が判明した場合
+        - nested SubAgent delegation が必要になった場合
+        - 外部サービス利用・権限昇格・既存テスト大規模改変が必要になった場合
+    validations:
+      required: true
+
+  - type: textarea
+    id: required-skills
+    attributes:
+      label: Required Skills
+      description: |
+        本 Issue の実装で参照する **ドメイン知識スキル** を列挙する（例: TypeScript / ECS / Canvas / Vitest BDD 等）。
+        `issue-contract-review` / `implement-issue` / `pr-review-judge` / `ssot-discovery` などの **ワークフロー skill** は skill 間で関係性が定義されているため、ここに書かない。
+        該当なしなら「なし」と明記。
+      placeholder: |
+        - TypeScript / TSC strict
+        - ECS（state / systems 分離）
+      value: "なし"
+    validations:
+      required: true
+
+  - type: textarea
+    id: required-design-references
+    attributes:
+      label: Required Design References
+      description: |
+        本 Issue の実装が前提とする設計ドキュメント（repo 相対パス）を列挙する。
+        `docs/dev/agent-skill-boundaries.md` のような SSOT 文書への参照を含める。
+        該当なしの場合でも "N/A" のみで済ませず、判断根拠となった SSOT へのリンクを記載すること。
+      placeholder: |
+        - docs/dev/agent-skill-boundaries.md#Parallel Agent Runtime Safety
+        - docs/dev/workflow.md
+    validations:
+      required: false
+
+  - type: textarea
+    id: scope-delta
+    attributes:
+      label: Scope Delta（任意）
+      description: Allowed Paths と実作業の乖離があれば表にする。なければ "N/A"。
+      value: "N/A"
+    validations:
+      required: false
