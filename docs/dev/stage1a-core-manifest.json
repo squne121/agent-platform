@@ -108,7 +108,8 @@
       ".claude/skills/issue-contract-review/scripts",
       ".claude/skills/create-issue/scripts",
       "scripts/agent-ops",
-      "scripts/agent-guards"
+      "scripts/agent-guards",
+      ".claude/skills/impl-review-loop/scripts"
     ],
     "closure_dirs": [
       ".claude/skills/issue-refinement-loop/scripts",
@@ -116,6 +117,7 @@
       ".claude/skills/create-issue/scripts",
       "scripts/agent-ops",
       "scripts/agent-guards",
+      ".claude/skills/impl-review-loop/scripts",
       "scripts/agent-ops/tests/fixtures"
     ],
     "deferred_imports": [
@@ -123,6 +125,11 @@
         "module": "reviewer_transport",
         "reason": "imported only when --reviewer-transport-result-file is passed (Stage 1b producer); an ImportError is surfaced as reviewer_transport_result_invalid environment_failure, not swallowed",
         "owner_stage": "stage_1b"
+      },
+      {
+        "module": "run_contract_review_once",
+        "reason": "contract-review-once path (ensure_contract_snapshot family): I-4 / Stage 2 dependent, not migrated; imported only by 2 deferred tests in test_product_spec_check.py (Issue #12 decision B)",
+        "owner_stage": "stage_2 / I-4"
       }
     ],
     "deferred_script_refs": [
@@ -200,6 +207,16 @@
         "script": "some_other_script.py",
         "reason": "sample filename inside a policy test command string, not a dependency",
         "owner_stage": "n/a"
+      },
+      {
+        "script": "build.py",
+        "reason": "string literal in test_path_classification.py fixtures (path-classification inputs), not a script reference (measured)",
+        "owner_stage": "stage_1b-1 (#12)"
+      },
+      {
+        "script": "y.py",
+        "reason": "string literal in test_path_classification.py fixtures (path-classification inputs), not a script reference (measured)",
+        "owner_stage": "stage_1b-1 (#12)"
       }
     ]
   },

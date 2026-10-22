@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-platform.example/schemas/extension-surface-runtime-policy.schema.json",
+  "title": "Claude Extension Surface Runtime Risk-Trigger Policy",
+  "description": "docs/dev/extension-surface-runtime-policy.yaml の構造を検証する closed validator。Issue #2283 参照。",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "resolution",
+    "unknown_surface_policy",
+    "assumptions",
+    "verification_profiles",
+    "rules"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string" },
+    "resolution": {
+      "type": "object",
+      "required": ["multiple_matches", "final_decision", "exception_scope"],
+      "additionalProperties": false,
+      "properties": {
+        "multiple_matches": { "type": "string", "enum": ["evaluate_all"] },
+        "final_decision": { "type": "string", "enum": ["most_restrictive"] },
+        "exception_scope": { "type": "string", "enum": ["per_rule"] }
+      }
+    },
+    "unknown_surface_policy": {
+      "type": "object",
+      "required": ["decision", "gate", "project_candidate_path_globs"],
+      "additionalProperties": false,
+      "properties": {
+        "decision": { "type": "string", "enum": ["human_judgment"] },
+        "gate": { "type": "string", "const": "advisory" },
+        "override_requires": { "type": "string" },
+        "project_candidate_path_globs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "delivery_context": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description"],
+        "properties": {
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["claim_id", "statement", "source", "last_verified", "applicability"],
+        "additionalProperties": false,
+        "properties": {
+          "claim_id": { "type": "string" },
+          "statement": { "type": "string" },
+          "source": { "type": "string" },
+          "min_claude_code_version": { "type": "string" },
+          "last_verified": { "type": "string", "format": "date" },
+          "applicability": { "type": "string" }
+        }
+      }
+    },
+    "verification_profiles": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["runner", "mode", "assertions"],
+        "additionalProperties": false,
+        "properties": {
+          "runner": { "type": "string" },
+          "mode": { "type": "string" },
+          "assertions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "description"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "description": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "selectors",
+          "semantic_detectors",
+          "execution_context",
+          "default_decision",
+          "verification_profile",
+          "exceptions",
+          "last_verified"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "selectors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["source_scope", "component"],
+              "additionalProperties": false,
+              "properties": {
+                "source_scope": {
+                  "type": "string",
+                  "enum": ["project", "user", "managed", "plugin", "session", "cli"]
+                },
+                "component": { "type": "string" },
+                "path_globs": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "issue_time_enforcement": {
+                  "type": "string",
+                  "enum": ["hard", "advisory"]
+                },
+                "runtime_resolved_only": { "type": "boolean" },
+                "evidence_source": { "type": "string" },
+                "notes": { "type": "string" }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": { "source_scope": { "const": "project" } },
+                    "required": ["source_scope"]
+                  },
+                  "then": { "required": ["path_globs"] }
+                },
+                {
+                  "if": {
+                    "not": {
+                      "properties": { "source_scope": { "const": "project" } },
+                      "required": ["source_scope"]
+                    }
+                  },
+                  "then": { "required": ["runtime_resolved_only", "evidence_source"] }
+                }
+              ]
+            }
+          },
+          "semantic_detectors": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["type", "change_types"],
+              "additionalProperties": false,
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "yaml_frontmatter_keys",
+                    "markdown_body",
+                    "json_config_keys",
+                    "script_body_semantics"
+                  ]
+                },
+                "keys": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "classification": { "type": "string" },
+                "change_types": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "enum": ["add", "modify", "delete", "rename"]
+                  }
+                }
+              }
+            }
+          },
+          "execution_context": { "type": "string" },
+          "default_decision": {
+            "type": "string",
+            "enum": ["immediate", "deferred"]
+          },
+          "verification_profile": { "type": "string" },
+          "issue_time_exemption": {
+            "type": "object",
+            "description": "Issue #2961: issue-time comment-only 免除の opt-in。claude-gpt-lifecycle-invocation-change rule だけが持つ（allOf で他 rule への付与を禁止する）。",
+            "required": ["declaration_key", "mode"],
+            "additionalProperties": false,
+            "properties": {
+              "declaration_key": {
+                "type": "string",
+                "enum": ["executable_semantics_unchanged"]
+              },
+              "mode": {
+                "type": "string",
+                "enum": ["exact_file_path_git_diff_vc"]
+              }
+            }
+          },
+          "exceptions": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "predicate",
+                "evaluation_mode",
+                "default_when_unproven",
+                "required_evidence",
+                "evidence_freshness",
+                "approval_authority"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string" },
+                "predicate": {
+                  "type": "string",
+                  "enum": [
+                    "proven_not_runtime_loaded",
+                    "proven_not_distributed",
+                    "production_consumer_inventory_empty",
+                    "executable_or_prompt_semantics_unchanged"
+                  ]
+                },
+                "evaluation_mode": {
+                  "type": "string",
+                  "enum": ["human_evidence_required"]
+                },
+                "default_when_unproven": {
+                  "type": "string",
+                  "enum": ["not_applied"]
+                },
+                "required_evidence": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string" }
+                },
+                "evidence_freshness": {
+                  "type": "string",
+                  "enum": ["current_head"]
+                },
+                "approval_authority": {
+                  "type": "string",
+                  "enum": ["owner"]
+                },
+                "description": { "type": "string" }
+              }
+            }
+          },
+          "last_verified": { "type": "string", "format": "date" },
+          "assumption_refs": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "notes": { "type": "string" }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": ["issue_time_exemption"]
+            },
+            "then": {
+              "properties": {
+                "id": { "const": "claude-gpt-lifecycle-invocation-change" }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}
