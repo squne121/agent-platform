@@ -77,7 +77,7 @@
     "tests/stage1b/test_extension_surface_policy_matcher.py": 109,
     "tests/stage1b/test_extension_surface_policy_matcher_candidate_perimeter.py": 19,
     "tests/stage1b/test_extension_surface_runtime_policy_schema.py": 18,
-    "tests/stage1b/test_stage1b1_closure.py": 17
+    "tests/stage1b/test_stage1b1_closure.py": 19
   },
   "expected_ran": {
     ".claude/skills/create-issue/scripts/tests/test_path_classification.py": 22,
@@ -89,7 +89,7 @@
     "tests/stage1b/test_extension_surface_policy_matcher.py": 108,
     "tests/stage1b/test_extension_surface_policy_matcher_candidate_perimeter.py": 19,
     "tests/stage1b/test_extension_surface_runtime_policy_schema.py": 18,
-    "tests/stage1b/test_stage1b1_closure.py": 17
+    "tests/stage1b/test_stage1b1_closure.py": 19
   },
   "deferred_tests": [
     {

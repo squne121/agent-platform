@@ -139,26 +139,57 @@ def test_shifted_layout_checker_fails_to_import(tmp_path):
     assert run.returncode != 0 and "ModuleNotFoundError" in run.stderr
 
 
-def test_shifted_layout_validate_issue_body_loses_templates(tmp_path):
+def _shifted_copy(tree: Path, rel: str) -> Path:
+    """Copy the leaf's whole script dir one level deeper (`<dir>/sub/`), preserving siblings."""
+    src_dir = (tree / rel).parent
+    deeper = src_dir / "sub"
+    shutil.copytree(src_dir, deeper, ignore=lambda _d, names: {n for n in names if n == "sub"})
+    return deeper / Path(rel).name
+
+
+@pytest.mark.parametrize(
+    ("rel", "expected"),
+    [
+        # parents[4] -> wrong root: scripts/agent-ops (allowed_paths_policy) is not found
+        (".claude/skills/create-issue/scripts/path_classification.py", "allowed_paths_policy"),
+        # parents[4] -> wrong root: the issue-contract-review sys.path entry is wrong
+        (".claude/skills/create-issue/scripts/validate_issue_body.py", "vc_contract_syntax"),
+    ],
+)
+def test_shifted_layout_skill_leaf_fails_to_import(tmp_path, rel, expected):
     tree = _tree(tmp_path)
-    deeper = tree / ".claude/skills/create-issue/scripts/sub"
-    deeper.mkdir()
-    shutil.copy(
-        SKILLS / "create-issue/scripts/validate_issue_body.py", deeper / "validate_issue_body.py"
+    shifted = _shifted_copy(tree, rel)
+    code = (
+        "import importlib.util,sys;"
+        f"sys.path.insert(0,{str(shifted.parent)!r});"
+        f"s=importlib.util.spec_from_file_location('shifted_leaf',{str(shifted)!r});"
+        "m=importlib.util.module_from_spec(s);sys.modules['shifted_leaf']=m;"
+        "s.loader.exec_module(m)"
     )
-    spec = importlib.util.spec_from_file_location("vib_shifted", deeper / "validate_issue_body.py")
-    assert spec and spec.loader
-    mod = importlib.util.module_from_spec(spec)
-    sys.modules["vib_shifted"] = mod
-    saved = list(sys.path)
-    try:
-        try:
-            spec.loader.exec_module(mod)
-        except ImportError:
-            return  # shifted layout fails loudly: acceptable
-        assert not (mod._REPO_ROOT / ".github" / "ISSUE_TEMPLATE" / "implementation.yml").is_file()
-    finally:
-        sys.path[:] = saved
+    run = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=False
+    )
+    assert run.returncode != 0
+    assert "ModuleNotFoundError" in run.stderr and expected in run.stderr
+
+
+def test_shifted_layout_matcher_cannot_find_policy_yaml(tmp_path):
+    tree = _tree(tmp_path)
+    shifted = _shifted_copy(tree, "scripts/agent-guards/extension_surface_policy_matcher.py")
+    code = (
+        "import importlib.util,sys;"
+        f"s=importlib.util.spec_from_file_location('shifted_esm',{str(shifted)!r});"
+        "m=importlib.util.module_from_spec(s);sys.modules['shifted_esm']=m;"
+        "s.loader.exec_module(m);"
+        "print(m._DEFAULT_POLICY_YAML_PATH.is_file());"
+        "m.load_policy()"
+    )
+    run = subprocess.run(
+        [sys.executable, "-I", "-c", code], capture_output=True, text=True, check=False
+    )
+    assert run.returncode != 0
+    assert run.stdout.strip() == "False"
+    assert "PolicyLoadError" in run.stderr
 
 
 def test_matcher_default_policy_path_is_repo_policy_and_exists():
