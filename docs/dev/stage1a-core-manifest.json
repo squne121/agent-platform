@@ -61,7 +61,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop.py": 51,
     ".claude/skills/issue-refinement-loop/tests/test_plan_refinement_loop_priority.py": 16,
     ".claude/skills/issue-refinement-loop/tests/test_preflight_run_with_anchor.py": 59,
-    ".claude/skills/issue-refinement-loop/tests/test_refinement_preflight.py": 88,
+    ".claude/skills/issue-refinement-loop/tests/test_refinement_preflight.py": 89,
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_credentialless_transport.py": 51,
     ".claude/skills/issue-refinement-loop/tests/test_run_refinement_preflight_scope_rollup_join.py": 4,
     ".claude/skills/issue-refinement-loop/tests/test_step_0f_parent_owned_preflight.py": 7,
@@ -74,14 +74,7 @@
     "tests/stage1a/test_stage1a_core_closure.py": 11,
     "tests/stage1a/test_stage1a_core_wiring.py": 20
   },
-  "deferred_tests": [
-    {
-      "id": ".claude/skills/issue-refinement-loop/tests/test_refinement_preflight.py::test_operator_intervention_not_triggered_by_no_path_marker",
-      "owner_stage": "stage_1b",
-      "reason": "drives issue-contract-review contract_readiness_check (static readiness of a candidate body); runtime-measured as reachable only via --consume-contract-patch-plan / --apply-* (mutation lane), not the read-only path",
-      "rerun_condition": "contract_readiness_check.py, check_issue_contract.py and their closure migrated"
-    }
-  ],
+  "deferred_tests": [],
   "excluded_untracked_copies": [
     {
       "file": ".claude/skills/issue-refinement-loop/scripts/tests/test_producer_fail_closed.py",
@@ -109,7 +102,8 @@
       ".claude/skills/create-issue/scripts",
       "scripts/agent-ops",
       "scripts/agent-guards",
-      ".claude/skills/impl-review-loop/scripts"
+      ".claude/skills/impl-review-loop/scripts",
+      ".claude/skills/review-issue/scripts"
     ],
     "closure_dirs": [
       ".claude/skills/issue-refinement-loop/scripts",
@@ -118,7 +112,8 @@
       "scripts/agent-ops",
       "scripts/agent-guards",
       ".claude/skills/impl-review-loop/scripts",
-      "scripts/agent-ops/tests/fixtures"
+      "scripts/agent-ops/tests/fixtures",
+      ".claude/skills/review-issue/scripts"
     ],
     "deferred_imports": [
       {
@@ -133,11 +128,6 @@
       }
     ],
     "deferred_script_refs": [
-      {
-        "script": "check_issue_contract.py",
-        "reason": "consume/apply lane; also required by the route_after_rewrite.py --issue/--repo CLI, which is therefore not runnable until this lands (fails loudly; the in-process compute_implementation_allowed path used by the planner is unaffected)",
-        "owner_stage": "stage_1b/2"
-      },
       {
         "script": "edit_issue_txn.py",
         "reason": "mutation transaction (Stage 2)",
@@ -426,5 +416,9 @@
       "real_github_access": "none"
     },
     "skill_md_note": "SKILL.md is byte-identical to the source tag. It references scripts owned by Stage 1b / 2 / I-4 (review pipeline, publish, root_entry_router CLI / run_root_transition); those references are expected to dangle until those stages land. Only preflight.run is the Stage 1a-2 canonical entrypoint."
+  },
+  "stage_1b_2": {
+    "issue": "squne121/agent-platform#13",
+    "note": "deferred test test_operator_intervention_not_triggered_by_no_path_marker re-enabled (89 collected / 89 ran); contract_readiness_check.py and check_issue_contract.py migrated, so their deferred_script_refs entries are removed and .claude/skills/review-issue/scripts joins the import-closure scan/closure dirs."
   }
 }

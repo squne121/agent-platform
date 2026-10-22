@@ -1,13 +1,15 @@
-"""Stage 1b-2a closure / false-green controls for contract_readiness_check.
+"""Stage 1b-2 closure / false-green controls for check_issue_contract + contract_readiness_check.
 
-Fixture + real-subprocess + fake `gh` only (no live GitHub). Pins: the checker imports under
-`python -I`; a normal body is `go` and a broken body is `needs_fix` without PS001 (product-spec
-subprocess reached); a layout shift fails; a missing/invalid policy YAML never degrades to an
-implicit NA; `--repo` is bound to the repository identity config before any `gh` call.
+Fixture + real-subprocess + fake `gh` only (no live GitHub). Pins: both checkers import under
+`python -I`; a normal body is approved and a broken body is needs-fix without PS001 (product-spec
+subprocess reached); layout shifts fail; a missing policy YAML never degrades to an implicit NA;
+`--repo` is bound to the repository identity config before any `gh` call; the exemption-filtered
+most-restrictive hard decision is consumed by both checkers (mixed decision ranks).
 """
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import shutil
@@ -16,9 +18,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 SKILLS = ROOT / ".claude" / "skills"
 REVIEW_DIR = SKILLS / "review-issue"
+CHECK = REVIEW_DIR / "scripts" / "check_issue_contract.py"
 READINESS = SKILLS / "issue-contract-review" / "scripts" / "contract_readiness_check.py"
 PASS_BODY = REVIEW_DIR / "fixtures" / "pass_issue.md"
 BROKEN_BODY = REVIEW_DIR / "fixtures" / "c1_missing_sections_issue.md"
@@ -38,6 +43,8 @@ def _tree(tmp: Path) -> Path:
         ".claude/skills/create-issue/scripts",
         ".claude/skills/issue-contract-review/scripts",
         ".claude/skills/impl-review-loop/scripts",
+        ".claude/skills/review-issue/scripts",
+        ".claude/skills/review-issue/schemas",
         "scripts/agent-ops",
         "scripts/agent-guards",
         "config",
@@ -79,32 +86,51 @@ def _readiness(script: Path, body: Path, *extra: str):
     return _run(script, "--body-file", str(body), *extra)
 
 
+def _check(script: Path, body: Path):
+    return _run(script, "--mode", "check", "--file", str(body), "--json")
+
+
+def _codes(result: dict) -> list[str]:
+    return [b.get("code") for b in result.get("blocking_issues", [])]
+
+
 # --------------------------------------------------------------------------- import / positive
 
 
-def test_readiness_imports_and_starts_under_python_I():
-    proc = _run(READINESS, "--help")
+@pytest.mark.parametrize("script", [CHECK, READINESS], ids=["check_issue_contract", "readiness"])
+def test_scripts_import_and_start_under_python_I(script):
+    proc = _run(script, "--help")
     assert proc.returncode == 0, proc.stderr
     assert "--repo" in proc.stdout
 
 
-def test_positive_control_normal_body_is_go():
+def test_positive_control_normal_body_is_approved_by_both():
+    check = _check(CHECK, PASS_BODY)
     ready = _readiness(READINESS, PASS_BODY)
-    assert json.loads(ready.stdout)["status"] == "go", ready.stdout + ready.stderr
+    assert check.returncode == 0, check.stdout + check.stderr
+    assert json.loads(check.stdout)["verdict"] == "approve"
+    assert json.loads(ready.stdout)["status"] == "go"
 
 
 def test_negative_control_missing_sections_is_needs_fix_and_not_ps001():
-    ready_json = json.loads(_readiness(READINESS, BROKEN_BODY).stdout)
+    check = _check(CHECK, BROKEN_BODY)
+    ready = _readiness(READINESS, BROKEN_BODY)
+    check_json = json.loads(check.stdout)
+    ready_json = json.loads(ready.stdout)
+    assert check_json["verdict"] == "needs-fix"
     assert ready_json["status"] == "needs_fix"
     # PS001 = the product-spec subprocess was unavailable/malformed: a wiring defect, not content.
+    assert "PS001" not in json.dumps(check_json)
     assert "PS001" not in [e["rule_id"] for e in ready_json["errors"]]
 
 
-def test_synthetic_tree_matches_repo_verdict(tmp_path):
+def test_synthetic_tree_matches_repo_verdicts(tmp_path):
     tree = _tree(tmp_path / "repo")
+    check = _check(tree / ".claude/skills/review-issue/scripts/check_issue_contract.py", PASS_BODY)
     ready = _readiness(
         tree / ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py", PASS_BODY
     )
+    assert json.loads(check.stdout)["verdict"] == "approve", check.stdout + check.stderr
     assert json.loads(ready.stdout)["status"] == "go", ready.stdout + ready.stderr
 
 
@@ -119,6 +145,27 @@ def test_readiness_parents_layout_shift_is_not_green(tmp_path):
     shutil.copy(scripts / "contract_readiness_check.py", deeper)
     proc = _readiness(deeper / "contract_readiness_check.py", PASS_BODY)
     assert proc.returncode != 0 or '"status": "go"' not in proc.stdout, proc.stdout
+
+
+def test_check_issue_contract_layout_shift_is_not_green(tmp_path):
+    tree = _tree(tmp_path / "repo")
+    scripts = tree / ".claude/skills/review-issue/scripts"
+    deeper = scripts / "nested"
+    deeper.mkdir()
+    shutil.copy(scripts / "check_issue_contract.py", deeper)
+    proc = _check(deeper / "check_issue_contract.py", PASS_BODY)
+    # sibling skill dirs (create-issue / issue-contract-review / impl-review-loop) are no longer
+    # reachable: the product-spec subprocess/imports cannot silently turn into an approve.
+    approved = proc.returncode == 0 and json.loads(proc.stdout or "{}").get("verdict") == "approve"
+    assert not approved, proc.stdout[:400]
+
+
+def test_missing_sibling_product_spec_script_is_not_a_false_green(tmp_path):
+    tree = _tree(tmp_path / "repo")
+    (tree / ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py").unlink()
+    proc = _check(tree / ".claude/skills/review-issue/scripts/check_issue_contract.py", PASS_BODY)
+    result = json.loads(proc.stdout)
+    assert result["verdict"] != "approve" or "PS001" in json.dumps(result)
 
 
 # --------------------------------------------------------------------------- policy missing (AC-3)
@@ -199,6 +246,23 @@ def test_policy_yaml_invalid_readiness_is_fail_closed(tmp_path):
     }
 
 
+def _load_checker(tree: Path):
+    path = tree / ".claude/skills/review-issue/scripts/check_issue_contract.py"
+    spec = importlib.util.spec_from_file_location("check_issue_contract_tree_under_test", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_policy_yaml_missing_check_issue_contract_is_not_pass(tmp_path):
+    tree = _tree(tmp_path / "repo")
+    (tree / POLICY_REL).unlink()
+    checker = _load_checker(tree)
+    result, _ = checker.check_c14_extension_surface_risk_trigger(_RISK_BODY, "implementation")
+    assert result != checker.CheckResult.PASS
+
+
 # --------------------------------------------------------------------------- --repo binding
 
 
@@ -232,8 +296,199 @@ def test_readiness_identity_config_missing_fails_closed(tmp_path):
     assert not log.exists()
 
 
+def test_check_issue_contract_untrusted_repo_is_refused_before_any_gh_call(tmp_path):
+    tree = _tree(tmp_path / "repo")
+    bindir, log = _fake_gh(tmp_path)
+    script = tree / ".claude/skills/review-issue/scripts/check_issue_contract.py"
+    proc = _run(
+        script,
+        "--mode",
+        "check",
+        "--issue",
+        "7",
+        "--repo",
+        "other-org/other-repo",
+        "--json",
+        path_prefix=bindir,
+    )
+    assert proc.returncode == 2
+    assert "identity mismatch" in proc.stderr
+    assert not log.exists()
+
+
+def test_check_issue_contract_trusted_repo_reaches_gh(tmp_path):
+    tree = _tree(tmp_path / "repo")
+    bindir, log = _fake_gh(tmp_path)
+    script = tree / ".claude/skills/review-issue/scripts/check_issue_contract.py"
+    proc = _run(
+        script,
+        "--mode",
+        "check",
+        "--issue",
+        "7",
+        "--repo",
+        TRUSTED_SLUG,
+        "--json",
+        path_prefix=bindir,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert f"--repo {TRUSTED_SLUG}" in log.read_text()
+
+
 # --------------------------------------------------------------------------- mixed decision ranks
 # Inherited from PR #16: `_most_restrictive_hard_decision` must be recomputed over the
 # exemption-FILTERED rules in the real consumers. Only the claude-gpt rule can be exempted
 # (immediate); the other matched hard rule is downgraded to `deferred` in a mutated policy so that
 # a survivor (final decision taken from the unfiltered rules) becomes observable.
+
+_LIB_SH = "scripts/claude-gpt/lib.sh"
+_OTHER_PATH = ".claude/hooks/some_hook.py"
+_OTHER_RULE = "hook-lifecycle-matcher-or-handler-change"
+
+
+_DECLARATION_AC1 = (
+    "- executable_semantics_unchanged: {rule: claude-gpt-lifecycle-invocation-change, ac: AC1}"
+)
+_MIXED_BODY_TEMPLATE = """## Machine-Readable Contract
+
+```yaml
+contract_schema_version: v1
+issue_kind: implementation
+parent_issue: "none"
+goal_ref: "comment-only exemption fixture"
+change_kind: workflow
+```
+
+## Parent Issue
+
+none
+
+## Outcome
+
+`scripts/claude-gpt/lib.sh` の comment を現行 semantics に合わせて修正する。
+
+## Parent Goal Ref
+
+- Goal: comment-only 変更の readiness false blocker 解消
+- Desired Destination: 単独改善
+
+## Current Validated Scope
+
+- `scripts/claude-gpt/lib.sh` の comment のみを変更する
+
+## Remaining Parent Gaps
+
+なし
+
+## In Scope
+
+- `scripts/claude-gpt/lib.sh` の comment 修正
+
+## Out of Scope
+
+- 実行時挙動の変更
+
+## Required Skills
+
+なし
+
+## Acceptance Criteria
+
+- [ ] AC1: `lib.sh` の変更が comment 行のみである
+- [ ] AC2: `lib.sh` の shell 構文が壊れていない
+
+## Verification Commands
+
+```bash
+{vc_lines}
+# AC2
+$ bash -n scripts/claude-gpt/lib.sh
+```
+
+## Stop Conditions
+
+- Allowed Paths 外の変更が必要な場合は停止
+- テストが修正できない場合は停止
+- 既存の型定義と競合する場合は停止
+- スコープ外の refactoring が必要な場合は停止
+- ビルドが壊れる場合は停止
+- 依存関係の追加が必要な場合は停止
+
+## Runtime Verification Applicability
+
+- decision: not_applicable
+- reason: comment のみの変更で実行時挙動は変わらない
+{declaration}
+
+## Allowed Paths
+
+{allowed_paths}
+"""
+
+
+def _mixed_body(declared: str) -> str:
+    body = _MIXED_BODY_TEMPLATE.format(
+        allowed_paths=f"- {_LIB_SH}\n- {_OTHER_PATH}",
+        declaration=_DECLARATION_AC1,
+        vc_lines=f"# AC1\n$ git diff origin/main -- {_LIB_SH}",
+    )
+    return body.replace("decision: not_applicable", f"decision: {declared}")
+
+
+def _patched_matcher(monkeypatch, loader_owner, other_rank: str):
+    matcher_path = ROOT / "scripts/agent-guards/extension_surface_policy_matcher.py"
+    spec = importlib.util.spec_from_file_location("matcher_mixed_rank_under_test", matcher_path)
+    matcher = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = matcher
+    spec.loader.exec_module(matcher)
+    original = matcher.load_policy
+
+    def mutated(*a, **k):
+        policy = original(*a, **k)
+        rule = next(r for r in policy["rules"] if r["id"] == _OTHER_RULE)
+        rule["default_decision"] = other_rank
+        return policy
+
+    monkeypatch.setattr(matcher, "load_policy", mutated)
+    monkeypatch.setattr(loader_owner, "_load_extension_surface_policy_matcher", lambda: matcher)
+
+
+def _readiness_module():
+    spec = importlib.util.spec_from_file_location("readiness_mixed_rank_under_test", READINESS)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _consumer_findings(kind: str, monkeypatch, body: str, other_rank: str) -> bool:
+    """True when the consumer flags the body (needs-fix)."""
+    if kind == "review-issue":
+        mod = _load_checker(ROOT)
+        _patched_matcher(monkeypatch, mod, other_rank)
+        res, _ = mod.check_c14_extension_surface_risk_trigger(body, "implementation")
+        return res == mod.CheckResult.FAIL
+    mod = _readiness_module()
+    _patched_matcher(monkeypatch, mod, other_rank)
+    return bool(mod.check_extension_surface_risk_trigger(body))
+
+
+@pytest.mark.parametrize("kind", ["review-issue", "readiness"])
+def test_partial_exemption_uses_remaining_rule_rank_positive(kind, monkeypatch):
+    """claude-gpt (immediate) exempted; remaining hard rule is `deferred`: declaring `deferred`
+    is sufficient. A survivor using the unfiltered `immediate` would wrongly flag this."""
+    assert not _consumer_findings(kind, monkeypatch, _mixed_body("deferred"), "deferred")
+
+
+@pytest.mark.parametrize("kind", ["review-issue", "readiness"])
+def test_partial_exemption_still_requires_remaining_rule_rank_negative(kind, monkeypatch):
+    """Same body, declared `not_applicable` (< remaining `deferred`) must still be flagged:
+    the exemption of one rule must not erase the other hard rule."""
+    assert _consumer_findings(kind, monkeypatch, _mixed_body("not_applicable"), "deferred")
+
+
+@pytest.mark.parametrize("kind", ["review-issue", "readiness"])
+def test_partial_exemption_equal_rank_remaining_rule_negative(kind, monkeypatch):
+    """Remaining hard rule is `immediate`: declaring `deferred` is insufficient even though the
+    claude-gpt rule is exempted."""
+    assert _consumer_findings(kind, monkeypatch, _mixed_body("deferred"), "immediate")

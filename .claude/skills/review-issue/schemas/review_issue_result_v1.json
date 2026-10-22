@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-platform.example/schemas/review_issue_result_v1.json",
+  "title": "REVIEW_ISSUE_RESULT_V1",
+  "type": "object",
+  "required": [
+    "schema",
+    "schema_version",
+    "verdict",
+    "status",
+    "body_sha256",
+    "issue_kind",
+    "generated_at",
+    "deterministic_checks",
+    "blocking_issues",
+    "structured_blockers",
+    "non_blocking_improvements",
+    "findings",
+    "diff_proposal",
+    "parsed_vc_commands"
+  ],
+  "properties": {
+    "schema": {
+      "const": "REVIEW_ISSUE_RESULT_V1"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "verdict": {
+      "enum": ["approve", "needs-fix"]
+    },
+    "status": {
+      "enum": ["ok", "failed"]
+    },
+    "body_sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "issue_kind": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "deterministic_checks": {
+      "type": "object"
+    },
+    "blocking_issues": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {"type": "string"},
+          {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": {"type": "string"},
+              "message": {"type": "string"}
+            },
+            "additionalProperties": true
+          }
+        ]
+      }
+    },
+    "structured_blockers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/structured_blocker"
+      }
+    },
+    "non_blocking_improvements": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "diff_proposal": {
+      "type": "object"
+    },
+    "parsed_vc_commands": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "$defs": {
+    "checker_evidence": {
+      "type": "object",
+      "required": [
+        "source_check",
+        "rule_id",
+        "category",
+        "artifact_path",
+        "artifact_schema",
+        "body_sha256",
+        "iteration_id",
+        "line_start",
+        "line_end"
+      ],
+      "properties": {
+        "source_check": {"type": "string", "minLength": 1},
+        "rule_id": {"type": "string", "minLength": 1},
+        "category": {"type": "string", "minLength": 1},
+        "artifact_path": {"type": "string", "minLength": 1},
+        "artifact_schema": {"type": "string", "minLength": 1},
+        "body_sha256": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "iteration_id": {"type": "string", "minLength": 1},
+        "line_start": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "line_end": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "finding_kind",
+        "deterministic_domain_key",
+        "blocking",
+        "checker_evidence",
+        "message"
+      ],
+      "properties": {
+        "finding_kind": {
+          "enum": [
+            "deterministic_domain_blocker",
+            "checker_gap",
+            "heuristic_concern"
+          ]
+        },
+        "deterministic_domain_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "checker_evidence": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/checker_evidence"
+          }
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "finding_kind": {
+                "const": "deterministic_domain_blocker"
+              }
+            },
+            "required": ["finding_kind"]
+          },
+          "then": {
+            "properties": {
+              "blocking": {
+                "const": true
+              },
+              "checker_evidence": {
+                "minItems": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "finding_kind": {
+                "const": "checker_gap"
+              }
+            },
+            "required": ["finding_kind"]
+          },
+          "then": {
+            "properties": {
+              "blocking": {
+                "const": false
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "structured_blocker": {
+      "type": "object",
+      "required": [
+        "code",
+        "message",
+        "finding_kind",
+        "deterministic_domain_key",
+        "blocking",
+        "checker_evidence"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string"
+        },
+        "finding_kind": {
+          "const": "deterministic_domain_blocker"
+        },
+        "deterministic_domain_key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "blocking": {
+          "const": true
+        },
+        "checker_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/checker_evidence"
+          }
+        }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}
