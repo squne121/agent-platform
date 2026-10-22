@@ -169,7 +169,7 @@
     ".claude/skills/review-issue/tests/test_true_canonical_parent_pipeline_integration.py": 8,
     ".claude/skills/review-issue/tests/test_vc_annotation_support.py": 38,
     ".claude/skills/review-issue/tests/test_vc_grammar_parity.py": 29,
-    "tests/stage1b/test_stage1b2_closure.py": 22
+    "tests/stage1b/test_stage1b2_closure.py": 33
   },
   "expected_ran": {
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
@@ -197,7 +197,7 @@
     ".claude/skills/review-issue/tests/test_true_canonical_parent_pipeline_integration.py": 8,
     ".claude/skills/review-issue/tests/test_vc_annotation_support.py": 38,
     ".claude/skills/review-issue/tests/test_vc_grammar_parity.py": 29,
-    "tests/stage1b/test_stage1b2_closure.py": 22
+    "tests/stage1b/test_stage1b2_closure.py": 33
   },
   "deferred_tests": [],
   "released_deferred": [
@@ -220,6 +220,7 @@
     "check_issue_contract.py: --issue path binds --repo to repo_identity.is_trusted_repo before any gh call (mismatch / config problem -> exit 2); new _load_repo_identity() helper; no other change",
     "review_issue_result_v1.json: $id legacy domain replaced by agent-platform.example (no consumer test depends on the old domain)",
     "tests/stage1b/test_stage1b2_closure.py: new (python -I, positive/negative control, layout shift, policy missing/invalid, --repo binding, mixed-rank exemption regression)",
+    "test_contract_readiness.py + test_check_issue_contract.py: legacy slug in mock payload / fetch_issue_body tests -> example-org/example-repo; fake binary name 'loop-protocol-nonexistent-tool' -> 'nonexistent-tool' (value not interpreted; two comment/docstring lines at 851 and 1181 follow)",
     "references/vc-preflight.md line 152: state-dir name `loop-protocol` -> `agent-platform` (documentation only; vc_runtime_history.py already uses agent-platform)",
     "review-issue/fixtures/ps_docs_product_without_spec_delta_issue.md: new fixture (pass_issue.md + a docs/product Allowed Path) for the product-spec blocking regression"
   ],
@@ -233,5 +234,85 @@
     "_most_restrictive_hard_decision": "mixed-rank partial-exemption regression added at the consumer level (both checkers); a mutation (filter ignored) is killed by test_partial_exemption_uses_remaining_rule_rank_positive[*]",
     "parse_git_diff_index_raw_z": "real consumer is in the not-migrated controlled_git_change_exec; NOT migrated here; handover stays with that owner"
   },
+  "dangling_refs": {
+    "note": "paths mentioned in migrated SKILL.md / references / comments / user-facing strings that are NOT migrated; none is loaded at runtime (loud or fail-closed if ever needed). Verbatim from the source tag.",
+    "entries": [
+      {
+        "ref": ".claude/agents/issue-reviewer.md",
+        "where": "review-issue/SKILL.md",
+        "owner_stage": "stage_1b-4 (#14/#15 lane: review Agents)"
+      },
+      {
+        "ref": ".claude/skills/issue-refinement-loop/scripts/run_root_review_pipeline.py",
+        "where": "review-issue/SKILL.md; contract_readiness_check.py comments",
+        "owner_stage": "stage_1b-3 (#14)"
+      },
+      {
+        "ref": ".claude/skills/edit-issue/SKILL.md",
+        "where": "review-issue/SKILL.md",
+        "owner_stage": "stage_2"
+      },
+      {
+        "ref": ".claude/skills/implement-issue/SKILL.md",
+        "where": "issue-contract-review/SKILL.md",
+        "owner_stage": "I-4"
+      },
+      {
+        "ref": ".claude/skills/create-issue/references/body-authoring.md",
+        "where": "review-issue/SKILL.md; contract_readiness_check.py fix_hint strings",
+        "owner_stage": "unassigned (create-issue references; not required by the two checkers)"
+      },
+      {
+        "ref": "docs/dev/agent-skill-boundaries.md",
+        "where": "review-issue/SKILL.md; issue-contract-review/SKILL.md; contract_readiness_check.py message strings",
+        "owner_stage": "unassigned (docs)"
+      },
+      {
+        "ref": "docs/dev/ci-performance.md",
+        "where": "references/vc-preflight.md",
+        "owner_stage": "unassigned (docs)"
+      },
+      {
+        "ref": "docs/dev/visual-impact.schema.json",
+        "where": "review-issue/SKILL.md; issue-contract-review/SKILL.md",
+        "owner_stage": "unassigned (docs)"
+      },
+      {
+        "ref": ".claude/rules/project-constitution.md",
+        "where": "comments",
+        "owner_stage": "unassigned"
+      },
+      {
+        "ref": ".claude/skills/issue-contract-review/scripts/check_blockers.sh",
+        "where": "issue-contract-review/SKILL.md; references/contract-compliance.md",
+        "owner_stage": "stage_2 / I-4 (contract-review-once lane)"
+      },
+      {
+        "ref": "run_contract_review_once.py / declared_path_overlap.py / contract_review_result_parser.py",
+        "where": "SKILL.md text; --history-snapshot-file help; error strings",
+        "owner_stage": "stage_2 / I-4"
+      },
+      {
+        "ref": "scripts/agent-guards/controlled_skill_mutation_exec.py",
+        "where": "issue-contract-review/SKILL.md",
+        "owner_stage": "stage_2"
+      },
+      {
+        "ref": "scripts/ci/runtime_dependency_smoke.py",
+        "where": "issue-contract-review/SKILL.md",
+        "owner_stage": "unassigned (CI)"
+      },
+      {
+        "ref": "reviewer_transport.py / compact_review_result.py",
+        "where": "comments",
+        "owner_stage": "stage_1b-3 (#14)"
+      }
+    ]
+  },
+  "accepted_degrade": [
+    "extension_surface_policy_matcher.py FILE absent: both consumers return no finding / NA (identical to source; docstrings state it). Guard: required_files + test_matcher_and_policy_are_pinned_by_the_manifest + 1b-1 closure tests. Policy YAML absent/invalid is NOT degraded: readiness -> human_judgment, check_issue_contract C14/C15 -> visible non-blocking WARN (source behaviour, per 'do not turn advisory WARN into hard-fail'; the readiness checker is the strict side).",
+    "check_issue_contract.py wraps vc_contract_syntax in try/except ImportError and falls back to a stub parser (identical to source). All other sibling imports fail loudly or yield needs-fix (tested). Guard: required_files.",
+    ".github/ISSUE_TEMPLATE/implementation.yml is read relative to the CWD with a hardcoded-section fallback (identical to source)."
+  ],
   "part": "13c (#19) review-issue tests"
 }
