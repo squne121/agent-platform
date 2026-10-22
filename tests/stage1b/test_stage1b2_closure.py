@@ -144,7 +144,8 @@ def test_readiness_parents_layout_shift_is_not_green(tmp_path):
     deeper.mkdir()
     shutil.copy(scripts / "contract_readiness_check.py", deeper)
     proc = _readiness(deeper / "contract_readiness_check.py", PASS_BODY)
-    assert proc.returncode != 0 or '"status": "go"' not in proc.stdout, proc.stdout
+    # the shifted copy must crash on its first sibling import, not produce any verdict
+    assert proc.returncode != 0 and "ModuleNotFoundError" in proc.stderr, proc.stdout + proc.stderr
 
 
 def test_check_issue_contract_layout_shift_is_not_green(tmp_path):
