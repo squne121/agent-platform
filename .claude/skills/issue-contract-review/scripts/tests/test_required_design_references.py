@@ -177,9 +177,9 @@ def test_rdr_prose_without_path_needs_fix():
 # ---------------------------------------------------------------------------
 
 
-def test_rdr_valid_agent_skill_boundaries_reference_passes():
-    """AC4: reference to docs/dev/github-ops.md (Parallel Agent Runtime
-    Safety) is detected as a valid design-doc reference."""
+def test_rdr_valid_github_ops_reference_passes():
+    """AC4: reference to docs/dev/github-ops.md#ISSUE_KIND_POLICY_V1 is detected as a
+    valid design-doc reference."""
     data, _ = run_readiness_with_body(
         _body_with_rdr(
             "- docs/dev/github-ops.md#ISSUE_KIND_POLICY_V1"
