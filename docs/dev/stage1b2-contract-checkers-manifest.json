@@ -7,26 +7,32 @@
     "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
   },
   "required_files": [
-    ".claude/skills/review-issue/SKILL.md",
-    ".claude/skills/review-issue/scripts/check_issue_contract.py",
-    ".claude/skills/review-issue/schemas/review_issue_result_v1.json",
-    ".claude/skills/issue-contract-review/SKILL.md",
-    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
-    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
-    ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
-    ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
-    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
     ".claude/skills/create-issue/scripts/mrc_contract_parser.py",
+    ".claude/skills/create-issue/scripts/path_classification.py",
     ".claude/skills/create-issue/scripts/prose_boundary_policy.py",
     ".claude/skills/create-issue/scripts/validate_issue_body.py",
-    ".claude/skills/create-issue/scripts/path_classification.py",
     ".claude/skills/impl-review-loop/scripts/evaluate_product_spec_gate.py",
-    "scripts/agent-guards/extension_surface_policy_matcher.py",
-    "scripts/agent-guards/repo_identity.py",
+    ".claude/skills/issue-contract-review/SKILL.md",
+    ".claude/skills/issue-contract-review/references/ac-verifiability.md",
+    ".claude/skills/issue-contract-review/references/contract-compliance.md",
+    ".claude/skills/issue-contract-review/references/output-schema.md",
+    ".claude/skills/issue-contract-review/references/product-spec-preflight.md",
+    ".claude/skills/issue-contract-review/references/runtime-verification.md",
+    ".claude/skills/issue-contract-review/references/vc-preflight.md",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
+    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
+    ".claude/skills/review-issue/SKILL.md",
+    ".claude/skills/review-issue/schemas/review_issue_result_v1.json",
+    ".claude/skills/review-issue/scripts/check_issue_contract.py",
     "config/repository_identity.v1.json",
-    "docs/dev/extension-surface-runtime-policy.yaml",
     "docs/dev/extension-surface-runtime-policy.schema.json",
-    "docs/dev/github-ops.md"
+    "docs/dev/extension-surface-runtime-policy.yaml",
+    "docs/dev/github-ops.md",
+    "scripts/agent-guards/extension_surface_policy_matcher.py",
+    "scripts/agent-guards/repo_identity.py"
   ],
   "required_fixtures": [
     ".claude/skills/issue-contract-review/scripts/tests/fixtures/change_kind_update_only_not_product_spec.md",
@@ -85,6 +91,7 @@
     ".claude/skills/review-issue/fixtures/c8_fail_issue.md",
     ".claude/skills/review-issue/fixtures/c9_fail_issue.md",
     ".claude/skills/review-issue/fixtures/pass_issue.md",
+    ".claude/skills/review-issue/fixtures/ps_docs_product_without_spec_delta_issue.md",
     ".claude/skills/review-issue/fixtures/scope_cvs_in_scope_mismatch_asterisk_bullet.md",
     ".claude/skills/review-issue/fixtures/scope_cvs_in_scope_mismatch_bare_path_mismatch.md",
     ".claude/skills/review-issue/fixtures/scope_cvs_in_scope_mismatch_bare_path_overlap.md",
@@ -168,7 +175,7 @@
     ".claude/skills/review-issue/tests/test_true_canonical_parent_pipeline_integration.py": 8,
     ".claude/skills/review-issue/tests/test_vc_annotation_support.py": 38,
     ".claude/skills/review-issue/tests/test_vc_grammar_parity.py": 29,
-    "tests/stage1b/test_stage1b2_closure.py": 22
+    "tests/stage1b/test_stage1b2_closure.py": 33
   },
   "expected_ran": {
     ".claude/skills/issue-contract-review/scripts/tests/test_contract_readiness.py": 49,
@@ -199,7 +206,7 @@
     ".claude/skills/review-issue/tests/test_true_canonical_parent_pipeline_integration.py": 8,
     ".claude/skills/review-issue/tests/test_vc_annotation_support.py": 38,
     ".claude/skills/review-issue/tests/test_vc_grammar_parity.py": 29,
-    "tests/stage1b/test_stage1b2_closure.py": 22
+    "tests/stage1b/test_stage1b2_closure.py": 33
   },
   "deferred_tests": [],
   "released_deferred": [
