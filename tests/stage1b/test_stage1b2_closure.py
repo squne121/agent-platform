@@ -1,9 +1,10 @@
 """Stage 1b-2a closure / false-green controls for contract_readiness_check.
 
-Fixture + real-subprocess + fake `gh` only (no live GitHub). Pins: the checker imports under
-`python -I`; a normal body is `go` and a broken body is `needs_fix` without PS001 (product-spec
-subprocess reached); a layout shift fails; a missing/invalid policy YAML never degrades to an
-implicit NA; `--repo` is bound to the repository identity config before any `gh` call.
+Fixture + real-subprocess + fake `gh` only (no live GitHub). Pins: both checkers import under
+`python -I`; a normal body is approved and a broken body is needs-fix without PS001 (product-spec
+subprocess reached); layout shifts fail; a missing policy YAML never degrades to an implicit NA;
+`--repo` is bound to the repository identity config before any `gh` call; the exemption-filtered
+most-restrictive hard decision is consumed by both checkers (mixed decision ranks).
 """
 
 from __future__ import annotations
@@ -15,6 +16,8 @@ import stat
 import subprocess
 import sys
 from pathlib import Path
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
 SKILLS = ROOT / ".claude" / "skills"
@@ -118,7 +121,8 @@ def test_readiness_parents_layout_shift_is_not_green(tmp_path):
     deeper.mkdir()
     shutil.copy(scripts / "contract_readiness_check.py", deeper)
     proc = _readiness(deeper / "contract_readiness_check.py", PASS_BODY)
-    assert proc.returncode != 0 or '"status": "go"' not in proc.stdout, proc.stdout
+    # the shifted copy must crash on its first sibling import, not produce any verdict
+    assert proc.returncode != 0 and "ModuleNotFoundError" in proc.stderr, proc.stdout + proc.stderr
 
 
 # --------------------------------------------------------------------------- policy missing (AC-3)
@@ -237,3 +241,41 @@ def test_readiness_identity_config_missing_fails_closed(tmp_path):
 # exemption-FILTERED rules in the real consumers. Only the claude-gpt rule can be exempted
 # (immediate); the other matched hard rule is downgraded to `deferred` in a mutated policy so that
 # a survivor (final decision taken from the unfiltered rules) becomes observable.
+
+
+# --------------------------------------------------------------------------- missing imports
+
+_SKILLS_REL = ".claude/skills"
+_MISSING_IMPORT_READINESS = [
+    f"{_SKILLS_REL}/issue-contract-review/scripts/vc_contract_syntax.py",
+    f"{_SKILLS_REL}/issue-contract-review/scripts/baseline_vc_preflight.py",
+    f"{_SKILLS_REL}/create-issue/scripts/prose_boundary_policy.py",
+    f"{_SKILLS_REL}/create-issue/scripts/mrc_contract_parser.py",
+    "scripts/agent-guards/repo_identity.py",
+]
+
+
+@pytest.mark.parametrize("rel", _MISSING_IMPORT_READINESS)
+def test_readiness_missing_import_is_loud_not_green(tmp_path, rel):
+    tree = _tree(tmp_path / "repo")
+    (tree / rel).unlink()
+    script = tree / ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py"
+    proc = _readiness(script, PASS_BODY)
+    assert proc.returncode != 0 and "ModuleNotFoundError" in proc.stderr, proc.stdout + proc.stderr
+
+
+def test_matcher_and_policy_are_pinned_by_the_manifest():
+    """The consumers degrade to NA when the matcher MODULE file is absent (unchanged from the
+    source); the lane must therefore pin its presence via the manifest `required_files`."""
+    manifest = json.loads(
+        (ROOT / "docs/dev/stage1b2-contract-checkers-manifest.json").read_text(encoding="utf-8")
+    )
+    required = set(manifest["required_files"])
+    for rel in (
+        "scripts/agent-guards/extension_surface_policy_matcher.py",
+        "scripts/agent-guards/repo_identity.py",
+        POLICY_REL,
+        "config/repository_identity.v1.json",
+    ):
+        assert rel in required, rel
+        assert (ROOT / rel).is_file(), rel

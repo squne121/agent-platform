@@ -7,23 +7,29 @@
     "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
   },
   "required_files": [
-    ".claude/skills/issue-contract-review/SKILL.md",
-    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
-    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
-    ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
-    ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
-    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
     ".claude/skills/create-issue/scripts/mrc_contract_parser.py",
+    ".claude/skills/create-issue/scripts/path_classification.py",
     ".claude/skills/create-issue/scripts/prose_boundary_policy.py",
     ".claude/skills/create-issue/scripts/validate_issue_body.py",
-    ".claude/skills/create-issue/scripts/path_classification.py",
     ".claude/skills/impl-review-loop/scripts/evaluate_product_spec_gate.py",
-    "scripts/agent-guards/extension_surface_policy_matcher.py",
-    "scripts/agent-guards/repo_identity.py",
+    ".claude/skills/issue-contract-review/SKILL.md",
+    ".claude/skills/issue-contract-review/references/ac-verifiability.md",
+    ".claude/skills/issue-contract-review/references/contract-compliance.md",
+    ".claude/skills/issue-contract-review/references/output-schema.md",
+    ".claude/skills/issue-contract-review/references/product-spec-preflight.md",
+    ".claude/skills/issue-contract-review/references/runtime-verification.md",
+    ".claude/skills/issue-contract-review/references/vc-preflight.md",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
+    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
     "config/repository_identity.v1.json",
-    "docs/dev/extension-surface-runtime-policy.yaml",
     "docs/dev/extension-surface-runtime-policy.schema.json",
-    "docs/dev/github-ops.md"
+    "docs/dev/extension-surface-runtime-policy.yaml",
+    "docs/dev/github-ops.md",
+    "scripts/agent-guards/extension_surface_policy_matcher.py",
+    "scripts/agent-guards/repo_identity.py"
   ],
   "required_fixtures": [
     ".claude/skills/issue-contract-review/scripts/tests/fixtures/change_kind_update_only_not_product_spec.md",
@@ -66,7 +72,7 @@
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_vc_presence_contract.py": 4,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_validation_profile.py": 17,
     ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py": 30,
-    "tests/stage1b/test_stage1b2_closure.py": 10
+    "tests/stage1b/test_stage1b2_closure.py": 16
   },
   "expected_ran": {
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
@@ -75,7 +81,7 @@
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_vc_presence_contract.py": 4,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_validation_profile.py": 17,
     ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py": 30,
-    "tests/stage1b/test_stage1b2_closure.py": 10
+    "tests/stage1b/test_stage1b2_closure.py": 16
   },
   "deferred_tests": [],
   "released_deferred": [],
@@ -86,13 +92,94 @@
   "intentional_diffs": [
     "contract_readiness_check.py: --repo default 'squne121/loop-protocol' -> None; resolved from repo_identity.load_trusted_repo_slug(); an explicit --repo must equal the trusted slug (is_trusted_repo); identity config missing/invalid -> exit 2 before any gh call (same binding as baseline_vc_preflight.py)",
     "contract_readiness_check.py: two comment-only legacy PR URLs replaced by plain text (no functional change)",
-    "tests/stage1b/test_stage1b2_closure.py: new (readiness side: python -I, positive/negative control, layout shift, policy missing/invalid, --repo binding); check_issue_contract side and the mixed-rank exemption regression arrive in 13b (#18)"
+    "tests/stage1b/test_stage1b2_closure.py: new (readiness side: python -I, positive/negative control, layout shift, policy missing/invalid, missing-import negatives, --repo binding, manifest pin of matcher/policy); the check_issue_contract side and the mixed-rank exemption regression arrive in 13b (#18)",
+    "references/vc-preflight.md line 152: state-dir name `loop-protocol` -> `agent-platform` (documentation only; vc_runtime_history.py already uses agent-platform)"
   ],
   "policy_semantics": "consumers: matcher PolicyLoadError (missing/invalid YAML) -> readiness human_judgment 'extension_surface_risk_trigger_policy_unavailable' (tested); check_issue_contract C14 is not PASS (tested). Unchanged from source: when the matcher MODULE file itself is absent the consumers return [] / NA; that absence is caught by required_files here and by the 1b-1 closure tests, not by the consumer.",
   "not_adopted_source_tests": [
     "issue-contract-review/scripts/tests/test_baseline_vc_preflight*.py, test_command_timeout_*.py, test_vc_*.py, test_review_budget_*.py (baseline_vc_preflight / budget owner)",
     "issue-contract-review/tests/test_run_contract_review_once*.py, test_contract_review_result_parser.py, test_declared_path_overlap.py, test_contract_snapshot_author_trust.py, test_history_snapshot_production_wiring.py (run_contract_review_once lane; Stage 2 / I-4)",
     "issue-contract-review/tests/test_pnpm_*.py, test_pytest_vc_baseline_shape_compiler.py, test_github_metadata_assert.py, test_delivery_rollup_parent_exempt_consumer_gap.py, test_contract_review_no_worktree_creation.py (other owners; not required by the two checkers)"
+  ],
+  "dangling_refs": {
+    "note": "paths mentioned in migrated SKILL.md / references / comments / user-facing strings that are NOT migrated; none is loaded at runtime (loud or fail-closed if ever needed). Verbatim from the source tag.",
+    "entries": [
+      {
+        "ref": ".claude/agents/issue-reviewer.md",
+        "where": "review-issue/SKILL.md",
+        "owner_stage": "stage_1b-4 (#14/#15 lane: review Agents)"
+      },
+      {
+        "ref": ".claude/skills/issue-refinement-loop/scripts/run_root_review_pipeline.py",
+        "where": "review-issue/SKILL.md; contract_readiness_check.py comments",
+        "owner_stage": "stage_1b-3 (#14)"
+      },
+      {
+        "ref": ".claude/skills/edit-issue/SKILL.md",
+        "where": "review-issue/SKILL.md",
+        "owner_stage": "stage_2"
+      },
+      {
+        "ref": ".claude/skills/implement-issue/SKILL.md",
+        "where": "issue-contract-review/SKILL.md",
+        "owner_stage": "I-4"
+      },
+      {
+        "ref": ".claude/skills/create-issue/references/body-authoring.md",
+        "where": "review-issue/SKILL.md; contract_readiness_check.py fix_hint strings",
+        "owner_stage": "unassigned (create-issue references; not required by the two checkers)"
+      },
+      {
+        "ref": "docs/dev/agent-skill-boundaries.md",
+        "where": "review-issue/SKILL.md; issue-contract-review/SKILL.md; contract_readiness_check.py message strings",
+        "owner_stage": "unassigned (docs)"
+      },
+      {
+        "ref": "docs/dev/ci-performance.md",
+        "where": "references/vc-preflight.md",
+        "owner_stage": "unassigned (docs)"
+      },
+      {
+        "ref": "docs/dev/visual-impact.schema.json",
+        "where": "review-issue/SKILL.md; issue-contract-review/SKILL.md",
+        "owner_stage": "unassigned (docs)"
+      },
+      {
+        "ref": ".claude/rules/project-constitution.md",
+        "where": "comments",
+        "owner_stage": "unassigned"
+      },
+      {
+        "ref": ".claude/skills/issue-contract-review/scripts/check_blockers.sh",
+        "where": "issue-contract-review/SKILL.md; references/contract-compliance.md",
+        "owner_stage": "stage_2 / I-4 (contract-review-once lane)"
+      },
+      {
+        "ref": "run_contract_review_once.py / declared_path_overlap.py / contract_review_result_parser.py",
+        "where": "SKILL.md text; --history-snapshot-file help; error strings",
+        "owner_stage": "stage_2 / I-4"
+      },
+      {
+        "ref": "scripts/agent-guards/controlled_skill_mutation_exec.py",
+        "where": "issue-contract-review/SKILL.md",
+        "owner_stage": "stage_2"
+      },
+      {
+        "ref": "scripts/ci/runtime_dependency_smoke.py",
+        "where": "issue-contract-review/SKILL.md",
+        "owner_stage": "unassigned (CI)"
+      },
+      {
+        "ref": "reviewer_transport.py / compact_review_result.py",
+        "where": "comments",
+        "owner_stage": "stage_1b-3 (#14)"
+      }
+    ]
+  },
+  "accepted_degrade": [
+    "extension_surface_policy_matcher.py FILE absent: both consumers return no finding / NA (identical to source; docstrings state it). Guard: required_files + test_matcher_and_policy_are_pinned_by_the_manifest + 1b-1 closure tests. Policy YAML absent/invalid is NOT degraded: readiness -> human_judgment, check_issue_contract C14/C15 -> visible non-blocking WARN (source behaviour, per 'do not turn advisory WARN into hard-fail'; the readiness checker is the strict side).",
+    "check_issue_contract.py wraps vc_contract_syntax in try/except ImportError and falls back to a stub parser (identical to source). All other sibling imports fail loudly or yield needs-fix (tested). Guard: required_files.",
+    ".github/ISSUE_TEMPLATE/implementation.yml is read relative to the CWD with a hardcoded-section fallback (identical to source)."
   ],
   "part": "13a (#17) contract_readiness_check",
   "deferred_note": "13a: the 1a deferred test and the 1b-1 parity test stay deferred (need check_issue_contract.py, 13b); the two parity test files in issue-contract-review/tests (they import check_issue_contract) arrive in 13b."

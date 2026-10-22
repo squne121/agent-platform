@@ -149,7 +149,7 @@ Issue #2233 の元々の障害（`uv run --locked pytest .claude/skills/issue-re
 
 ### 履歴ベース estimator（History-based estimator、Issue #2254 で追加）
 
-`history_estimate` source は `.claude/skills/issue-contract-review/scripts/vc_runtime_history.py`（新規モジュール、`baseline_vc_preflight.py` に詰め込まない）が所有する、**ローカル per-repository** SQLite store（`$XDG_STATE_HOME/loop-protocol/vc-runtime-history/<sha256(realpath(git-common-dir))>.sqlite3`、`XDG_STATE_HOME` 未設定時は `~/.local/state`）に永続化された過去実測 execution time evidence から算出する。repo にコミットされる state ではなく、Allowed Paths guard の対象外の runtime state として扱う（worktree に関わらず同一 repository の全 worktree が同一 store を共有する — `git rev-parse --git-common-dir` で解決）。
+`history_estimate` source は `.claude/skills/issue-contract-review/scripts/vc_runtime_history.py`（新規モジュール、`baseline_vc_preflight.py` に詰め込まない）が所有する、**ローカル per-repository** SQLite store（`$XDG_STATE_HOME/agent-platform/vc-runtime-history/<sha256(realpath(git-common-dir))>.sqlite3`、`XDG_STATE_HOME` 未設定時は `~/.local/state`）に永続化された過去実測 execution time evidence から算出する。repo にコミットされる state ではなく、Allowed Paths guard の対象外の runtime state として扱う（worktree に関わらず同一 repository の全 worktree が同一 store を共有する — `git rev-parse --git-common-dir` で解決）。
 
 **Identity 分離**（PR #2245 iteration で `history_estimate` が一度 reject された反省を踏まえた設計）:
 
