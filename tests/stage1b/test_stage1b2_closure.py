@@ -156,9 +156,8 @@ def test_check_issue_contract_layout_shift_is_not_green(tmp_path):
     shutil.copy(scripts / "check_issue_contract.py", deeper)
     proc = _check(deeper / "check_issue_contract.py", PASS_BODY)
     # sibling skill dirs (create-issue / issue-contract-review / impl-review-loop) are no longer
-    # reachable: the product-spec subprocess/imports cannot silently turn into an approve.
-    approved = proc.returncode == 0 and json.loads(proc.stdout or "{}").get("verdict") == "approve"
-    assert not approved, proc.stdout[:400]
+    # reachable: it must crash loudly rather than turn into an approve.
+    assert proc.returncode != 0 and "ModuleNotFoundError" in proc.stderr, proc.stdout + proc.stderr
 
 
 def test_missing_sibling_product_spec_script_is_not_a_false_green(tmp_path):
@@ -260,8 +259,11 @@ def test_policy_yaml_missing_check_issue_contract_is_not_pass(tmp_path):
     tree = _tree(tmp_path / "repo")
     (tree / POLICY_REL).unlink()
     checker = _load_checker(tree)
-    result, _ = checker.check_c14_extension_surface_risk_trigger(_RISK_BODY, "implementation")
-    assert result != checker.CheckResult.PASS
+    result, issues = checker.check_c14_extension_surface_risk_trigger(_RISK_BODY, "implementation")
+    # By design (unchanged from the source) a policy-unavailable C14 is a visible, non-blocking
+    # WARN in check_issue_contract; contract_readiness_check is the strict (human_judgment) side.
+    assert result == checker.CheckResult.WARN
+    assert any("policy unavailable" in str(i) for i in issues), issues
 
 
 # --------------------------------------------------------------------------- --repo binding
@@ -493,3 +495,79 @@ def test_partial_exemption_equal_rank_remaining_rule_negative(kind, monkeypatch)
     """Remaining hard rule is `immediate`: declaring `deferred` is insufficient even though the
     claude-gpt rule is exempted."""
     assert _consumer_findings(kind, monkeypatch, _mixed_body("deferred"), "immediate")
+
+
+# --------------------------------------------------------------------------- missing imports
+
+_SKILLS_REL = ".claude/skills"
+_MISSING_IMPORT_READINESS = [
+    f"{_SKILLS_REL}/issue-contract-review/scripts/vc_contract_syntax.py",
+    f"{_SKILLS_REL}/issue-contract-review/scripts/baseline_vc_preflight.py",
+    f"{_SKILLS_REL}/create-issue/scripts/prose_boundary_policy.py",
+    f"{_SKILLS_REL}/create-issue/scripts/mrc_contract_parser.py",
+    "scripts/agent-guards/repo_identity.py",
+]
+
+
+@pytest.mark.parametrize("rel", _MISSING_IMPORT_READINESS)
+def test_readiness_missing_import_is_loud_not_green(tmp_path, rel):
+    tree = _tree(tmp_path / "repo")
+    (tree / rel).unlink()
+    script = tree / ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py"
+    proc = _readiness(script, PASS_BODY)
+    assert proc.returncode != 0 and "ModuleNotFoundError" in proc.stderr, proc.stdout + proc.stderr
+
+
+def test_matcher_and_policy_are_pinned_by_the_manifest():
+    """The consumers degrade to NA when the matcher MODULE file is absent (unchanged from the
+    source); the lane must therefore pin its presence via the manifest `required_files`."""
+    manifest = json.loads(
+        (ROOT / "docs/dev/stage1b2-contract-checkers-manifest.json").read_text(encoding="utf-8")
+    )
+    required = set(manifest["required_files"])
+    for rel in (
+        "scripts/agent-guards/extension_surface_policy_matcher.py",
+        "scripts/agent-guards/repo_identity.py",
+        POLICY_REL,
+        "config/repository_identity.v1.json",
+    ):
+        assert rel in required, rel
+        assert (ROOT / rel).is_file(), rel
+
+
+_MISSING_IMPORT_CHECK = [
+    f"{_SKILLS_REL}/create-issue/scripts/prose_boundary_policy.py",
+    f"{_SKILLS_REL}/create-issue/scripts/mrc_contract_parser.py",
+    f"{_SKILLS_REL}/create-issue/scripts/path_classification.py",
+    f"{_SKILLS_REL}/impl-review-loop/scripts/evaluate_product_spec_gate.py",
+]
+
+
+@pytest.mark.parametrize("rel", _MISSING_IMPORT_CHECK)
+def test_check_issue_contract_missing_import_is_not_approve(tmp_path, rel):
+    # NOTE: vc_contract_syntax.py is NOT listed: check_issue_contract wraps it in
+    # try/except ImportError and degrades (unchanged from the source; recorded in the manifest
+    # `accepted_degrade`).
+    tree = _tree(tmp_path / "repo")
+    (tree / rel).unlink()
+    script = tree / ".claude/skills/review-issue/scripts/check_issue_contract.py"
+    proc = _check(script, PASS_BODY)
+    assert proc.returncode != 0, proc.stdout + proc.stderr
+
+
+def test_product_spec_failure_becomes_needs_fix_through_check_issue_contract():
+    """Guards `_apply_product_spec_check`: a real product-spec failure (docs/product scope
+    without a spec delta) must block, while every non-product-spec check stays green."""
+    body = REVIEW_DIR / "fixtures" / "ps_docs_product_without_spec_delta_issue.md"
+    proc = _check(CHECK, body)
+    result = json.loads(proc.stdout)
+    assert proc.returncode == 1
+    assert result["verdict"] == "needs-fix"
+    assert any("mixed_scope" in str(b) for b in result["blocking_issues"]), result[
+        "blocking_issues"
+    ]
+    # PS001 is the rule id of a genuine product-spec finding here; wiring failures read differently.
+    assert "failed closed" not in json.dumps(result)
+    assert "import failed" not in json.dumps(result)
+    failed = [k for k, v in result["deterministic_checks"].items() if v == "fail"]
+    assert failed == [], failed
