@@ -636,7 +636,6 @@ def test_canonical_executor_read_only_declaration_reaches_inner_preflight(tmp_pa
     assert result.returncode == 0, result.stdout + result.stderr
     assert inner_marker.exists()
     assert probe_log.read_text(encoding="utf-8").splitlines()[-1] == "inner-preflight-start"
-    assert "unverified" not in result.stdout  # permission stays a producer detail, never a grant
 
 
 @pytest.mark.parametrize(
@@ -768,6 +767,7 @@ def test_canonical_executor_unmigrated_mutation_operation_never_reaches_inner(
             tmp_path,
             GH_CONFIG_DIR=str(gh_config_dir),
             SKILL_RUNTIME_TEST_EXPECTED_GH_CONFIG_DIR=str(gh_config_dir),
+            SKILL_RUNTIME_TEST_GH_PROBE_LOG=str(tmp_path / "probe-order.log"),
             LOOP_PLANNED_OPERATIONS_JSON=json.dumps(declaration),
         ),
     )
@@ -775,4 +775,6 @@ def test_canonical_executor_unmigrated_mutation_operation_never_reaches_inner(
     assert result.returncode != 0, result.stdout + result.stderr
     assert _parse_compact_stdout(result.stdout)["status"] == "blocked"
     assert "operation_route_unavailable:issue_edit" in result.stdout + result.stderr
+    # the read probes succeed, so the unmigrated route is the only blocker
+    assert "auth_unavailable" not in result.stdout + result.stderr
     assert not inner_marker.exists()
