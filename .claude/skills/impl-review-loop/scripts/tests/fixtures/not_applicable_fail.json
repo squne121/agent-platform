@@ -1,0 +1,37 @@
+{
+  "CONTRACT_REVIEW_RESULT_V1": {
+    "status": "go",
+    "generated_at": "2026-05-24T10:00:00Z",
+    "generated_by": "issue-contract-review",
+    "issue_url": "https://github.com/example-org/example-repo/issues/333",
+    "checks": {
+      "product_spec_check": {
+        "schema": "product_spec_check/v1",
+        "applicability": "not_applicable",
+        "decision": "fail",
+        "blocked_reasons": [
+          {
+            "rule_id": "PS002",
+            "source": "docs/product/features/task-tracking.md",
+            "excerpt": "inconsistent state"
+          }
+        ],
+        "triggers": {
+          "docs_product_allowed_paths": false,
+          "tasks_md_mentioned": false,
+          "specify_artifact_mentioned": false,
+          "generated_task_mentioned": false,
+          "product_spec_context_present": false
+        },
+        "conditions": {},
+        "body_sha256": "sha256:xyz789",
+        "source_provenance": {
+          "source_type": "github_api",
+          "body_file": null
+        }
+      }
+    }
+  },
+  "body_sha256": "sha256:xyz789",
+  "contract_snapshot_url": "https://github.com/example-org/example-repo/issues/333#issuecomment-1234567890"
+}

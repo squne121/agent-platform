@@ -1,0 +1,18 @@
+{
+  "CONTRACT_REVIEW_RESULT_V1": {
+    "status": "go",
+    "generated_at": "2026-05-24T10:00:00Z",
+    "generated_by": "issue-contract-review",
+    "issue_url": "https://github.com/example-org/example-repo/issues/333",
+    "checks": {
+      "product_spec_check_triggers": {
+        "docs_product_allowed_paths": true,
+        "tasks_md_mentioned": false,
+        "specify_artifact_mentioned": false,
+        "generated_task_mentioned": false,
+        "product_spec_context_present": false
+      }
+    }
+  },
+  "body_sha256": "mno345"
+}

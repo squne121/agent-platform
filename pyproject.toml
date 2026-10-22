@@ -29,4 +29,11 @@ extend-exclude = [
     "scripts/agent-ops/allowed_paths_policy.py",
     "scripts/agent-ops/context_budget_report.py",
     "scripts/agent-ops/evidence_index.py",
+    # Stage 1b-1 verbatim-migrated sources/tests (docs/dev/stage1b1-leaf-manifest.json).
+    "scripts/agent-guards/extension_surface_policy_matcher.py",
+    "scripts/agent-guards/changed_file_matcher.py",
+    "tests/stage1b/test_changed_file_matcher.py",
+    "tests/stage1b/test_extension_surface_policy_matcher.py",
+    "tests/stage1b/test_extension_surface_policy_matcher_candidate_perimeter.py",
+    "tests/stage1b/test_extension_surface_runtime_policy_schema.py",
 ]
