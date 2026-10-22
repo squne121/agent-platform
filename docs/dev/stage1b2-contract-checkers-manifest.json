@@ -1,0 +1,99 @@
+{
+  "schema": "STAGE1B2_CONTRACT_CHECKERS_MANIFEST_V1",
+  "issue": "squne121/agent-platform#13",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/issue-contract-review/SKILL.md",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
+    ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
+    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
+    ".claude/skills/create-issue/scripts/mrc_contract_parser.py",
+    ".claude/skills/create-issue/scripts/prose_boundary_policy.py",
+    ".claude/skills/create-issue/scripts/validate_issue_body.py",
+    ".claude/skills/create-issue/scripts/path_classification.py",
+    ".claude/skills/impl-review-loop/scripts/evaluate_product_spec_gate.py",
+    "scripts/agent-guards/extension_surface_policy_matcher.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "docs/dev/extension-surface-runtime-policy.yaml",
+    "docs/dev/extension-surface-runtime-policy.schema.json",
+    "docs/dev/github-ops.md"
+  ],
+  "required_fixtures": [
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/change_kind_update_only_not_product_spec.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/dependency_not_materialized_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/docs_product_in_impl_without_spec_delta_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/docs_product_spec_issue_ok.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/docs_product_with_diff_rationale.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/generated_task_missing_trace_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/invalid_mrc_cannot_be_rescued_by_valid_psc.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/issue412_contract_blocked.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/issue412_contract_go.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/no_product_scope.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/product_spec_context_decoy_fence_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/product_spec_context_duplicate_key_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/product_spec_context_duplicate_key_without_docs_product_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/product_spec_context_non_string_evidence_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/product_spec_context_placeholder_only_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/product_spec_update_without_rationale_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/specify_canonical_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/specify_workbench_ok.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/tasks_md_direct_impl_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/tasks_md_direct_with_source_task_id_fail.md",
+    ".claude/skills/issue-contract-review/scripts/tests/fixtures/tasks_md_staging_ok.md",
+    ".claude/skills/review-issue/fixtures/c1_missing_sections_issue.md",
+    ".claude/skills/review-issue/fixtures/pass_issue.md"
+  ],
+  "test_files": [
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_broad_search_path.py",
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_execute_mode_parent_skip.py",
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_vc_presence_contract.py",
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_validation_profile.py",
+    ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py",
+    "tests/stage1b/test_stage1b2_closure.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_broad_search_path.py": 4,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_execute_mode_parent_skip.py": 11,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_vc_presence_contract.py": 4,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_validation_profile.py": 17,
+    ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py": 30,
+    "tests/stage1b/test_stage1b2_closure.py": 10
+  },
+  "expected_ran": {
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_broad_search_path.py": 4,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_execute_mode_parent_skip.py": 11,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_vc_presence_contract.py": 4,
+    ".claude/skills/issue-contract-review/tests/test_contract_readiness_validation_profile.py": 17,
+    ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py": 30,
+    "tests/stage1b/test_stage1b2_closure.py": 10
+  },
+  "deferred_tests": [],
+  "released_deferred": [],
+  "kept_deferred_not_released_by_13": [
+    ".claude/skills/issue-contract-review/scripts/tests/test_product_spec_check.py::test_run_contract_review_once_treats_transport_error_exit_as_runtime_error",
+    ".claude/skills/issue-contract-review/scripts/tests/test_product_spec_check.py::test_run_contract_review_once_treats_invalid_product_spec_pair_as_runtime_error"
+  ],
+  "intentional_diffs": [
+    "contract_readiness_check.py: --repo default 'squne121/loop-protocol' -> None; resolved from repo_identity.load_trusted_repo_slug(); an explicit --repo must equal the trusted slug (is_trusted_repo); identity config missing/invalid -> exit 2 before any gh call (same binding as baseline_vc_preflight.py)",
+    "contract_readiness_check.py: two comment-only legacy PR URLs replaced by plain text (no functional change)",
+    "tests/stage1b/test_stage1b2_closure.py: new (readiness side: python -I, positive/negative control, layout shift, policy missing/invalid, --repo binding); check_issue_contract side and the mixed-rank exemption regression arrive in 13b (#18)"
+  ],
+  "policy_semantics": "consumers: matcher PolicyLoadError (missing/invalid YAML) -> readiness human_judgment 'extension_surface_risk_trigger_policy_unavailable' (tested); check_issue_contract C14 is not PASS (tested). Unchanged from source: when the matcher MODULE file itself is absent the consumers return [] / NA; that absence is caught by required_files here and by the 1b-1 closure tests, not by the consumer.",
+  "not_adopted_source_tests": [
+    "issue-contract-review/scripts/tests/test_baseline_vc_preflight*.py, test_command_timeout_*.py, test_vc_*.py, test_review_budget_*.py (baseline_vc_preflight / budget owner)",
+    "issue-contract-review/tests/test_run_contract_review_once*.py, test_contract_review_result_parser.py, test_declared_path_overlap.py, test_contract_snapshot_author_trust.py, test_history_snapshot_production_wiring.py (run_contract_review_once lane; Stage 2 / I-4)",
+    "issue-contract-review/tests/test_pnpm_*.py, test_pytest_vc_baseline_shape_compiler.py, test_github_metadata_assert.py, test_delivery_rollup_parent_exempt_consumer_gap.py, test_contract_review_no_worktree_creation.py (other owners; not required by the two checkers)"
+  ],
+  "part": "13a (#17) contract_readiness_check",
+  "deferred_note": "13a: the 1a deferred test and the 1b-1 parity test stay deferred (need check_issue_contract.py, 13b); the two parity test files in issue-contract-review/tests (they import check_issue_contract) arrive in 13b."
+}

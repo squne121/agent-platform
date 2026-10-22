@@ -134,11 +134,6 @@
     ],
     "deferred_script_refs": [
       {
-        "script": "contract_readiness_check.py",
-        "reason": "consume/apply lane only (measured)",
-        "owner_stage": "stage_1b/2"
-      },
-      {
         "script": "check_issue_contract.py",
         "reason": "consume/apply lane; also required by the route_after_rewrite.py --issue/--repo CLI, which is therefore not runnable until this lands (fails loudly; the in-process compute_implementation_allowed path used by the planner is unaffected)",
         "owner_stage": "stage_1b/2"
