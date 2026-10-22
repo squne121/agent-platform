@@ -94,19 +94,19 @@
   "deferred_tests": [
     {
       "id": ".claude/skills/issue-contract-review/scripts/tests/test_product_spec_check.py::test_run_contract_review_once_treats_transport_error_exit_as_runtime_error",
-      "owner_stage": "stage_1b (#13)",
-      "reason": "imports run_contract_review_once (contract-review-once path; I-4/Stage 2 dependent, not migrated)",
-      "rerun_condition": "run_contract_review_once migrated"
+      "owner_stage": "stage_2 / I-4 dependent (not #13: run_contract_review_once is Out of Scope in #13)",
+      "reason": "imports run_contract_review_once (contract-review-once path; depends on I-4 ensure_contract_snapshot / Stage 2, not migrated)",
+      "rerun_condition": "run_contract_review_once (and its I-4 ensure_contract_snapshot / Stage 2 dependency) migrated in a later stage; NOT released by #13"
     },
     {
       "id": ".claude/skills/issue-contract-review/scripts/tests/test_product_spec_check.py::test_run_contract_review_once_treats_invalid_product_spec_pair_as_runtime_error",
-      "owner_stage": "stage_1b (#13)",
-      "reason": "imports run_contract_review_once (contract-review-once path; I-4/Stage 2 dependent, not migrated)",
-      "rerun_condition": "run_contract_review_once migrated"
+      "owner_stage": "stage_2 / I-4 dependent (not #13: run_contract_review_once is Out of Scope in #13)",
+      "reason": "imports run_contract_review_once (contract-review-once path; depends on I-4 ensure_contract_snapshot / Stage 2, not migrated)",
+      "rerun_condition": "run_contract_review_once (and its I-4 ensure_contract_snapshot / Stage 2 dependency) migrated in a later stage; NOT released by #13"
     },
     {
       "id": "tests/stage1b/test_extension_surface_policy_matcher.py::test_review_issue_and_contract_readiness_parity",
-      "owner_stage": "stage_1b (#13)",
+      "owner_stage": "stage_1b-2 (#13)",
       "reason": "needs check_issue_contract.py / contract_readiness_check.py (owned by #13)",
       "rerun_condition": "check_issue_contract and contract_readiness_check migrated"
     }
