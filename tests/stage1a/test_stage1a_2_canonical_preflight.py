@@ -266,7 +266,7 @@ def wse():
 
 _PLANNED = (
     '[{"phase": "workflow_start", "actor_role": "issue-refinement-loop", '
-    '"operation": "issue_comment", "requires_mutation": false}]'
+    '"operation": "issue_read", "requires_mutation": false}]'
 )
 
 

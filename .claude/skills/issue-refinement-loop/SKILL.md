@@ -16,6 +16,8 @@ subagent_contract_mode: link_only
 note_ja: 本ファイルは thin entrypoint 契約のメタデータであり、判定ロジックの再実装は行わない
 -->
 
+> **移管状況 (Stage 1a-2)**: 検証済みなのは canonical `preflight.run`（read-only の capability preflight と inner preflight 起動）まで。Stage 1b / Stage 2（GitHub mutation: Issue/PR の comment・edit・create 等）/ I-4 は未移管で、mutation route は常に `unavailable`（capability は `blocked`）となる。後続手順のうち未移管の部分が成功したと扱わず、blocked / 未実装として報告すること。
+
 `issue-refinement-loop` は control-plane 専用の thin entrypoint である。詳細 procedure は `references/` を必要時だけ読む progressive disclosure とし、planner / reviewer / worker の判定ロジックをこのファイルへ再実装しない。
 
 ## 入力 (Inputs)

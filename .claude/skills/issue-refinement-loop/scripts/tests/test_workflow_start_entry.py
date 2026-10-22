@@ -62,7 +62,7 @@ _producer_spec.loader.exec_module(claude_gpt_workflow_capability_preflight)
 
 _VALID_PLANNED_OPERATIONS_JSON = (
     '[{"phase": "workflow_start", "actor_role": "issue-refinement-loop", '
-    '"operation": "issue_comment", "requires_mutation": false}]'
+    '"operation": "issue_read", "requires_mutation": false}]'
 )
 
 

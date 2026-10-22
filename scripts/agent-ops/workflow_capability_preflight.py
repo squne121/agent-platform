@@ -128,14 +128,11 @@ ACTOR_CAPABILITY_READY = "ready"
 ACTOR_CAPABILITY_DEGRADED = "degraded"
 ACTOR_CAPABILITY_UNAVAILABLE = "unavailable"
 
-# A small, static registry of GitHub operations this repository has an
-# actual implemented route for (Issue #2223: NOT a persistent
-# actor/operation authorization registry -- just "does an implementation
-# route exist", the same way `_resolve_trusted_executable` answers "does a
-# trusted binary exist" rather than "is this caller allowed to run it").
-# `actor_role` authorization itself remains a workflow/Agent-contract
-# responsibility, not this preflight's.
-_KNOWN_OPERATION_ROUTES = frozenset(
+# GitHub operations that mutate state. Their native routes are NOT migrated
+# into this repository yet (Stage 2), so no route may be reported available.
+# Names in this set are always treated as mutation-requiring, whatever the
+# caller declared for `requires_mutation` (fail closed).
+_MUTATION_OPERATION_NAMES = frozenset(
     {
         "issue_comment",
         "issue_edit",
@@ -146,6 +143,11 @@ _KNOWN_OPERATION_ROUTES = frozenset(
         "pr_update_branch",
     }
 )
+
+# Operations with an implemented route in this repository. Empty until the
+# Stage 2 GitHub mutation implementation is migrated; a route is "available"
+# only if it is listed here (Issue #9: no false-ready for unmigrated routes).
+_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset()
 
 DEFAULT_BUDGET_SECONDS = 30.0
 _GITHUB_AUTH_PROBE_CAP_SECONDS = 30.0
@@ -526,7 +528,10 @@ def assess(
     for entry in planned_operations:
         route = _operation_route(entry["operation"])
         operations[entry["operation"]] = {"route": route, "permission": "unverified"}
-        if route == "unavailable" and entry.get("requires_mutation", True):
+        requires_mutation = (
+            entry.get("requires_mutation", True) or entry["operation"] in _MUTATION_OPERATION_NAMES
+        )
+        if route == "unavailable" and requires_mutation:
             missing_mutation_route = True
             reasons.append(
                 f"github:operation_route_unavailable:{entry['operation']}: no implemented "

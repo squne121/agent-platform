@@ -15,6 +15,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 _TESTS_DIR = Path(__file__).resolve().parent
 _SCRIPTS_DIR = _TESTS_DIR.parent
 _REPO_ROOT = _SCRIPTS_DIR.parent.parent
@@ -254,7 +256,14 @@ def test_workflow_capability_separates_read_and_write_github_capability(monkeypa
     github = result["checks"]["github"]
     assert github["auth"] is True
     assert github["repo_read"] is True
-    assert github["operations"]["issue_comment"]["route"] == "available"
+    # Mutation routes are unmigrated (Stage 2): never "available", never ready,
+    # and `permission` stays "unverified" (not a write-permission grant).
+    assert github["operations"]["issue_comment"] == {
+        "route": "unavailable",
+        "permission": "unverified",
+    }
+    assert result["decision"] == "blocked"
+    assert any("operation_route_unavailable:issue_comment" in r for r in result["reasons"])
     # read and write are reported through DISTINCT fields, not a single
     # collapsed boolean.
     assert "operations" in github and isinstance(github["operations"], dict)
@@ -561,3 +570,28 @@ def test_planned_operations_omitted_is_still_valid_empty_list():
     assert proc.returncode == 0, proc.stderr
     result = json.loads(proc.stdout)
     assert result["checks"]["github"]["operations"] == {}
+
+
+@pytest.mark.parametrize("declared", [True, False])
+def test_mutation_operation_name_is_blocked_regardless_of_declared_flag(monkeypatch, declared):
+    monkeypatch.setattr(wcp, "_github_auth_probe", lambda deadline_ns: _completed_probe())
+    monkeypatch.setattr(
+        wcp, "_github_repo_read_probe", lambda repo, deadline_ns: _completed_probe()
+    )
+    result = wcp.assess(
+        project_root=str(_REPO_ROOT),
+        profile="issue-to-impl",
+        repo=_DEFAULT_REPO,
+        spark_mode=None,
+        spark_fallback=None,
+        planned_operations=[
+            {
+                "phase": "p",
+                "actor_role": "r",
+                "operation": "pr_create",
+                "requires_mutation": declared,
+            }
+        ],
+    )
+    assert result["decision"] == "blocked"
+    assert result["checks"]["github"]["operations"]["pr_create"]["route"] == "unavailable"
