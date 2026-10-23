@@ -3223,7 +3223,11 @@ def run_checks(
     checks.C14_extension_surface_risk_trigger, issues = check_c14_extension_surface_risk_trigger(
         body, issue_kind
     )
-    result.blocking_issues.extend(issues)
+    # Only FAIL blocks. A policy-unavailable WARN stays a non-blocking finding
+    # (diagnostics kept in `findings`) so verdict=approve never coexists with
+    # a non-empty blocking_issues.
+    if checks.C14_extension_surface_risk_trigger == CheckResult.FAIL:
+        result.blocking_issues.extend(issues)
     _append_findings(
         result,
         issues,
