@@ -592,7 +592,11 @@ class _PolicyUnavailableMatcher:
 
 
 def _c14_findings(result):
-    return [f for f in result.findings if f["deterministic_domain_key"] == "extension_surface_risk_trigger"]
+    return [
+        f
+        for f in result.findings
+        if f["deterministic_domain_key"] == "extension_surface_risk_trigger"
+    ]
 
 
 def _assert_verdict_blocking_consistent(result):
@@ -609,7 +613,9 @@ def _assert_verdict_blocking_consistent(result):
 def test_c14_policy_unavailable_warn_is_non_blocking_and_keeps_diagnostics(monkeypatch):
     mod = _load_checker(ROOT)
     body = PASS_BODY.read_text(encoding="utf-8")
-    monkeypatch.setattr(mod, "_load_extension_surface_policy_matcher", lambda: _PolicyUnavailableMatcher)
+    monkeypatch.setattr(
+        mod, "_load_extension_surface_policy_matcher", lambda: _PolicyUnavailableMatcher
+    )
 
     result = mod.run_checks(body)
 
@@ -646,5 +652,7 @@ def test_c14_fail_still_blocks_with_matching_blocking_issues(monkeypatch):
     assert result.verdict == "needs-fix"
     findings = _c14_findings(result)
     assert findings and all(f["blocking"] is True for f in findings)
-    assert [f["message"] for f in findings] == [m for m in result.blocking_issues if m in {f["message"] for f in findings}]
+    assert [f["message"] for f in findings] == [
+        m for m in result.blocking_issues if m in {f["message"] for f in findings}
+    ]
     _assert_verdict_blocking_consistent(result)
