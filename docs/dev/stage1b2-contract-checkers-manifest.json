@@ -135,7 +135,7 @@
     ".claude/skills/issue-contract-review/tests/test_extension_surface_advisory_routing_parity.py": 7,
     ".claude/skills/issue-contract-review/tests/test_extension_surface_risk_trigger_parity.py": 21,
     ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py": 30,
-    "tests/stage1b/test_stage1b2_closure.py": 33
+    "tests/stage1b/test_stage1b2_closure.py": 36
   },
   "expected_ran": {
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
@@ -146,7 +146,7 @@
     ".claude/skills/issue-contract-review/tests/test_extension_surface_advisory_routing_parity.py": 7,
     ".claude/skills/issue-contract-review/tests/test_extension_surface_risk_trigger_parity.py": 21,
     ".claude/skills/issue-contract-review/tests/test_readiness_timeout_provenance_passthrough.py": 30,
-    "tests/stage1b/test_stage1b2_closure.py": 33
+    "tests/stage1b/test_stage1b2_closure.py": 36
   },
   "deferred_tests": [],
   "released_deferred": [
@@ -170,7 +170,8 @@
     "review_issue_result_v1.json: $id legacy domain replaced by agent-platform.example (no consumer test depends on the old domain)",
     "tests/stage1b/test_stage1b2_closure.py: new (python -I, positive/negative control, layout shift, policy missing/invalid, --repo binding, mixed-rank exemption regression)",
     "references/vc-preflight.md line 152: state-dir name `loop-protocol` -> `agent-platform` (documentation only; vc_runtime_history.py already uses agent-platform)",
-    "review-issue/fixtures/ps_docs_product_without_spec_delta_issue.md: new fixture (pass_issue.md + a docs/product Allowed Path) for the product-spec blocking regression"
+    "review-issue/fixtures/ps_docs_product_without_spec_delta_issue.md: new fixture (pass_issue.md + a docs/product Allowed Path) for the product-spec blocking regression",
+    "check_issue_contract.py run_checks: C14 `blocking_issues.extend(issues)` is now conditional on `C14 == CheckResult.FAIL` (source extended unconditionally, so a policy-unavailable WARN left verdict=approve with non-empty blocking_issues). WARN keeps its non-blocking `findings` entry (blocking=false, diagnostics preserved); FAIL/NA/PASS and readiness-side human_judgment semantics unchanged. Regression: tests/stage1b/test_stage1b2_closure.py::test_c14_* (3 tests; the WARN case fails against the source behaviour)."
   ],
   "policy_semantics": "consumers: matcher PolicyLoadError (missing/invalid YAML) -> readiness human_judgment 'extension_surface_risk_trigger_policy_unavailable' (tested); check_issue_contract C14 is not PASS (tested). Unchanged from source: when the matcher MODULE file itself is absent the consumers return [] / NA; that absence is caught by required_files here and by the 1b-1 closure tests, not by the consumer.",
   "not_adopted_source_tests": [
