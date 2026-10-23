@@ -571,3 +571,80 @@ def test_product_spec_failure_becomes_needs_fix_through_check_issue_contract():
     assert "import failed" not in json.dumps(result)
     failed = [k for k, v in result["deterministic_checks"].items() if v == "fail"]
     assert failed == [], failed
+
+
+# --------------------------------------------------------------------------- C14 WARN vs blocking_issues
+
+
+class _PolicyUnavailableMatcher:
+    """Stand-in matcher whose policy cannot be loaded (every shared-evaluator entrypoint raises)."""
+
+    class PolicyLoadError(Exception):
+        pass
+
+    @classmethod
+    def _boom(cls, *args, **kwargs):
+        raise cls.PolicyLoadError("synthetic unusable policy for C14 WARN test")
+
+    evaluate_issue_risk_trigger = _boom
+    evaluate_allowed_paths = _boom
+    evaluate_runtime_assertion_binding_coverage = _boom
+
+
+def _c14_findings(result):
+    return [f for f in result.findings if f["deterministic_domain_key"] == "extension_surface_risk_trigger"]
+
+
+def _assert_verdict_blocking_consistent(result):
+    """approve/ok must never coexist with blocking issues, and vice versa."""
+    if result.verdict == "approve":
+        assert result.status == "ok"
+        assert result.blocking_issues == []
+        assert not result.structured_blockers
+    else:
+        assert result.verdict == "needs-fix"
+        assert result.blocking_issues or result.structured_blockers
+
+
+def test_c14_policy_unavailable_warn_is_non_blocking_and_keeps_diagnostics(monkeypatch):
+    mod = _load_checker(ROOT)
+    body = PASS_BODY.read_text(encoding="utf-8")
+    monkeypatch.setattr(mod, "_load_extension_surface_policy_matcher", lambda: _PolicyUnavailableMatcher)
+
+    result = mod.run_checks(body)
+
+    assert result.deterministic_checks.C14_extension_surface_risk_trigger == mod.CheckResult.WARN
+    assert result.verdict == "approve"
+    assert result.blocking_issues == []
+    _assert_verdict_blocking_consistent(result)
+    # diagnostics survive as a non-blocking finding (not dropped, not blocking)
+    findings = _c14_findings(result)
+    assert len(findings) == 1
+    assert findings[0]["blocking"] is False
+    assert "policy unavailable" in findings[0]["message"]
+    assert "synthetic unusable policy" in findings[0]["message"]
+
+
+def test_c14_valid_policy_pass_body_has_no_c14_blocker():
+    mod = _load_checker(ROOT)
+    result = mod.run_checks(PASS_BODY.read_text(encoding="utf-8"))
+
+    assert result.deterministic_checks.C14_extension_surface_risk_trigger != mod.CheckResult.WARN
+    assert result.verdict == "approve"
+    assert _c14_findings(result) == []
+    _assert_verdict_blocking_consistent(result)
+
+
+def test_c14_fail_still_blocks_with_matching_blocking_issues(monkeypatch):
+    """Negative control: only FAIL blocks. Guards against over-correcting WARN handling."""
+    mod = _load_checker(ROOT)
+    _patched_matcher(monkeypatch, mod, "immediate")
+
+    result = mod.run_checks(_mixed_body("deferred"))
+
+    assert result.deterministic_checks.C14_extension_surface_risk_trigger == mod.CheckResult.FAIL
+    assert result.verdict == "needs-fix"
+    findings = _c14_findings(result)
+    assert findings and all(f["blocking"] is True for f in findings)
+    assert [f["message"] for f in findings] == [m for m in result.blocking_issues if m in {f["message"] for f in findings}]
+    _assert_verdict_blocking_consistent(result)
