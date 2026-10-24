@@ -1,0 +1,76 @@
+{
+  "schema": "STAGE2_1A_POLICY_MANIFEST_V1",
+  "issue": "squne121/agent-platform#30",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    "scripts/agent-guards/controlled_skill_mutation_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py",
+    "tests/stage2/test_stage2_1a_policy_closure.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py",
+    "tests/stage2/test_stage2_1a_policy_closure.py"
+  ],
+  "expected_collect": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py": 102,
+    "tests/stage2/test_stage2_1a_policy_closure.py": 39
+  },
+  "expected_ran": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py": 102,
+    "tests/stage2/test_stage2_1a_policy_closure.py": 39
+  },
+  "deferred_tests": [],
+  "deferred_script_refs": [
+    {
+      "script": "controlled_skill_mutation_exec.py",
+      "reason": "the executor named by EXECUTOR_SCRIPT and by the policy tests as a path string only; migrated by Stage 2-1b",
+      "owner_stage": "stage_2 (#31)",
+      "rerun_condition": "Stage 2-1b merged; remove this entry together with the stage1a import_closure entry"
+    },
+    {
+      "script": "ensure_contract_snapshot.py",
+      "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot"
+    },
+    {
+      "script": "materialize_issue_scope_snapshot.py",
+      "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
+      "owner_stage": "stage_2 (decided in #31)",
+      "rerun_condition": "#31 decides migrate-or-keep-deferred for the scope snapshot lane"
+    }
+  ],
+  "decisions": {
+    "evidence_boundary": "every result in this lane is fixture evidence: no gh, no network, no GitHub write. Nothing here is live GitHub evidence.",
+    "no_skip_policy": "0 skipped / 0 xfailed / 0 deselected; deferred_tests is empty.",
+    "repository_identity": "TRUSTED_REPO is load_trusted_repo_slug() (config/repository_identity.v1.json) evaluated at import. An unusable config or layout shift raises RepositoryIdentityError at import (9 negative cases in a replica layout under python -I), so no registry entry can exist without a trusted slug. The policy keeps no slug literal; the 8 requires_repo entries and the three request validators are tested positive (trusted) and negative (legacy / empty / malformed / case / suffix).",
+    "registry_scope": "the registry is migrated whole, including relationship / dependency-remove / contract_snapshot / test_verdict / scope-snapshot entries: definitions and input validators are inert data. Nothing in this slice can execute them (the executor is Stage 2-1b), so no unapproved live operation is reachable. The executor must reject those lanes at run time (#31 AC5).",
+    "wire_identifiers": "the 'human-history' namespace marker lives in the executor, not in this policy; its keep/rename decision belongs to #31.",
+    "enforcement_boundary": "the policy is the registry plus argv-shape gate; repo trust at write time is enforced by the executor (#31). is_controlled_skill_mutation_exec_command checks the argv shape and the executor path only, not the repo value (unchanged from the source).",
+    "parents_N_note": "Issue #30 AC1 mentions the source's repo-root inference; the migrated policy has no parents[N] at all (0 occurrences). The only inference left is repo_identity.py's DEFAULT_CONFIG_PATH (parents[2]), covered by the 'missing config' layout-replica negative. The 9 config negatives run the policy copy under python -I in a replica layout.",
+    "argv_gate_detection_power": "independent review found the shell-metacharacter check could be deleted with all 102 migrated tests still green (same weakness in the source). Closed by 19 parametrized metachar-in-value negatives (incl. NUL), 2 newline-separator negatives (shlex treats a newline as whitespace, so only the regex rejects them) and a same-shape positive control; mutation verified for deleting the gate and for removing each character from the regex (CR is also rejected by shlex, so it is not pinned by the regex alone)."
+  },
+  "intentional_diffs": [
+    "controlled_skill_mutation_policy.py: TRUSTED_REPO = '<legacy slug>' -> load_trusted_repo_slug() from repo_identity (sys.path insert of the script directory, like skill_runtime_command_policy.py)",
+    "controlled_skill_mutation_policy.py: _validate_executor_argv tail 'if not issubset: return False / return True' -> 'return issubset(...)' (ruff SIM103; identical behaviour); file ruff-formatted; shebang line removed from the module and its test (ruff EXE001: modules are imported, never executed, and the files are not mode +x)",
+    "test_controlled_skill_mutation_policy.py: 'TRUSTED_REPO == <legacy slug>' pin -> equals load_trusted_repo_slug(); every other slug literal -> TRUSTED_REPO / f-string (no functional slug left); noqa/import order and ruff format applied; collect count unchanged (102)",
+    "tests/stage2/test_stage2_1a_policy_closure.py: NEW (39 tests): python -I import, identity binding, 9 fail-closed config negatives, registry binding, validator positive/negative controls, argv gate not widened incl. 19 metachar-inside-value-token + 2 newline-separator negatives, manifest honesty",
+    "docs/dev/stage1a-core-manifest.json: import_closure.deferred_script_refs += the 3 refs above; later_stage_test_manifests += this manifest (so the 1a lane does not collect the new test file)",
+    "docs/dev/refinement-migration-manifest.json: deferred.stage_2 'controlled_skill_mutation_*' split into migrated policy + remaining executor",
+    ".github/workflows/ci.yml: job stage2-1a-policy"
+  ],
+  "dangling_refs": {
+    "controlled_skill_mutation_exec.py": "Stage 2-1b (#31)",
+    "ensure_contract_snapshot.py": "I-4",
+    "materialize_issue_scope_snapshot.py": "Stage 2 (#31 decides)",
+    "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the executor's test_verdict lane; not referenced by the policy)"
+  },
+  "part": "Stage 2-1a (Closes #30; Parent #29 / #5): controlled_skill_mutation_policy on top of Stage 1b-4 (main 8caa46a)."
+}
