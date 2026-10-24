@@ -37,8 +37,8 @@
     {
       "script": "materialize_issue_scope_snapshot.py",
       "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
-      "owner_stage": "stage_2 (decided in #31)",
-      "rerun_condition": "#31 decides migrate-or-keep-deferred for the scope snapshot lane"
+      "owner_stage": "stage_2 (follow-up; #31 decided: keep deferred, lane refused before execution)",
+      "rerun_condition": "a human approves the scope-snapshot lane; then migrate it together with controlled_git_change_exec"
     }
   ],
   "decisions": {
@@ -62,7 +62,7 @@
   ],
   "dangling_refs": {
     "ensure_contract_snapshot.py": "I-4",
-    "materialize_issue_scope_snapshot.py": "Stage 2 (#31 decides)",
+    "materialize_issue_scope_snapshot.py": "Stage 2 follow-up (#31 decided: kept deferred, lane refused)",
     "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the executor's test_verdict lane; not referenced by the policy)"
   },
   "part": "Stage 2-1a (Closes #30; Parent #29 / #5): controlled_skill_mutation_policy on top of Stage 1b-4 (main 8caa46a). Updated by Stage 2-1b (#31): the executor now exists; its stale deferred/dangling record is resolved."
