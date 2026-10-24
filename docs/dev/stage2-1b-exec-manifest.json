@@ -25,12 +25,12 @@
   "expected_collect": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 17,
     "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
-    "tests/stage2/test_stage2_1b_exec_closure.py": 95
+    "tests/stage2/test_stage2_1b_exec_closure.py": 102
   },
   "expected_ran": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 15,
     "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
-    "tests/stage2/test_stage2_1b_exec_closure.py": 95
+    "tests/stage2/test_stage2_1b_exec_closure.py": 102
   },
   "deferred_tests": [
     {
@@ -101,7 +101,7 @@
       "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py (114 tests; 10 of them drive main() for issue_dependency.remove, which this PR refuses before execution, and must be deferred with owner_stage there)",
       "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py (1886 lines, mostly contract_snapshot / I-4 classes; needs the github_live marker decision)"
     ],
-    "coverage_in_this_pr": "AC1-AC6 are carried by tests/stage2/test_stage2_1b_exec_closure.py (95 tests: python -I import, layout shift, write-zero, approval gate, fake-gh write->readback with stale / duplicate / timeout / partial / mismatch, gh pin) plus the env-parity and human-history source tests. The moved source tests add depth, not the only proof of any AC.",
+    "coverage_in_this_pr": "AC1-AC6 are carried by tests/stage2/test_stage2_1b_exec_closure.py (102 tests: python -I import, layout shift, write-zero, approval gate, fake-gh write->readback with stale / duplicate / timeout / partial / mismatch, gh pin) plus the env-parity and human-history source tests. The moved source tests add depth, not the only proof of any AC.",
     "follow_up_issue": "squne121/agent-platform#39",
     "closure_gate": "Stage 2 closure (#29) must not be declared before #39 (the moved source tests) is merged; #39 carries this as a precondition."
   },
@@ -123,7 +123,7 @@
     "controlled_skill_mutation_exec.py and test_controlled_skill_mutation_exec_env_parity.py: shebang line removed (ruff EXE001: modules are imported or run as `python3 <path>`, files are not mode +x; same as Stage 2-1a)",
     "controlled_skill_mutation_exec.py: ruff format + ruff --fix (behaviour-preserving, e.g. datetime.UTC) + line-level noqa for BLE001 / PLW1510 / B023 / RUF059 / C408 / RUF012; includes equivalent ruff --fix rewrites (str.removesuffix, re.MULTILINE, import order)",
     "test_controlled_skill_mutation_exec_env_parity.py / test_human_history_controlled_publish.py: slug literals -> TRUSTED_REPO; env parity workflow_capability_preflight path scripts/claude-gpt -> scripts/agent-ops; ruff format + noqa",
-    "tests/stage2/test_stage2_1b_exec_closure.py: NEW (95 tests)",
+    "tests/stage2/test_stage2_1b_exec_closure.py: NEW (102 tests)",
     "tests/stage2/test_stage2_1a_policy_closure.py: executor-absence assertion -> existence + gate positive controls; manifest honesty test updated",
     "docs/dev/stage2-1a-policy-manifest.json: executor removed from deferred_script_refs / dangling_refs; materialize record updated to the #31 keep-deferred decision (closure test count unchanged at 39)",
     "docs/dev/stage1a-core-manifest.json: executor script ref removed; + run_contract_review_once.py / contract_review_result_parser.py script refs; + edit_issue_txn / materialize_issue_scope_snapshot deferred imports; later_stage_test_manifests += this manifest",

@@ -55,6 +55,15 @@ UNAPPROVED = {
     policy.COMMAND_ID_ISSUE_SCOPE_SNAPSHOT_MATERIALIZE,
 }
 _real_subprocess_run = subprocess.run
+# `_run_*` names that are NOT unapproved-lane handlers (approved lanes + a git helper); every
+# other `_run_*` is spied, so a renamed / new unapproved handler cannot slip past the spy.
+_NOT_SPIED_RUN_NAMES = {
+    "_run_git_status_v2_z",
+    "_run_issue_body_update",
+    "_run_issue_content_update",
+    "_run_issue_comment_publish",
+    "_run_human_history_comment_publish",
+}
 
 
 def _real_run(argv, *args, **kwargs):
@@ -382,6 +391,23 @@ def test_positive_control_trusted_repo_reaches_git(fake, capsys):
 # --------------------------------------------------------------------------- unapproved lanes
 
 
+@pytest.mark.parametrize(
+    "origin",
+    [
+        f"https://github.com/{LEGACY}.git",
+        f"https://evil.example/{TRUSTED}.git",
+    ],
+    ids=["other_repo", "untrusted_host"],
+)
+@pytest.mark.parametrize("command_id", sorted(APPROVED))
+def test_wrong_git_origin_is_refused_before_any_gh_call(fake, capsys, command_id, origin):
+    _real_run(["git", "-C", str(fake.project), "remote", "set-url", "origin", origin], check=True)
+    rc = _run(fake, command_id, None)
+    assert rc == 2
+    assert _result(capsys)["reason"].startswith("git_remote_origin_")
+    assert fake.gh_calls() == []
+
+
 def test_approved_and_unapproved_partition_the_registry() -> None:
     assert ex.APPROVED_LIVE_COMMAND_IDS == APPROVED
     assert policy.ALL_COMMAND_IDS == APPROVED | UNAPPROVED
@@ -395,7 +421,7 @@ def test_unapproved_command_id_is_refused_before_any_call(
 ):
     handlers = {}
     for name in dir(ex):
-        if name.startswith(("_run_issue_", "_run_contract_snapshot", "_run_test_verdict")):
+        if name.startswith("_run_") and name not in _NOT_SPIED_RUN_NAMES:
             handlers[name] = Mock(return_value=0)
             monkeypatch.setattr(ex, name, handlers[name])
     assert handlers  # the spy covers the real handler names
@@ -699,6 +725,17 @@ def test_body_update_stale_precondition_never_patches(fake, capsys):
     assert fake.patches == 0 and fake.body == "old body"
 
 
+def test_body_update_stale_updated_at_never_patches(fake, capsys):
+    rel = _write_input(
+        fake, CID_BODY, _body_input(fake, previous_updated_at="2020-01-01T00:00:00Z")
+    )
+    assert _run(fake, CID_BODY, rel) == 1
+    out = _result(capsys)
+    assert out["status"] != "ok"
+    assert str(out["reason"]).startswith("stale_precondition_updated_at_mismatch")
+    assert fake.patches == 0 and fake.body == "old body"
+
+
 @pytest.mark.parametrize("mode", ["fail", "timeout_lost"])
 def test_body_update_failed_patch_is_never_success_and_not_retried(fake, capsys, mode):
     fake.patch_mode = mode
@@ -746,6 +783,15 @@ def test_manifest_pins_files_and_honest_deferrals() -> None:
     for entry in m["deferred_tests"]:
         assert all(entry.get(k) for k in ("id", "owner_stage", "reason", "rerun_condition"))
     refs = {d["script"]: d["owner_stage"] for d in m["deferred_script_refs"]}
+    stage1a_refs = {
+        d["script"]
+        for d in json.loads((ROOT / "docs/dev/stage1a-core-manifest.json").read_text())[
+            "import_closure"
+        ]["deferred_script_refs"]
+    }
+    # no ghost entries: every ref this manifest records is still deferred in the authoritative
+    # stage1a manifest, and the two I-4 / scope-snapshot refs are present.
+    assert set(refs) <= stage1a_refs
     assert {"ensure_contract_snapshot.py", "materialize_issue_scope_snapshot.py"} <= set(refs)
     assert "controlled_skill_mutation_exec.py" not in refs
     assert "controlled_skill_mutation_exec.py" not in m["dangling_refs"]
