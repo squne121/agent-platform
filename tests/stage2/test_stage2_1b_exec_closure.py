@@ -174,6 +174,7 @@ class FakeGh:
         self.patches = 0
         self.posts = 0
         self.gh = "/fake/trusted/gh"
+        self.unexpected: list[list[str]] = []
 
     def gh_calls(self) -> list[list[str]]:
         return [c for c in self.calls if c and c[0] == self.gh]
@@ -186,11 +187,15 @@ class FakeGh:
         if argv[0] != self.gh:  # git: keep the real tmp repo so the remote/postcondition run
             return _real_run(argv, *a, **kw)
         if argv[1:3] == ["issue", "view"]:
+            if argv[3] != str(ISSUE) or argv[argv.index("--repo") + 1] != TRUSTED:
+                self.unexpected.append(list(argv))
             return self._cp(argv, out=json.dumps({"comments": self.comments}))
         assert argv[1] == "api", argv
         method = argv[argv.index("--method") + 1] if "--method" in argv else "GET"
         path = next(x for x in argv if x.startswith("repos/"))
         if method == "GET":
+            if path != f"repos/{TRUSTED}/issues/{ISSUE}":
+                self.unexpected.append(list(argv))
             return self._cp(
                 argv,
                 out=json.dumps(
@@ -214,6 +219,7 @@ class FakeGh:
             self.posts += 1
             body = Path(argv[argv.index("--field") + 1].split("=@", 1)[1]).read_text()
             return self._write(argv, self.post_mode, lambda: self._add_comment(body))
+        self.unexpected.append(list(argv))  # the code under test may swallow exceptions
         raise AssertionError(f"unexpected gh call: {argv}")
 
     def _write(self, argv, mode, apply):
@@ -224,6 +230,8 @@ class FakeGh:
         if mode == "timeout_applied":
             apply()
             raise subprocess.TimeoutExpired(argv, 15)
+        if mode == "mutated":  # persisted, but not byte-identical to what was sent
+            self.mutate_next = True
         out = "" if mode == "noop" else apply()
         return self._cp(argv, out=out or "{}")
 
@@ -235,12 +243,14 @@ class FakeGh:
     def _add_comment(self, body):
         n = len(self.comments) + 1
         url = f"https://github.com/{TRUSTED}/issues/{ISSUE}#issuecomment-{9000 + n}"
+        if getattr(self, "mutate_next", False):
+            body += "X"
         self.comments.append({"id": f"IC_{n}", "url": url, "body": body})
         return json.dumps({"html_url": url, "id": 9000 + n})
 
 
 @pytest.fixture()
-def fake(tmp_path, monkeypatch) -> FakeGh:
+def fake(tmp_path, monkeypatch):
     fg = FakeGh()
     project = tmp_path / "project"
     (project / "scripts" / "agent-guards").mkdir(parents=True)
@@ -254,7 +264,8 @@ def fake(tmp_path, monkeypatch) -> FakeGh:
     monkeypatch.setattr(subprocess, "run", fg.run)
     monkeypatch.delenv("LOOP_ISSUE_NUMBER", raising=False)
     fg.project = project
-    return fg
+    yield fg
+    assert fg.unexpected == []
 
 
 def _write_input(fg: FakeGh, command_id: str, data: dict, name: str = "input.json") -> str:
@@ -407,6 +418,25 @@ def test_unapproved_command_id_is_refused_by_a_real_process(command_id: str) -> 
     assert json.loads(r.stdout)["reason"].startswith("command_id_not_approved_for_live_execution")
 
 
+def test_unapproved_command_id_with_wrong_repo_reports_the_gate_first(fake, capsys):
+    cid = policy.COMMAND_ID_ISSUE_DEPENDENCY_REMOVE
+    assert _run(fake, cid, None, repo=LEGACY) == 2
+    assert _result(capsys)["reason"].startswith("command_id_not_approved_for_live_execution")
+    assert fake.calls == []
+
+
+def test_trusted_slug_with_always_equal_non_str_is_refused(fake, capsys, monkeypatch):
+    class AlwaysEqual:
+        def __eq__(self, other):
+            return True
+
+        __hash__ = None
+
+    monkeypatch.setattr(ex, "TRUSTED_REPO", AlwaysEqual())
+    assert _run(fake, policy.COMMAND_ID_ISSUE_COMMENT_PUBLISH, "x.json", repo="anything/x") == 2
+    assert fake.calls == []
+
+
 def test_unknown_command_id_is_still_refused(fake, capsys):
     assert _run(fake, "issue.delete", None) == 2
     assert _result(capsys)["reason"].startswith("unknown_command_id")
@@ -502,10 +532,31 @@ def test_comment_publish_failed_or_lost_post_is_never_success(fake, capsys, mode
 def test_comment_publish_timeout_after_apply_is_read_back_once(fake, capsys):
     fake.post_mode = "timeout_applied"
     rel = _write_input(fake, CID_COMMENT, _comment_input())
-    rc = _run(fake, CID_COMMENT, rel)
+    assert _run(fake, CID_COMMENT, rel) == 0
     out = _result(capsys)
     assert fake.posts == 1 and len(fake.comments) == 1  # never re-POSTed
-    assert (rc == 0) == (out["status"] == "ok")
+    assert out["status"] == "ok" and out["comment_id"] == "IC_1"
+
+
+def test_comment_publish_stored_body_differs_from_sent_is_not_success(fake, capsys):
+    fake.post_mode = "mutated"
+    rel = _write_input(fake, CID_COMMENT, _comment_input())
+    assert _run(fake, CID_COMMENT, rel) == 1
+    out = _result(capsys)
+    assert out["reason"] == "postcondition_body_sha256_mismatch" and out["status"] == "failed"
+    marker = fake.project / "artifacts" / str(ISSUE) / "issue-metadata" / CID_COMMENT
+    assert not (marker / "issue_comment_publish.marker.json").exists()
+
+
+def test_comment_publish_failed_post_with_foreign_same_marker_comment_is_unknown(fake, capsys):
+    # POST fails, yet a same-marker comment with different content exists: ambiguous, not created.
+    fake.post_mode = "fail"
+    fake.comments = [{"id": "IC_z", "url": "u#issuecomment-5", "body": "other <!-- cm-1 -->"}]
+    rel = _write_input(fake, CID_COMMENT, _comment_input())
+    rc = _run(fake, CID_COMMENT, rel)
+    out = _result(capsys)
+    assert rc != 0 and out["status"] != "ok"
+    assert fake.posts <= 1 and len(fake.comments) == 1
 
 
 def test_comment_publish_marker_missing_from_body_is_refused(fake, capsys):
@@ -631,6 +682,15 @@ def test_body_update_stale_precondition_never_patches(fake, capsys):
     assert _run(fake, CID_BODY, rel) == 1
     assert _result(capsys)["status"] != "ok"
     assert fake.patches == 0 and fake.body == "old body"
+
+
+@pytest.mark.parametrize("mode", ["fail", "timeout_lost"])
+def test_body_update_failed_patch_is_never_success_and_not_retried(fake, capsys, mode):
+    fake.patch_mode = mode
+    rel = _write_input(fake, CID_BODY, _body_input(fake))
+    assert _run(fake, CID_BODY, rel) != 0
+    assert _result(capsys)["status"] != "ok"
+    assert fake.patches == 1 and fake.body == "old body"
 
 
 def test_body_update_silent_noop_is_not_success(fake, capsys):
