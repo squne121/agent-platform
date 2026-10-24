@@ -253,12 +253,12 @@
     "parse_git_diff_index_raw_z": "real consumer is in the not-migrated controlled_git_change_exec; NOT migrated here; handover stays with that owner"
   },
   "dangling_refs": {
-    "note": "paths mentioned in migrated SKILL.md / references / comments / user-facing strings that are NOT migrated; none is loaded at runtime (loud or fail-closed if ever needed). Verbatim from the source tag.",
+    "note": "paths mentioned in migrated SKILL.md / references / comments / user-facing strings that are NOT migrated; none is loaded at runtime (loud or fail-closed if ever needed). Verbatim from the source tag (the reference text is kept; owner_stage is this repo's classification and may differ from the source).",
     "entries": [
       {
         "ref": ".claude/agents/issue-reviewer.md",
         "where": "review-issue/SKILL.md",
-        "owner_stage": "stage_1b-4 (#14/#15 lane: review Agents)"
+        "owner_stage": "out_of_scope (Parent #5: legacy issue-reviewer is Out of Scope; not a #15 transfer target, which is issue-design-reviewer.md). Reference exists in the source text only; not migrated, no consumer runtime dependency"
       },
       {
         "ref": ".claude/skills/issue-refinement-loop/scripts/run_root_review_pipeline.py",
