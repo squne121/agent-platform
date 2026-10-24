@@ -926,7 +926,7 @@ REGISTRY: dict[str, dict[str, Any]] = {
         ],
         "shell": False,
         "cwd_policy": "repo_root",
-        "stdin_contract": "issue_review_result_compact_v1/raw_text",
+        "stdin_contract": "issue_review_result_compact_v2/raw_bytes",
         "stdout_contract": "review_compact_validation_result/v1",
         "timeout_seconds": 30,
         "mutation": False,

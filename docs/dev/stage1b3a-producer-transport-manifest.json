@@ -1,0 +1,141 @@
+{
+  "schema": "STAGE1B3A_PRODUCER_TRANSPORT_MANIFEST_V1",
+  "issue": "squne121/agent-platform#14",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/issue-refinement-loop/scripts/run_root_review_pipeline.py",
+    ".claude/skills/issue-refinement-loop/scripts/reviewer_transport.py",
+    ".claude/skills/issue-refinement-loop/scripts/compact_review_result.py",
+    ".claude/skills/issue-refinement-loop/scripts/compact_author_result.py",
+    ".claude/skills/issue-refinement-loop/scripts/validate_review_compact_output.py",
+    ".claude/skills/issue-refinement-loop/scripts/decide_next_loop_action.py",
+    ".claude/skills/issue-refinement-loop/scripts/command_registry.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/review-issue/scripts/check_issue_contract.py",
+    ".claude/skills/create-issue/scripts/validate_issue_body.py",
+    "config/repository_identity.v1.json",
+    "scripts/agent-guards/repo_identity.py"
+  ],
+  "required_fixtures": [
+    ".claude/skills/issue-refinement-loop/fixtures/author_result_ok.json",
+    ".claude/skills/issue-refinement-loop/fixtures/author_result_no_body_hash.json",
+    ".claude/skills/issue-refinement-loop/fixtures/review_result_approve.json",
+    ".claude/skills/issue-refinement-loop/fixtures/review_result_needs_fix.json",
+    ".claude/skills/issue-refinement-loop/fixtures/review_result_missing_verdict.json"
+  ],
+  "test_files": [
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_producer_fail_closed.py",
+    ".claude/skills/issue-refinement-loop/tests/test_artifact_consumer_security.py",
+    ".claude/skills/issue-refinement-loop/tests/test_artifact_security.py",
+    ".claude/skills/issue-refinement-loop/tests/test_compact_author_result.py",
+    ".claude/skills/issue-refinement-loop/tests/test_compact_review_result.py",
+    ".claude/skills/issue-refinement-loop/tests/test_compact_review_wire_reference.py",
+    ".claude/skills/issue-refinement-loop/tests/test_review_compact_registry_entry.py",
+    ".claude/skills/issue-refinement-loop/tests/test_review_compact_v2.py",
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_deadline_matches_vc_worst_case.py",
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_e2e.py",
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_environment_failure_regression.py",
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_fresh_session_resume_regression.py",
+    ".claude/skills/issue-refinement-loop/tests/test_validate_review_compact_output.py",
+    "tests/stage1b/test_stage1b3_closure.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_producer_fail_closed.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_artifact_consumer_security.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_artifact_security.py": 2,
+    ".claude/skills/issue-refinement-loop/tests/test_compact_author_result.py": 24,
+    ".claude/skills/issue-refinement-loop/tests/test_compact_review_result.py": 2,
+    ".claude/skills/issue-refinement-loop/tests/test_compact_review_wire_reference.py": 1,
+    ".claude/skills/issue-refinement-loop/tests/test_review_compact_registry_entry.py": 14,
+    ".claude/skills/issue-refinement-loop/tests/test_review_compact_v2.py": 6,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_deadline_matches_vc_worst_case.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_e2e.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_environment_failure_regression.py": 9,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_fresh_session_resume_regression.py": 1,
+    ".claude/skills/issue-refinement-loop/tests/test_validate_review_compact_output.py": 2,
+    "tests/stage1b/test_stage1b3_closure.py": 60
+  },
+  "expected_ran": {
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_producer_fail_closed.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_artifact_consumer_security.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_artifact_security.py": 2,
+    ".claude/skills/issue-refinement-loop/tests/test_compact_author_result.py": 23,
+    ".claude/skills/issue-refinement-loop/tests/test_compact_review_result.py": 2,
+    ".claude/skills/issue-refinement-loop/tests/test_compact_review_wire_reference.py": 1,
+    ".claude/skills/issue-refinement-loop/tests/test_review_compact_registry_entry.py": 14,
+    ".claude/skills/issue-refinement-loop/tests/test_review_compact_v2.py": 6,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_deadline_matches_vc_worst_case.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_e2e.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_environment_failure_regression.py": 9,
+    ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_fresh_session_resume_regression.py": 1,
+    ".claude/skills/issue-refinement-loop/tests/test_validate_review_compact_output.py": 2,
+    "tests/stage1b/test_stage1b3_closure.py": 60
+  },
+  "deferred_tests": [
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_compact_author_result.py::test_compact_author_result_raw_log_fixture_would_fail_check_script",
+      "owner_stage": "unassigned (scripts/check_agent_friendly_stdout.py is in no Stage)",
+      "reason": "the test pytest.skip()s when scripts/check_agent_friendly_stdout.py is absent (a silent-skip false-green); that checker is outside Issue #14 Allowed Paths",
+      "rerun_condition": "scripts/check_agent_friendly_stdout.py migrated by an owning Issue"
+    }
+  ],
+  "decisions": {
+    "gh_read_transport": "native `gh issue view` is kept (same as run_refinement_preflight, whose production read path is native gh since source #2872); NOT switched to the credentialless GET transport. The repo argument is bound to repo_identity BEFORE any gh call (fail-closed).",
+    "pytest_markers": "github_live / claude_live are NOT registered and no migrated test uses them (addopts keeps --strict-markers, so a stray use fails). Live-only tests are listed in deferred_tests with owner/reason instead of being hidden behind a default deselect marker.",
+    "pytest_xdist": "pytest-xdist>=3.8,<4 added to the dev group (required by the two real-xdist tests in test_step2_canary_collection_contract.py; both run, none skipped).",
+    "evidence_boundary": "every result in this lane is fixture / fake-gh evidence. No live GitHub read and no live LLM reviewer was executed; `backend=claude` is never started. A post-merge read-only live smoke is optional (AC-4) and must be recorded separately."
+  },
+  "intentional_diffs": [
+    "run_root_review_pipeline.py: --repo default 'squne121/loop-protocol' -> None (produce CLI and produce_compact_result); new resolve_trusted_repo() (repo_identity single source; explicit value must equal it; unusable config/loader -> repository_identity_unavailable); applied in _cmd_produce and fetch_and_pin_live_body BEFORE the gh call (mismatch -> exit 2, no gh)",
+    "run_root_review_pipeline.py / reviewer_transport.py: legacy PR URLs in comments/docstrings -> plain 'source-repo PR #N comment M' text",
+    "reviewer_transport.py: session_id -> session_ref and initial_session_id -> initial_session_ref (public hygiene; JSON key `session_ref` in attempt manifests/results; only consumers are the migrated tests)",
+    "reviewer_transport.py: run_reviewer_transport() ok result gains additive top-level backend / issue_number / repository / reviewed_body_sha256 so a consumer can bind it",
+    "decide_next_loop_action.py (consumer): an ok REVIEWER_TRANSPORT_RESULT_V1 must match --invocation-id / --issue-number / --repo (trusted slug) / new --expected-body-sha256 and have a real backend (deterministic|claude); fixture / stale / foreign / unbound results -> environment_failure 'reviewer_transport_result_unbound:<reason>'. Missing expected values fail closed. Also puts its own scripts dir on sys.path (python -I safe)",
+    "command_registry.py: review_compact.validate stdin_contract 'issue_review_result_compact_v1/raw_text' -> 'issue_review_result_compact_v2/raw_bytes' (the validator only consumes V2 wire bytes; pinned by a new test)",
+    "tests: legacy slug literals -> example-org/example-repo (opaque) or TRUSTED_REPO from tests/_trusted_repo.py (tests that drive the real produce path); test_compact_author_result / ac1 / canary / canonical_delivery cases listed in deferred_tests",
+    "tests/test_review_compact_registry_entry.py: +1 test (V2 stdin_contract pin)",
+    "tests/stage1b/test_stage1b3_closure.py: new (python -I import, missing-module and layout-shift negatives, canonical approve / broken needs-fix / tampered wire invalid, --repo and identity-config fail-closed before gh, closed retry matrix, consumer stale/foreign/fixture rejection)",
+    ".gitignore: +/tmp/ +artifacts/ (run_root_review_pipeline and the ac1 test write under <repo>/tmp and <repo>/artifacts; same ignore as the source repo)",
+    "decide_next_loop_action.py consumer hardening (review B): type-strict binding (bool/float issue_number rejected), top-level verdict must equal final attempt semantic_verdict and compact.VERDICT, final attempt must be clean (exit_code 0/None, no timeout/signal/reason_code), 1..3 attempts with no earlier ok attempt. Forging a result by someone who knows invocation_id + body SHA + issue + slug and writes a self-consistent JSON is NOT prevented (artifact re-verification by the consumer is out of scope; produce does not emit this file -- no production writer exists yet, owner Stage 1b-4/I-4)",
+    "run_root_review_pipeline.py: readback / gate-final-review --expected-repo and an explicit classify-child-stdout --repo must equal the trusted slug (repository_identity_mismatch, exit 1: same code as the other binding failures)"
+  ],
+  "not_adopted_source_tests": [
+    {
+      "file": "test_loop_handoff_contract.py",
+      "owner_stage": "I-4",
+      "reason": "31 tests need root_entry_router.RootEntryRequest and the impl-review-loop handoff entrypoint (I-4); fails with AttributeError against the migrated 1a-2 router"
+    }
+  ],
+  "dangling_refs": {
+    "publish_termination_report.py": "Stage 2 (mutation); referenced only as a string target by test_producer_fail_closed.py, which does not execute it (recorded in the 1a manifest deferred_script_refs)",
+    "route_web_research_result.py / run_scope_rollup_preflight.py": "unchanged 1a deferred refs (Stage 1b/2, Stage 3)",
+    "scripts/check_agent_friendly_stdout.py": "unassigned; one deferred test (see deferred_tests)"
+  },
+  "known_failed_reproduction": {
+    "test": "test_review_compact_registry_entry (source: 2 failures in bulk run, 13/13 alone)",
+    "result": "NOT reproduced in the new repo: 14/14 alone, 107 passed under xdist -n 4 with the command_registry / compact_v2 / validator tests, and a single-process run of tests + .claude/skills + scripts with 0 new failures (only the already-deferred cases fail; measured once, 2071 passed). Cause in the source repo is therefore unconfirmed; the file stays in this lane so a regression is caught."
+  },
+  "part": "Stage 1b-3a (Part of #14): producer / transport / compact scripts, consumer binding, closure tests. The pipeline-path tests are Stage 1b-3b (docs/dev/stage1b3b-pipeline-tests-manifest.json).",
+  "deferred_to_3b": [
+    "_trusted_repo.py",
+    "test_ac1_live_issue_no_environment_failure.py",
+    "test_canonical_step2_route_wiring.py",
+    "test_issue_reviewer_contract_static.py",
+    "test_operator_intervention_route.py",
+    "test_operator_intervention_route_scope_delta.py",
+    "test_review_budget_wiring.py",
+    "test_root_review_canonical_delivery.py",
+    "test_root_review_pipeline_outer_timeout_budget.py",
+    "test_root_review_pipeline_readback_v2_ssot.py",
+    "test_root_review_timeout_diagnostics.py",
+    "test_runtime_assertion_disposition_propagation.py",
+    "test_step2_canary_collection_contract.py",
+    "test_step2_execution_surface_canary.py"
+  ]
+}
