@@ -1,0 +1,108 @@
+{
+  "schema": "STAGE1B3B_PIPELINE_TESTS_MANIFEST_V1",
+  "issue": "squne121/agent-platform#14",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/issue-refinement-loop/scripts/run_root_review_pipeline.py",
+    ".claude/skills/issue-refinement-loop/scripts/reviewer_transport.py",
+    ".claude/skills/issue-refinement-loop/scripts/compact_review_result.py",
+    ".claude/skills/issue-refinement-loop/scripts/compact_author_result.py",
+    ".claude/skills/issue-refinement-loop/scripts/validate_review_compact_output.py",
+    ".claude/skills/issue-refinement-loop/scripts/decide_next_loop_action.py",
+    ".claude/skills/issue-refinement-loop/scripts/command_registry.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
+    ".claude/skills/issue-refinement-loop/tests/_trusted_repo.py",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/review-issue/scripts/check_issue_contract.py",
+    ".claude/skills/create-issue/scripts/validate_issue_body.py",
+    "config/repository_identity.v1.json",
+    "scripts/agent-guards/repo_identity.py"
+  ],
+  "required_fixtures": [
+    ".claude/skills/issue-refinement-loop/fixtures/author_result_ok.json",
+    ".claude/skills/issue-refinement-loop/fixtures/author_result_no_body_hash.json",
+    ".claude/skills/issue-refinement-loop/fixtures/review_result_approve.json",
+    ".claude/skills/issue-refinement-loop/fixtures/review_result_needs_fix.json",
+    ".claude/skills/issue-refinement-loop/fixtures/review_result_missing_verdict.json"
+  ],
+  "test_files": [
+    ".claude/skills/issue-refinement-loop/tests/test_ac1_live_issue_no_environment_failure.py",
+    ".claude/skills/issue-refinement-loop/tests/test_canonical_step2_route_wiring.py",
+    ".claude/skills/issue-refinement-loop/tests/test_issue_reviewer_contract_static.py",
+    ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route.py",
+    ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route_scope_delta.py",
+    ".claude/skills/issue-refinement-loop/tests/test_review_budget_wiring.py",
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_canonical_delivery.py",
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_outer_timeout_budget.py",
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_readback_v2_ssot.py",
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_timeout_diagnostics.py",
+    ".claude/skills/issue-refinement-loop/tests/test_runtime_assertion_disposition_propagation.py",
+    ".claude/skills/issue-refinement-loop/tests/test_step2_canary_collection_contract.py",
+    ".claude/skills/issue-refinement-loop/tests/test_step2_execution_surface_canary.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/issue-refinement-loop/tests/test_ac1_live_issue_no_environment_failure.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_canonical_step2_route_wiring.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_issue_reviewer_contract_static.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route.py": 8,
+    ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route_scope_delta.py": 6,
+    ".claude/skills/issue-refinement-loop/tests/test_review_budget_wiring.py": 3,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_canonical_delivery.py": 25,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_outer_timeout_budget.py": 6,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_readback_v2_ssot.py": 38,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_timeout_diagnostics.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_runtime_assertion_disposition_propagation.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_step2_canary_collection_contract.py": 43,
+    ".claude/skills/issue-refinement-loop/tests/test_step2_execution_surface_canary.py": 1
+  },
+  "expected_ran": {
+    ".claude/skills/issue-refinement-loop/tests/test_ac1_live_issue_no_environment_failure.py": 4,
+    ".claude/skills/issue-refinement-loop/tests/test_canonical_step2_route_wiring.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_issue_reviewer_contract_static.py": 19,
+    ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route.py": 8,
+    ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route_scope_delta.py": 6,
+    ".claude/skills/issue-refinement-loop/tests/test_review_budget_wiring.py": 3,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_canonical_delivery.py": 25,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_outer_timeout_budget.py": 6,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_readback_v2_ssot.py": 38,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_timeout_diagnostics.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_runtime_assertion_disposition_propagation.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_step2_canary_collection_contract.py": 43,
+    ".claude/skills/issue-refinement-loop/tests/test_step2_execution_surface_canary.py": 0
+  },
+  "deferred_tests": [
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_ac1_live_issue_no_environment_failure.py::test_given_live_issue_with_long_running_vc_when_produce_runs_then_no_environment_failure",
+      "owner_stage": "live-smoke (optional, post-merge)",
+      "reason": "live canary: needs authenticated gh and a long-running Issue of the source repository (its Issue number does not exist here); skipif-gated, so running it would be a silent skip in CI. The 4 deterministic scaled-clock tests in the same file run.",
+      "rerun_condition": "manual run with authenticated gh against a repository Issue that carries a long-running Verification Command; record as live evidence separate from fixture results"
+    },
+    {
+      "id": ".claude/skills/issue-refinement-loop/tests/test_step2_execution_surface_canary.py::test_ac9_producer_smoke_canary_against_issue_2584",
+      "owner_stage": "live-smoke (optional, post-merge)",
+      "reason": "explicit opt-in (LOOP_CANARY_STEP2_LIVE_ENABLE=1) one-time live producer smoke against source-repo Issue 2584; skips by default. The file stays migrated because test_step2_canary_collection_contract runs it in real child pytest/xdist processes.",
+      "rerun_condition": "LOOP_CANARY_STEP2_LIVE_ENABLE=1 with authenticated gh and a repository Issue; record as live evidence"
+    }
+  ],
+  "decisions": {
+    "pytest_markers": "github_live / claude_live are NOT registered and no migrated test uses them (addopts keeps --strict-markers, so a stray use fails). Live-only tests are listed in deferred_tests with owner/reason instead of being hidden behind a default deselect marker.",
+    "pytest_xdist": "pytest-xdist>=3.8,<4 added to the dev group (required by the two real-xdist tests in test_step2_canary_collection_contract.py; both run, none skipped).",
+    "evidence_boundary": "every result in this lane is fixture / fake-gh evidence. No live GitHub read and no live LLM reviewer was executed; `backend=claude` is never started. A post-merge read-only live smoke is optional (AC-4) and must be recorded separately.",
+    "closure_judgement": "test_runtime_assertion_disposition_propagation and test_operator_intervention_route* were classified by running them against the migrated closure: all pass, none needs I-4 / Stage 2 code, so they are included. test_loop_handoff_contract.py (31 tests) needs root_entry_router symbols owned by I-4 and is excluded (see the 3a manifest)."
+  },
+  "intentional_diffs": [
+    "tests: legacy slug literals -> example-org/example-repo (opaque) or TRUSTED_REPO from tests/_trusted_repo.py (tests that drive the real produce path); ac1 / canary cases listed in deferred_tests",
+    "tests/_trusted_repo.py: new helper (TRUSTED_REPO from repo_identity) for tests that drive the real produce path",
+    "test_ac1_live_issue_no_environment_failure.py: session_id -> session_ref (follows reviewer_transport)",
+    "legacy PR URLs in comments/docstrings of test_operator_intervention_route_scope_delta, test_root_review_pipeline_readback_v2_ssot, test_issue_reviewer_contract_static -> plain 'source-repo PR #N comment M' text",
+    "test_root_review_canonical_delivery.py: the legacy `.claude/agents/issue-reviewer.md` parametrized case (and its ISSUE_REVIEWER_AGENT_MD constant) is removed from test_instruction_surfaces_no_longer_contain_legacy_relay_regression_phrases. issue-reviewer (legacy) is Out of Scope of Parent #5 and is not migrated by #15 (#15 migrates issue-design-reviewer only); the remaining instruction-surface cases are kept"
+  ],
+  "not_adopted_source_tests": [],
+  "dangling_refs": {},
+  "part": "Stage 1b-3b (Closes #14): produce-path / canonical Step 2 / timeout-budget / xdist-canary tests on top of 1b-3a (docs/dev/stage1b3a-producer-transport-manifest.json)."
+}
