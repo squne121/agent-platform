@@ -61,7 +61,7 @@
   ],
   "expected_collect": {
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py": 55,
-    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 29,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 33,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 39,
@@ -71,7 +71,7 @@
   },
   "expected_ran": {
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py": 55,
-    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 29,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 33,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 39,

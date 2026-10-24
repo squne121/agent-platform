@@ -351,7 +351,8 @@ _OK = {"assessment": "findings", "findings": [{"severity": "high", "summary": "x
 
 @pytest.mark.parametrize(
     "raw_findings, ok",
-    [({}, 0), (False, 0), (0, 0), ("", 0), (None, 0), (_MISSING, 0), ([], 1), (_OK["findings"], 1)],
+    [(v, 0) for v in ({}, False, 0, "", None, _MISSING, {"a": 1}, "x", 5, True)]
+    + [([], 1), (_OK["findings"], 1)],
 )
 def test_record_result_raw_findings_shape(raw_findings, ok):
     """Raw non-list/absent findings are rejected, never normalized to []."""
@@ -449,7 +450,9 @@ def test_record_result_current_body_sha256_is_a_required_keyword_argument():
 # invalid-format vs genuine-drift separation.
 # ---------------------------------------------------------------------------
 
-_TRANSPORT_SCRIPT = Path(__file__).resolve().parent.parent / "scripts" / "semantic_review_transport.py"
+_TRANSPORT_SCRIPT = (
+    Path(__file__).resolve().parent.parent / "scripts" / "semantic_review_transport.py"
+)
 _JOIN_SCRIPT_DIR = Path(__file__).resolve().parent.parent / "scripts"
 
 _HIGH_FINDING = {
@@ -528,7 +531,9 @@ def test_record_result_distinguishes_invalid_format_from_real_body_drift():
             "g" * 64,
         ]
         for digest in invalid_digests:
-            outcome = _record(bundle, d, digest, assessment="findings", findings=[dict(_HIGH_FINDING)])
+            outcome = _record(
+                bundle, d, digest, assessment="findings", findings=[dict(_HIGH_FINDING)]
+            )
             assert outcome["transport_status"] == "error", repr(digest)
             assert outcome["reason_code"] == "invalid_current_body_sha256", repr(digest)
             artifact = outcome["artifact"]
@@ -538,7 +543,9 @@ def test_record_result_distinguishes_invalid_format_from_real_body_drift():
             assert artifact["body_sha256"] == bare
             assert artifact["findings"] == [_HIGH_FINDING]
             persisted = json.loads(
-                (Path(bundle["invocation_dir"]) / "semantic_review_result.json").read_text(encoding="utf-8")
+                (Path(bundle["invocation_dir"]) / "semantic_review_result.json").read_text(
+                    encoding="utf-8"
+                )
             )
             assert persisted == artifact
 
@@ -619,7 +626,9 @@ def test_invalid_digest_preserves_high_finding_through_join():
 
     with tempfile.TemporaryDirectory() as d:
         bundle = _pin_and_wait(d)
-        outcome = _record(bundle, d, "NOT-A-DIGEST", assessment="findings", findings=[dict(_HIGH_FINDING)])
+        outcome = _record(
+            bundle, d, "NOT-A-DIGEST", assessment="findings", findings=[dict(_HIGH_FINDING)]
+        )
         assert outcome["transport_status"] == "error"
         assert outcome["reason_code"] == "invalid_current_body_sha256"
         artifact = outcome["artifact"]
@@ -636,7 +645,9 @@ def test_invalid_digest_preserves_high_finding_through_join():
                     findings=artifact["findings"],
                     transport_policy=policy,
                     retry_already_attempted=retry,
-                    source_artifact=str(Path(bundle["invocation_dir"]) / "semantic_review_result.json"),
+                    source_artifact=str(
+                        Path(bundle["invocation_dir"]) / "semantic_review_result.json"
+                    ),
                     checked_body_sha256=artifact["body_sha256"],
                 )
                 assert joined["effective_verdict"] == "needs-fix", case
