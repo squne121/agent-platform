@@ -186,6 +186,7 @@ class FakeGh:
         self.posts = 0
         self.gh = "/fake/trusted/gh"
         self.unexpected: list[list[str]] = []
+        self.mutate_next = False
 
     def gh_calls(self) -> list[list[str]]:
         return [c for c in self.calls if c and c[0] == self.gh]
@@ -254,7 +255,7 @@ class FakeGh:
     def _add_comment(self, body):
         n = len(self.comments) + 1
         url = f"https://github.com/{TRUSTED}/issues/{ISSUE}#issuecomment-{9000 + n}"
-        if getattr(self, "mutate_next", False):
+        if self.mutate_next:
             body += "X"
         self.comments.append({"id": f"IC_{n}", "url": url, "body": body})
         return json.dumps({"html_url": url, "id": 9000 + n})
@@ -388,7 +389,10 @@ def test_approved_and_unapproved_partition_the_registry() -> None:
 
 
 @pytest.mark.parametrize("command_id", sorted(UNAPPROVED))
-def test_unapproved_command_id_is_refused_before_any_call(fake, capsys, monkeypatch, command_id):
+@pytest.mark.parametrize("extra", [(), ("--dry-run",)], ids=["live", "dry_run"])
+def test_unapproved_command_id_is_refused_before_any_call(
+    fake, capsys, monkeypatch, command_id, extra
+):
     handlers = {}
     for name in dir(ex):
         if name.startswith(("_run_issue_", "_run_contract_snapshot", "_run_test_verdict")):
@@ -397,7 +401,7 @@ def test_unapproved_command_id_is_refused_before_any_call(fake, capsys, monkeypa
     assert handlers  # the spy covers the real handler names
     # Even with a fully valid-looking input file the lane must not be entered.
     rel = _write_input(fake, command_id, {"schema": policy.INPUT_SCHEMA_BY_COMMAND[command_id]})
-    rc = _run(fake, command_id, rel)
+    rc = _run(fake, command_id, rel, extra=extra)
     out = _result(capsys)
     assert rc == 2 and out["status"] == "error"
     assert out["reason"].startswith("command_id_not_approved_for_live_execution")
