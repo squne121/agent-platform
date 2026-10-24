@@ -62,7 +62,8 @@
       "create_issue_txn",
       "dependency_materializer",
       "publish_termination_report",
-      "controlled_skill_mutation_*",
+      "controlled_skill_mutation_exec (policy migrated by Stage 2-1a #30)",
+      "materialize_issue_scope_snapshot / controlled_git_change_exec (owner decided in #31)",
       "isolation_issue_comment_bridge"
     ],
     "stage_3": [

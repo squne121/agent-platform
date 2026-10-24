@@ -192,6 +192,21 @@
         "script": "publish_termination_report.py",
         "reason": "referenced as a string target by test_producer_fail_closed.py (publish/mutation path, Stage 2); the 11 pinned tests do not execute it, so it need not exist (Issue #14 scope)",
         "owner_stage": "stage_2"
+      },
+      {
+        "script": "controlled_skill_mutation_exec.py",
+        "reason": "the executor named by EXECUTOR_SCRIPT and by the policy tests as a path string only; migrated by Stage 2-1b",
+        "owner_stage": "stage_2 (#31)"
+      },
+      {
+        "script": "ensure_contract_snapshot.py",
+        "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
+        "owner_stage": "I-4"
+      },
+      {
+        "script": "materialize_issue_scope_snapshot.py",
+        "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
+        "owner_stage": "stage_2 (decided in #31)"
       }
     ]
   },
@@ -382,7 +397,8 @@
   "later_stage_test_manifests": [
     "docs/dev/stage1b3a-producer-transport-manifest.json",
     "docs/dev/stage1b3b-pipeline-tests-manifest.json",
-    "docs/dev/stage1b4-semantic-review-manifest.json"
+    "docs/dev/stage1b4-semantic-review-manifest.json",
+    "docs/dev/stage2-1a-policy-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",
