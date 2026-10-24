@@ -22,6 +22,7 @@
     ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
     ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
     ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/scripts/tests/conftest.py",
     ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
     ".claude/skills/issue-contract-review/scripts/vc_runtime_history.py",
     ".claude/skills/review-issue/SKILL.md",
@@ -116,6 +117,9 @@
     ".claude/skills/review-issue/fixtures/vc_untracked_false_negative_issue.md"
   ],
   "test_files": [
+    ".claude/skills/issue-contract-review/scripts/tests/test_contract_readiness.py",
+    ".claude/skills/issue-contract-review/scripts/tests/test_extraction_authority_delegation.py",
+    ".claude/skills/issue-contract-review/scripts/tests/test_required_design_references.py",
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py",
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_broad_search_path.py",
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_execute_mode_parent_skip.py",
@@ -144,6 +148,9 @@
     "tests/stage1b/test_stage1b2_closure.py"
   ],
   "expected_collect": {
+    ".claude/skills/issue-contract-review/scripts/tests/test_contract_readiness.py": 49,
+    ".claude/skills/issue-contract-review/scripts/tests/test_extraction_authority_delegation.py": 10,
+    ".claude/skills/issue-contract-review/scripts/tests/test_required_design_references.py": 16,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_broad_search_path.py": 4,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_execute_mode_parent_skip.py": 11,
@@ -172,6 +179,9 @@
     "tests/stage1b/test_stage1b2_closure.py": 36
   },
   "expected_ran": {
+    ".claude/skills/issue-contract-review/scripts/tests/test_contract_readiness.py": 49,
+    ".claude/skills/issue-contract-review/scripts/tests/test_extraction_authority_delegation.py": 10,
+    ".claude/skills/issue-contract-review/scripts/tests/test_required_design_references.py": 16,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check.py": 5,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_broad_search_path.py": 4,
     ".claude/skills/issue-contract-review/tests/test_contract_readiness_check_execute_mode_parent_skip.py": 11,
@@ -221,11 +231,18 @@
     "review_issue_result_v1.json: $id legacy domain replaced by agent-platform.example (no consumer test depends on the old domain)",
     "tests/stage1b/test_stage1b2_closure.py: new (python -I, positive/negative control, layout shift, policy missing/invalid, --repo binding, mixed-rank exemption regression)",
     "test_contract_readiness.py + test_check_issue_contract.py: legacy slug in mock payload / fetch_issue_body tests -> example-org/example-repo; fake binary name 'loop-protocol-nonexistent-tool' -> 'nonexistent-tool' (value not interpreted; two comment/docstring lines at 851 and 1181 follow)",
+    "test_required_design_references.py: three 'existing design doc is accepted' tests repointed from not-migrated docs (docs/dev/agent-skill-boundaries.md, create-issue/references/body-authoring.md) to migrated ones (docs/dev/github-ops.md#ISSUE_KIND_POLICY_V1, issue-contract-review/references/vc-preflight.md); test test_rdr_valid_agent_skill_boundaries_reference_passes renamed test_rdr_valid_github_ops_reference_passes and its docstring updated; the RDR existence predicate under test is unchanged",
     "references/vc-preflight.md line 152: state-dir name `loop-protocol` -> `agent-platform` (documentation only; vc_runtime_history.py already uses agent-platform)",
     "review-issue/fixtures/ps_docs_product_without_spec_delta_issue.md: new fixture (pass_issue.md + a docs/product Allowed Path) for the product-spec blocking regression",
     "check_issue_contract.py run_checks: C14 `blocking_issues.extend(issues)` is now conditional on `C14 == CheckResult.FAIL` (source extended unconditionally, so a policy-unavailable WARN left verdict=approve with non-empty blocking_issues). WARN keeps its non-blocking `findings` entry (blocking=false, diagnostics preserved); FAIL/NA/PASS and readiness-side human_judgment semantics unchanged. Regression: tests/stage1b/test_stage1b2_closure.py::test_c14_* (3 tests; the WARN case fails against the source behaviour)."
   ],
   "policy_semantics": "consumers: matcher PolicyLoadError (missing/invalid YAML) -> readiness human_judgment 'extension_surface_risk_trigger_policy_unavailable' (tested); check_issue_contract C14 is not PASS (tested). Unchanged from source: when the matcher MODULE file itself is absent the consumers return [] / NA; that absence is caught by required_files here and by the 1b-1 closure tests, not by the consumer.",
+  "ac5_baseline_vc_preflight": {
+    "measured_in": "new repo uv environment (uv sync --locked, python -I runners)",
+    "source_tag_reference": "the Issue records 3 env_missing_dep tests failing at tag time in a scratch env without uv venv",
+    "reconciliation": "`-k env_missing_dep` in test_baseline_vc_preflight.py matches ONE test (test_ac6_env_missing_dep) -> 1 passed here. The env_missing_dep category is also asserted in test_baseline_vc_preflight_current_head_non_regression.py (not adopted). The 3 failures measured in the whole file are different tests (pnpm gate: test_fixed_env_injects_ci_true_for_pnpm_build, test_fixed_env_applies_to_all_canonical_pnpm_gates, test_runner_env_delta_output_exposes_only_fixed_env) and need a pnpm workspace this repo does not have; 2 skips: live Issue fetch, unmigrated impl-review-loop/steps/preparation.md. The whole-file figure is environment dependent (git origin / pnpm availability).",
+    "decision": "test_baseline_vc_preflight*.py is NOT adopted into this lane (owner: baseline_vc_preflight / pnpm gate, not a #13 closure target); no skip/xfail was added to make anything green. Re-evaluate when that surface is migrated."
+  },
   "not_adopted_source_tests": [
     "issue-contract-review/scripts/tests/test_baseline_vc_preflight*.py, test_command_timeout_*.py, test_vc_*.py, test_review_budget_*.py (baseline_vc_preflight / budget owner)",
     "issue-contract-review/tests/test_run_contract_review_once*.py, test_contract_review_result_parser.py, test_declared_path_overlap.py, test_contract_snapshot_author_trust.py, test_history_snapshot_production_wiring.py (run_contract_review_once lane; Stage 2 / I-4)",
@@ -315,5 +332,5 @@
     "check_issue_contract.py wraps vc_contract_syntax in try/except ImportError and falls back to a stub parser (identical to source). All other sibling imports fail loudly or yield needs-fix (tested). Guard: required_files.",
     ".github/ISSUE_TEMPLATE/implementation.yml is read relative to the CWD with a hardcoded-section fallback (identical to source)."
   ],
-  "part": "13c (#19) review-issue tests"
+  "part": "13d (#20) readiness-adjacent scripts/tests"
 }
