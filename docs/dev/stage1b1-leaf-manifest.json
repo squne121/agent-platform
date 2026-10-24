@@ -86,7 +86,7 @@
     ".claude/skills/impl-review-loop/scripts/tests/test_evaluate_product_spec_gate.py": 13,
     ".claude/skills/issue-contract-review/scripts/tests/test_product_spec_check.py": 21,
     "tests/stage1b/test_changed_file_matcher.py": 8,
-    "tests/stage1b/test_extension_surface_policy_matcher.py": 108,
+    "tests/stage1b/test_extension_surface_policy_matcher.py": 109,
     "tests/stage1b/test_extension_surface_policy_matcher_candidate_perimeter.py": 19,
     "tests/stage1b/test_extension_surface_runtime_policy_schema.py": 18,
     "tests/stage1b/test_stage1b1_closure.py": 19
@@ -103,12 +103,6 @@
       "owner_stage": "stage_2 / I-4 dependent (not #13: run_contract_review_once is Out of Scope in #13)",
       "reason": "imports run_contract_review_once (contract-review-once path; depends on I-4 ensure_contract_snapshot / Stage 2, not migrated)",
       "rerun_condition": "run_contract_review_once (and its I-4 ensure_contract_snapshot / Stage 2 dependency) migrated in a later stage; NOT released by #13"
-    },
-    {
-      "id": "tests/stage1b/test_extension_surface_policy_matcher.py::test_review_issue_and_contract_readiness_parity",
-      "owner_stage": "stage_1b-2 (#13)",
-      "reason": "needs check_issue_contract.py / contract_readiness_check.py (owned by #13)",
-      "rerun_condition": "check_issue_contract and contract_readiness_check migrated"
     }
   ],
   "removed_tests": [
@@ -133,5 +127,9 @@
   "policy_semantics": "leaf scope: matcher load_policy raises PolicyLoadError for unreadable/invalid YAML (fail-closed, tested). NA/WARN degrade of consumers (check_issue_contract, contract_readiness_check) is #13-owned and unchanged; migration absence of matcher/YAML is caught by required_files + closure tests, never silently green.",
   "not_migrated_assets": [
     "protected_paths_policy.v1.json / protected_paths_policy.py (not in the real call graph; owner decided separately)"
-  ]
+  ],
+  "released_by_13": [
+    "tests/stage1b/test_extension_surface_policy_matcher.py::test_review_issue_and_contract_readiness_parity (check_issue_contract / contract_readiness_check migrated in #13; now runs, 109 collected / 109 ran)"
+  ],
+  "excluded_tests_owner_13_status": "migrated in #13 (docs/dev/stage1b2-contract-checkers-manifest.json)"
 }
