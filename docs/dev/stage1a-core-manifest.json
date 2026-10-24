@@ -120,6 +120,16 @@
         "module": "run_contract_review_once",
         "reason": "contract-review-once path (ensure_contract_snapshot family): I-4 / Stage 2 dependent, not migrated; imported only by 2 deferred tests in test_product_spec_check.py (Issue #12 decision B)",
         "owner_stage": "stage_2 / I-4"
+      },
+      {
+        "module": "edit_issue_txn",
+        "reason": "imported only by 2 deferred env-parity tests of the executor (test_controlled_skill_mutation_exec_env_parity.py); migrated with the edit-issue Skill",
+        "owner_stage": "stage_2 (#34)"
+      },
+      {
+        "module": "materialize_issue_scope_snapshot",
+        "reason": "lazily imported by the executor's issue_scope_snapshot.materialize handler; that lane is refused before execution and the handler fails closed without the module (Issue #31 decision: keep deferred)",
+        "owner_stage": "stage_2 (follow-up; needs human approval of the lane)"
       }
     ],
     "deferred_script_refs": [
@@ -194,11 +204,6 @@
         "owner_stage": "stage_2"
       },
       {
-        "script": "controlled_skill_mutation_exec.py",
-        "reason": "the executor named by EXECUTOR_SCRIPT and by the policy tests as a path string only; migrated by Stage 2-1b",
-        "owner_stage": "stage_2 (#31)"
-      },
-      {
         "script": "ensure_contract_snapshot.py",
         "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
         "owner_stage": "I-4"
@@ -207,6 +212,16 @@
         "script": "materialize_issue_scope_snapshot.py",
         "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
         "owner_stage": "stage_2 (decided in #31)"
+      },
+      {
+        "script": "run_contract_review_once.py",
+        "reason": "module-path constant of the contract_snapshot.publish trust chain in the executor; I-4 asset, lane refused before execution",
+        "owner_stage": "I-4"
+      },
+      {
+        "script": "contract_review_result_parser.py",
+        "reason": "module-path constant of the contract_snapshot.publish trust chain in the executor; I-4 asset, lane refused before execution",
+        "owner_stage": "I-4"
       }
     ]
   },
@@ -398,7 +413,8 @@
     "docs/dev/stage1b3a-producer-transport-manifest.json",
     "docs/dev/stage1b3b-pipeline-tests-manifest.json",
     "docs/dev/stage1b4-semantic-review-manifest.json",
-    "docs/dev/stage2-1a-policy-manifest.json"
+    "docs/dev/stage2-1a-policy-manifest.json",
+    "docs/dev/stage2-1b-exec-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",

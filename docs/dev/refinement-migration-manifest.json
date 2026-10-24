@@ -62,8 +62,7 @@
       "create_issue_txn",
       "dependency_materializer",
       "publish_termination_report",
-      "controlled_skill_mutation_exec (policy migrated by Stage 2-1a #30)",
-      "materialize_issue_scope_snapshot / controlled_git_change_exec (owner decided in #31)",
+      "materialize_issue_scope_snapshot / controlled_git_change_exec (#31 decision: kept deferred, lane refused before execution)",
       "isolation_issue_comment_bridge"
     ],
     "stage_3": [
@@ -100,5 +99,17 @@
     "migrated": "canonical preflight.run chain: skill_runtime_exec, skill_runtime_command_policy, trusted_runtime_capabilities, worktree_bootstrap_*, worktree_catalog, workflow_capability_preflight, workflow_start_entry, root_entry_router (capability subset), issue-refinement-loop SKILL.md",
     "identity": "TRUSTED_REPO_SLUG / _DEFAULT_REPO / remote URL / refs namespace now come from repo_identity (config/repository_identity.v1.json)",
     "not_claimed": "Stage 1b review pipeline, Stage 2 GitHub mutation, I-4 implementation-entry and the production Skill terminal path are not complete. A real run against a merged default branch (dedicated control-plane worktree from the remote default ref) is a post-merge smoke, not part of this stage."
+  },
+  "stage_2_1b": {
+    "manifest": "docs/dev/stage2-1b-exec-manifest.json",
+    "issue": "squne121/agent-platform#31",
+    "migrated": [
+      "controlled_skill_mutation_exec (policy by Stage 2-1a #30)"
+    ],
+    "still_deferred": [
+      "materialize_issue_scope_snapshot / controlled_git_change_exec (kept deferred; lane refused before execution)",
+      "ensure_contract_snapshot / run_contract_review_once (I-4)",
+      "test_controlled_skill_mutation_exec.py / test_controlled_issue_metadata_exec.py (Stage 2-1c split, #39)"
+    ]
   }
 }
