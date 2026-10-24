@@ -586,6 +586,13 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--expected-body-sha256",
+        metavar="SHA",
+        default=None,
+        help="Pinned Issue body SHA-256 an ok --reviewer-transport-result-file must be bound to "
+        "(with --issue-number / --repo / --invocation-id; a missing value fails closed).",
+    )
+    parser.add_argument(
         "--max-iterations",
         type=int,
         default=None,
@@ -719,10 +726,73 @@ def _load_loop_state(args: argparse.Namespace) -> tuple[Optional[dict[str, Any]]
     return data, ""
 
 
-def _load_reviewer_transport_result(path_value: str | None) -> tuple[Optional[dict[str, Any]], str]:
-    """Load the parent result without accepting child compact/V1 fallback."""
+# Backends whose ok result may count as real review evidence. `fixture` is test-only and is never
+# accepted here, even when every other binding matches.
+_REAL_REVIEW_BACKENDS = frozenset({"deterministic", "claude"})
+
+
+def _trusted_repo_slug() -> str | None:
+    """Trusted slug from the single identity config; None when unusable (callers fail closed)."""
+    guards = Path(__file__).resolve().parents[4] / "scripts" / "agent-guards"
+    if str(guards) not in sys.path:
+        sys.path.insert(0, str(guards))
+    try:
+        import repo_identity
+    except ImportError:
+        return None
+    try:
+        return repo_identity.load_trusted_repo_slug()
+    except repo_identity.RepositoryIdentityError:
+        return None
+
+
+def _bind_transport_result(data: dict[str, Any], args: argparse.Namespace) -> str:
+    """'' when an ok result is bound to THIS invocation, else a typed reason (fail closed).
+
+    Schema + verdict alone are forgeable / replayable: a stale result from another invocation, a
+    result for another body, issue or repository, or a fixture-backend result must never yield
+    ok+approve. Every expected value must be supplied by the caller (a missing one is a failure).
+    """
+    attempts = data.get("attempts")
+    final = attempts[-1] if isinstance(attempts, list) and attempts else None
+    if not isinstance(final, dict) or final.get("transport_status") != "ok":
+        return "attempt"
+    backend = data.get("backend")
+    if backend not in _REAL_REVIEW_BACKENDS or final.get("backend") != backend:
+        return "backend_not_real_review"
+    expected = {
+        "invocation_id": args.invocation_id,
+        "issue_number": args.issue_number,
+        "reviewed_body_sha256": args.expected_body_sha256,
+    }
+    for key, want in expected.items():
+        if want is None:
+            return f"expected_{key}_missing"
+        if data.get(key) != want:
+            return f"{key}_mismatch"
+    if final.get("invocation_id") != args.invocation_id:
+        return "invocation_id_mismatch"
+    trusted = _trusted_repo_slug()
+    if trusted is None:
+        return "repository_identity_unavailable"
+    if data.get("repository") != trusted or (args.repo is not None and args.repo != trusted):
+        return "repository_mismatch"
+    return ""
+
+
+def _load_reviewer_transport_result(
+    path_value: str | None, args: argparse.Namespace | None = None
+) -> tuple[Optional[dict[str, Any]], str]:
+    """Load the parent result without accepting child compact/V1 fallback.
+
+    An ok result is additionally bound to the caller's invocation (see `_bind_transport_result`);
+    `args=None` therefore never accepts an ok result.
+    """
     if path_value is None:
         return None, ""
+    scripts_dir = str(Path(__file__).resolve().parent)
+    if scripts_dir not in sys.path:  # `python -I` does not put the script dir on sys.path
+        sys.path.insert(0, scripts_dir)
     try:
         with open(path_value, "rb") as stream:
             from reviewer_transport import strict_json_loads
@@ -737,6 +807,9 @@ def _load_reviewer_transport_result(path_value: str | None) -> tuple[Optional[di
     if status == STATUS_ENVIRONMENT_FAILURE and verdict is None:
         return data, ""
     if status == "ok" and verdict in {"approve", "needs-fix"}:
+        unbound = _bind_transport_result(data, args) if args is not None else "unbound"
+        if unbound:
+            return None, f"reviewer_transport_result_unbound:{unbound}"
         return data, ""
     return None, "reviewer_transport_result_invalid:status_or_verdict"
 
@@ -764,7 +837,7 @@ def main(argv: Optional[list[str]] = None) -> None:
         sys.exit(EXIT_ENVIRONMENT_FAILURE)
 
     transport_result, transport_error = _load_reviewer_transport_result(
-        args.reviewer_transport_result_file
+        args.reviewer_transport_result_file, args
     )
     if transport_error:
         print(f"STATUS: {STATUS_ENVIRONMENT_FAILURE}")

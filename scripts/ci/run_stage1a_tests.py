@@ -4,7 +4,8 @@
    docs/dev/stage1a-core-manifest.json `expected_collect_total` exactly.
 2. Every `deferred_tests` id must exist in the collection (stale entry = FAIL) and carry a
    reason, owner stage and re-run condition. They are the ONLY deselected tests.
-3. The real run must exit 0 with JUnit tests == collected - deferred == sum(`expected_ran`), and 0 skipped / xfailed
+3. Files owned by `later_stage_test_manifests` are ignored here (their own lane pins them).
+   The real run must exit 0 with JUnit tests == collected - deferred == sum(`expected_ran`), and 0 skipped / xfailed
    (xfail is reported as skipped by JUnit) / failed / errored.
 """
 
@@ -50,13 +51,19 @@ def main() -> int:
             print(f"FAIL: incomplete deferred entry {entry.get('id')!r}")
             return 1
 
+    # Files owned by a later stage's manifest sit in the same dirs; that stage pins and runs them.
+    owned: set[str] = set()
+    for later in manifest.get("later_stage_test_manifests", []):
+        owned.update(json.loads((ROOT / later).read_text(encoding="utf-8"))["test_files"])
+    ignore = [f"--ignore={f}" for f in sorted(owned)]
+
     present = {f.name for d in dirs for f in (ROOT / d).rglob("test_*.py")}
     listed_but_present = sorted(present & set(manifest["not_migrated_source_tests"]["files"]))
     if listed_but_present:
         print(f"FAIL: not_migrated_source_tests lists migrated files: {listed_but_present}")
         return 1
 
-    co = _pytest("--co", "-q", *dirs)
+    co = _pytest("--co", "-q", *ignore, *dirs)
     if co.returncode != 0:
         print(co.stdout + co.stderr)
         print(f"FAIL: collect exit code {co.returncode} (5 = collected nothing)")
@@ -82,7 +89,7 @@ def main() -> int:
     deselect = [f"--deselect={i}" for i in sorted(deferred_ids)]
     with tempfile.TemporaryDirectory() as tmp:
         junit = Path(tmp) / "junit.xml"
-        run = _pytest("-q", "-rsxX", f"--junitxml={junit}", *deselect, *dirs)
+        run = _pytest("-q", "-rsxX", f"--junitxml={junit}", *deselect, *ignore, *dirs)
         print(run.stdout + run.stderr)
         if run.returncode != 0:
             print(f"FAIL: pytest exit code {run.returncode}")

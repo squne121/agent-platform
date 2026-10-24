@@ -66,6 +66,23 @@ jobs:
       - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
       - run: uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py
       - run: uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage1b2-contract-checkers-manifest.json
+  stage1b-3a-producer-transport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect counts, 0 skipped / xfailed / deselected-without-reason (fake gh boundary only)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage1b3a-producer-transport-manifest.json | tee runner.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed)" runner.out
+          grep -Eq "[0-9]+ deselected" runner.out
+          grep -Eq "1 deferred with reasons, [0-9]+ ran, 0 skipped" runner.out
   lint:
     runs-on: ubuntu-latest
     steps:

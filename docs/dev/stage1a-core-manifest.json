@@ -117,11 +117,6 @@
     ],
     "deferred_imports": [
       {
-        "module": "reviewer_transport",
-        "reason": "imported only when --reviewer-transport-result-file is passed (Stage 1b producer); an ImportError is surfaced as reviewer_transport_result_invalid environment_failure, not swallowed",
-        "owner_stage": "stage_1b"
-      },
-      {
         "module": "run_contract_review_once",
         "reason": "contract-review-once path (ensure_contract_snapshot family): I-4 / Stage 2 dependent, not migrated; imported only by 2 deferred tests in test_product_spec_check.py (Issue #12 decision B)",
         "owner_stage": "stage_2 / I-4"
@@ -159,17 +154,7 @@
         "owner_stage": "stage_1b/2"
       },
       {
-        "script": "run_root_review_pipeline.py",
-        "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
-        "owner_stage": "stage_1b/2"
-      },
-      {
         "script": "run_scope_rollup_preflight.py",
-        "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
-        "owner_stage": "stage_1b/2"
-      },
-      {
-        "script": "validate_review_compact_output.py",
         "reason": "emitted as an argv target by command_registry; not migrated, so a next-step command that names it dangles until the owner stage lands",
         "owner_stage": "stage_1b/2"
       },
@@ -202,6 +187,11 @@
         "script": "y.py",
         "reason": "string literal in test_path_classification.py fixtures (path-classification inputs), not a script reference (measured)",
         "owner_stage": "stage_1b-1 (#12)"
+      },
+      {
+        "script": "publish_termination_report.py",
+        "reason": "referenced as a string target by test_producer_fail_closed.py (publish/mutation path, Stage 2); the 11 pinned tests do not execute it, so it need not exist (Issue #14 scope)",
+        "owner_stage": "stage_2"
       }
     ]
   },
@@ -210,7 +200,7 @@
     "tests/test_run_refinement_preflight_credentialless_transport.py:1279: synthetic home path literal split (same value at runtime)"
   ],
   "not_migrated_source_tests": {
-    "count": 135,
+    "count": 123,
     "owner_stage": "follows the stage that migrates the implementation each file covers; per-file triage happens at that stage's closure (not assigned individually here)",
     "source": "pre-split-agent-platform-20261020 issue-refinement-loop/tests and scripts/tests",
     "files": [
@@ -229,15 +219,10 @@
       "test_anchor_scope_reframe_preflight.py",
       "test_anchor_scope_reframe_schema.py",
       "test_apply_triage_label_transition.py",
-      "test_artifact_consumer_security.py",
-      "test_artifact_security.py",
       "test_canonical_step2_route_wiring.py",
       "test_check_vc_scope.py",
       "test_claude_gpt_stale_surface_migration.py",
       "test_codebase_investigator_actual_wrapper_fallback_smoke.py",
-      "test_compact_author_result.py",
-      "test_compact_review_result.py",
-      "test_compact_review_wire_reference.py",
       "test_contract_update_handoff_schema.py",
       "test_contract_update_lane_reason_code.py",
       "test_critical_external_claims_producer_contract.py",
@@ -298,12 +283,6 @@
       "test_repair_diagnostics_routing.py",
       "test_retrospective_candidate_handoff.py",
       "test_review_budget_wiring.py",
-      "test_review_compact_registry_entry.py",
-      "test_review_compact_v2.py",
-      "test_reviewer_transport_deadline_matches_vc_worst_case.py",
-      "test_reviewer_transport_e2e.py",
-      "test_reviewer_transport_environment_failure_regression.py",
-      "test_reviewer_transport_fresh_session_resume_regression.py",
       "test_rewrite_router.py",
       "test_root_review_canonical_delivery.py",
       "test_root_review_pipeline_outer_timeout_budget.py",
@@ -344,7 +323,6 @@
       "test_trusted_anchor_iteration_zero.py",
       "test_trusted_human_context_patch_safety.py",
       "test_trusted_human_context_path_literal_extraction.py",
-      "test_validate_review_compact_output.py",
       "test_vc_scope.py",
       "test_verify_scope_rollup_result.py",
       "test_web_research_routing.py",
@@ -420,5 +398,12 @@
   "stage_1b_2": {
     "issue": "squne121/agent-platform#13",
     "note": "deferred test test_operator_intervention_not_triggered_by_no_path_marker re-enabled (89 collected / 89 ran); contract_readiness_check.py and check_issue_contract.py migrated, so their deferred_script_refs entries are removed and .claude/skills/review-issue/scripts joins the import-closure scan/closure dirs."
+  },
+  "later_stage_test_manifests": [
+    "docs/dev/stage1b3a-producer-transport-manifest.json"
+  ],
+  "stage_1b_3": {
+    "issue": "squne121/agent-platform#14",
+    "note": "Stage 1b-3a: run_root_review_pipeline / reviewer_transport / compact_review_result / compact_author_result / validate_review_compact_output migrated, so the reviewer_transport deferred import and the run_root_review_pipeline.py / validate_review_compact_output.py deferred script refs are removed (see docs/dev/stage1b3a-producer-transport-manifest.json). Their test files live in the same dirs as the 1a lane, so run_stage1a_tests.py ignores the files owned by `later_stage_test_manifests` (each is pinned and run by its own lane); the migrated names are removed from not_migrated_source_tests."
   }
 }
