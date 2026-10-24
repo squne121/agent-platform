@@ -572,3 +572,41 @@ def test_artifact_subcommands_reject_foreign_expected_repo(tmp_path: Path, sub: 
     run = _run(tree, PRODUCE_REL, *args)
     assert run.returncode == 2, run.stdout + run.stderr
     assert "repository_identity_mismatch" in run.stdout
+
+
+def test_missing_identity_module_fails_closed_before_gh(tmp_path: Path):
+    tree = _tree(tmp_path / "tree")
+    bindir, log = _fake_gh(tmp_path, APPROVE_BODY)
+    (tree / "scripts" / "agent-guards" / "repo_identity.py").unlink()
+    run = _run(tree, PRODUCE_REL, "produce", "--issue-number", "7", bindir=bindir)
+    # a closure module that imports repo_identity may crash first; either way: no gh, no approve
+    assert run.returncode != 0
+    assert "approve" not in run.stdout
+    assert not log.exists()
+
+
+@pytest.mark.parametrize(
+    ("attempts", "reason"),
+    [
+        ([_ok_attempt(), _ok_attempt(backend="claude")], "attempt"),  # earlier ok attempt
+        ([_ok_attempt(backend="claude")], "backend_not_real_review"),  # top=deterministic
+        ([{**_ok_attempt(), "transport_status": "environment_failure"}], "attempt"),
+        ([], "attempt"),
+    ],
+)
+def test_consumer_attempt_shape_and_backend_agreement(tmp_path: Path, attempts, reason):
+    run = _route(tmp_path, _result(attempts=attempts))
+    assert run.returncode == 4
+    assert f"reviewer_transport_result_unbound:{reason}" in run.stdout
+
+
+def test_load_result_without_args_never_accepts_ok(tmp_path: Path):
+    sys.path.insert(0, str(LOOP / "scripts"))
+    try:
+        import decide_next_loop_action as router
+    finally:
+        sys.path.remove(str(LOOP / "scripts"))
+    receipt = tmp_path / "r.json"
+    receipt.write_text(json.dumps(_result()))
+    data, err = router._load_reviewer_transport_result(str(receipt))
+    assert data is None and err == "reviewer_transport_result_unbound:unbound"

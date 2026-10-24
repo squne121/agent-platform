@@ -59,7 +59,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_environment_failure_regression.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_fresh_session_resume_regression.py": 1,
     ".claude/skills/issue-refinement-loop/tests/test_validate_review_compact_output.py": 2,
-    "tests/stage1b/test_stage1b3_closure.py": 54
+    "tests/stage1b/test_stage1b3_closure.py": 60
   },
   "expected_ran": {
     ".claude/skills/issue-refinement-loop/scripts/tests/test_producer_fail_closed.py": 11,
@@ -75,7 +75,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_environment_failure_regression.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_reviewer_transport_fresh_session_resume_regression.py": 1,
     ".claude/skills/issue-refinement-loop/tests/test_validate_review_compact_output.py": 2,
-    "tests/stage1b/test_stage1b3_closure.py": 54
+    "tests/stage1b/test_stage1b3_closure.py": 60
   },
   "deferred_tests": [
     {
