@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:agent-platform:schemas:semantic_review_result_v1",
+  "title": "SEMANTIC_REVIEW_RESULT_V1",
+  "description": "issue-design-reviewer が返す semantic design review の sidecar artifact schema (Issue #2296)。モデル出力は assessment/findings のみに限定され、owner_disposition はモデルが書き込めない別フィールドとして分離される (P0-3)。artifact_valid/input_binding_valid/freshness_valid は semantic_review_transport.py が計算するフィールドであり、モデル自己申告ではない。assessment と findings の相関（clear なら空、findings なら非空）は allOf/if/then で構造的に強制する (#2296 fix_delta iteration 6, P0-3)。",
+  "type": "object",
+  "required": [
+    "schema",
+    "issue_number",
+    "body_sha256",
+    "prompt_version",
+    "requested_model",
+    "assessment",
+    "findings",
+    "artifact_valid",
+    "input_binding_valid",
+    "freshness_valid"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {"assessment": {"const": "clear"}},
+        "required": ["assessment"]
+      },
+      "then": {
+        "properties": {"findings": {"type": "array", "maxItems": 0}}
+      }
+    },
+    {
+      "if": {
+        "properties": {"assessment": {"const": "findings"}},
+        "required": ["assessment"]
+      },
+      "then": {
+        "properties": {"findings": {"type": "array", "minItems": 1}}
+      }
+    }
+  ],
+  "properties": {
+    "schema": {
+      "const": "SEMANTIC_REVIEW_RESULT_V1"
+    },
+    "issue_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "body_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "prompt_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "requested_model": {
+      "type": "string",
+      "minLength": 1
+    },
+    "assessment": {
+      "type": "string",
+      "enum": ["clear", "findings"]
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "summary"],
+        "additionalProperties": false,
+        "properties": {
+          "severity": {
+            "type": "string",
+            "enum": ["blocker", "high", "medium", "low"]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_refs": {
+            "type": "array",
+            "items": {"type": "string"}
+          },
+          "recommended_fix": {
+            "type": "string"
+          },
+          "requires_owner_choice": {
+            "type": "boolean"
+          },
+          "owner_disposition": {
+            "description": "モデルは書き込めない。orchestrator / owner のみが後続で付与する。recorded_by が owner であり、reason が非空文字列である場合にのみ join_review_results.py はこの finding の severity を降格する (#2296 fix_delta iteration 6, P1-1)。",
+            "type": "object",
+            "required": ["status", "recorded_by", "reason"],
+            "additionalProperties": false,
+            "properties": {
+              "status": {
+                "type": "string",
+                "enum": ["accepted", "deferred", "rejected"]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "recorded_by": {
+                "const": "owner"
+              }
+            }
+          }
+        }
+      }
+    },
+    "artifact_valid": {
+      "type": "boolean",
+      "description": "semantic_review_transport.py が計算する。モデル自己申告フィールドではない。"
+    },
+    "input_binding_valid": {
+      "type": "boolean",
+      "description": "body_sha256 / prompt_version / requested_model が pin 済み bundle と一致するかを semantic_review_transport.py が計算する。"
+    },
+    "freshness_valid": {
+      "type": "boolean",
+      "description": "body_sha256 が stale でないかを semantic_review_transport.py が計算する。"
+    }
+  }
+}

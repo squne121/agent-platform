@@ -1,0 +1,130 @@
+{
+  "schema": "STAGE1B4_SEMANTIC_REVIEW_MANIFEST_V1",
+  "issue": "squne121/agent-platform#15",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/issue-refinement-loop/scripts/semantic_review_transport.py",
+    ".claude/skills/issue-refinement-loop/scripts/semantic_review_trigger.py",
+    ".claude/skills/issue-refinement-loop/scripts/join_review_results.py",
+    "schemas/semantic_review_result_v1.schema.json",
+    ".claude/agents/issue-design-reviewer.md",
+    ".claude/skills/issue-refinement-loop/references/semantic-design-review.md",
+    ".claude/skills/issue-refinement-loop/tests/issue2963_reachability_runtime_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/issue2973_bounded_discovery_runtime_evaluator.py",
+    "scripts/agent-ops/claude_stream_extractors.py"
+  ],
+  "required_fixtures": [
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_hybrid_case/issue_body_bounded_discovery_hybrid_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_hybrid_case/qhyb_consumer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_hybrid_case/qhyb_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_hybrid_case/qhyb_parser.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_hybrid_case/qhyb_producer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_negative_case/decoy/qneg_stale_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_negative_case/issue_body_bounded_discovery_negative_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_negative_case/qneg_consumer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_negative_case/qneg_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_negative_case/qneg_parser.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_negative_case/qneg_producer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_positive_control_case/issue_body_bounded_discovery_positive_control_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_positive_control_case/qpos_consumer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_positive_control_case/qpos_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_positive_control_case/qpos_parser.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_positive_control_case/qpos_producer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_simple_docs_only_case/issue_body_bounded_discovery_simple_docs_only_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/bounded_discovery_simple_docs_only_case/qsimple_glossary.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_negative_case/issue_body_negative_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_negative_case/negative_case_consumer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_negative_case/negative_case_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_negative_case/negative_case_parser.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_negative_case/negative_case_producer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_positive_control_case/issue_body_positive_control_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_positive_control_case/positive_control_case_consumer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_positive_control_case/positive_control_case_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_positive_control_case/positive_control_case_parser.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_positive_control_case/positive_control_case_producer.py",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_simple_docs_only_case/issue_body_simple_docs_only_case.md",
+    ".claude/skills/issue-refinement-loop/tests/fixtures/consumer_reachability_simple_docs_only_case/simple_docs_only_case_glossary.md"
+  ],
+  "test_files": [
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py",
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py",
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py",
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py",
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py",
+    ".claude/skills/issue-refinement-loop/tests/test_join_review_results.py",
+    ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_bounded_discovery_evaluator.py",
+    ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_reachability_evaluator.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py": 55,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 33,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 39,
+    ".claude/skills/issue-refinement-loop/tests/test_join_review_results.py": 42,
+    ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_bounded_discovery_evaluator.py": 239,
+    ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_reachability_evaluator.py": 49
+  },
+  "expected_ran": {
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py": 55,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 33,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 39,
+    ".claude/skills/issue-refinement-loop/tests/test_join_review_results.py": 42,
+    ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_bounded_discovery_evaluator.py": 239,
+    ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_reachability_evaluator.py": 49
+  },
+  "deferred_tests": [],
+  "decisions": {
+    "evidence_boundary": "every result in this lane is fixture evidence. The 'reviewer' in test_semantic_review_stage1b4_closure.py is a fake that writes a JSON file; the evaluator tests feed synthetic stream-json. No real issue-design-reviewer SubAgent was started by CI and none is started by any migrated Python (the Agent tool launch stays the orchestrator's job). Live SubAgent evidence, if any, is recorded separately and never inferred from this lane.",
+    "no_skip_policy": "0 skipped / 0 xfailed / 0 deselected; deferred_tests is empty. The two claude_live runtime-smoke files are not migrated (not_adopted_source_tests) instead of being hidden behind a deselect marker.",
+    "repository_identity": "no semantic-review script or test carries a repository slug; nothing here reads or defaults a repo. scripts/ci/check_no_functional_slug.py (stage0-closure) scans .claude and schemas stay slug-free.",
+    "agent_hygiene_AC3": "the only 'LOOP_PROTOCOL' occurrence (persona sentence of issue-design-reviewer.md) became 'agent-platform'; the frontmatter and every behavioural rule are untouched. Markdown is exempt from the slug scanner, so this is a naming cleanup, not a gate workaround.",
+    "frontmatter_test": "test_reviewer_frontmatter_unchanged_from_origin_main (vacuous after merge, always failing inside the PR) is replaced by test_reviewer_agent_definition_contract_is_enforced_not_self_compared (exact key set, name == file stem, read-only tools, disallowedTools, permissionMode, model/effort; 6 mutations + stem mismatch must each be detected) and test_reviewer_agent_references_resolve_to_migrated_files (schema / script / reference files named by the agent and reference exist).",
+    "deadline_contract_note": "Issue #15 lists 'deadline-exceeded late-result rejection'. The source semantic_review_transport / join_review_results / trigger contain no deadline concept (no 'deadline' in any of the three scripts or their tests); the deadline logic belongs to reviewer_transport (Stage 1b-3a, already migrated and tested). The semantic lane's late/stale guards are completed_at <= pinned_at (foreground_not_verified) and result mtime < pinned_at (stale_result_reused); both are tested end to end. No deadline was invented here (verbatim migration, no new gate).",
+    "closure_extractors": "the evaluator tests (288 of them) call two pure stream-json parsers of the source's 11k-line scripts/agent-ops/run_worktree_agent_runtime_smoke.py (live claude / herdr launch runner = Stage 3). Only extract_claude_permission_denials, extract_claude_hook_lifecycle_events and their two private helpers + one constant were extracted into scripts/agent-ops/claude_stream_extractors.py (no process launch, no filesystem, no network). The runner itself is NOT migrated. The input wire contract is the native Claude Code one (hooks reference, common input fields): the hook payload and outer stream event are read via `session_id` (outer also `sessionId`); `session_ref`/`sessionRef` inputs are only a lower-priority compatibility fallback. Only the normalised OUTPUT field is named `session_ref`.",
+    "stage_boundaries": "issue-reviewer (legacy) is Out of Scope of Parent #5; issue-editor / issue-creator and every GitHub mutation are Stage 2; claude_live smoke and the runner are Stage 3; nothing of Stage 2 / I-4 / Stage 3 / Issue #27 is implemented.",
+    "deadline_contract_status": "RESOLVED by explicit human limited approval dated 2026-10-24 (Issue #15 / PR #28 only): the semantic-review own deadline-exceeded late-result rejection is excluded from this migration's required conditions because the source has none. completed_at<=pinned_at / mtime / body-SHA remain staleness guards and are NOT evidence of deadline rejection; no deadline was implemented and no TTL/deadline gate was added. Stage 1b-3a reviewer_transport deadline handling is separate. Not a general AC relaxation.",
+    "extractor_authority_note": "scripts/agent-ops/claude_stream_extractors.py is ratified for Issue #15 / PR #28 only by explicit human limited approval dated 2026-10-24 (pure stream-json parser needed by the Stage 1b-4 evaluator test closure; native hook key session_id kept; Stage 3 live runner NOT migrated; Ruff exclusions not widened; Parent #5 general Allowed Paths unchanged)."
+  },
+  "intentional_diffs": [
+    "join_review_results.py: findings are validated (list of dicts with severity in blocker/high/medium/low) and enum inputs are type-checked; malformed findings / unhashable enums are treated as a transport failure instead of approving (unknown severity) or raising (reviewer B M1/M2). Valid blocker/high findings still win. One of two deviations from verbatim in the three scripts (the other is below). retry_already_attempted must be a real bool (TypeError otherwise; the CLI no longer applies bool()). Only None is normalised to an empty list; every other non-list value, including falsy {} / '' / 0 / False / (), is malformed input and fails closed (Defect A, PR #28 re-review).",
+    "semantic_review_transport.py: record_result no longer normalises raw findings with `or []`; a non-list or missing raw `findings` (including {} / false / 0 / \"\" / null) is rejected via the existing invalid_findings_shape path and no artifact is persisted. A valid empty list is still accepted. Second (and last) deviation from verbatim in the three scripts. No new schema or gate.",
+    "schemas/semantic_review_result_v1.schema.json: $id https://<legacy-domain>.internal/... -> urn:agent-platform:schemas:semantic_review_result_v1 (public hygiene; nothing resolves the schema by $id, it is loaded by path via parents[4])",
+    ".claude/agents/issue-design-reviewer.md: persona sentence 'LOOP_PROTOCOL' -> 'agent-platform'",
+    "scripts/agent-ops/claude_stream_extractors.py: NEW extraction of two pure parsers. Input wire keys stay native (session_id / sessionId, per the official hooks reference); session_ref / sessionRef inputs are a lower-priority compat fallback; the normalised OUTPUT field is named session_ref (public hygiene, same rename as reviewer_transport in 1b-3a). New helper _first_nonempty_str + _SESSION_INPUT_KEYS only (Defect B, PR #28 re-review)",
+    "tests/issue2963_reachability_runtime_evaluator.py: _RUNNER_PATH points at claude_stream_extractors.py instead of the Stage 3 runner (loader name load_runner_module kept so the 2973 evaluator's reuse assertions still hold)",
+    "tests: synthetic stream-json events and embedded hook payloads carry the native session key (assembled as 'session' + '_id' so the literal never appears in a tracked file) in test_issue_design_reviewer_{reachability,bounded_discovery}_evaluator.py",
+    "tests: synthetic absolute home path literals split ('/ho' 'me/someone') in the two evaluator sanitisation tests",
+    "test_semantic_review_{bounded_discovery,consumer_reachability}_contract.py: the *_runtime_smoke.py entries are removed from _OWN_FILES (those files are not migrated)",
+    "test_semantic_review_consumer_reachability_contract.py: the cross-check against tests/fixtures/agent-config/agent_permission_baseline.json is removed (central multi-agent baseline is not migrated); the same tools / disallowedTools / permissionMode / model / effort are still asserted literally just above it",
+    "test_semantic_review_bounded_discovery_contract.py: test_reviewer_frontmatter_unchanged_from_origin_main -> two non-vacuous tests (see decisions.frontmatter_test); unused subprocess import dropped, yaml import added",
+    "test_semantic_review_stage1b4_closure.py: NEW (39 tests): real pin -> record -> join wiring with positive / tampered controls, python -I import, jsonschema validation of the schema, parents[4] layout-shift negatives, falsy-findings CLI negatives, native hook wire (session_id input -> session_ref output) tests",
+    "docs/dev/stage1a-core-manifest.json: 7 files removed from not_migrated_source_tests (count 110 -> 103) and this manifest added to later_stage_test_manifests",
+    "test_join_review_results.py: +10 tests (8 falsy non-list findings negatives, 2 None/[] positive controls) and +10 tests in test_cli_retry_flag_must_be_bool (retry_already_attempted accepts only JSON bool: false->retry, true->approve+semantic_review_unavailable; 8 non-bool values raise TypeError, never approve)",
+    "pyproject.toml: no Ruff exclusion for scripts/agent-ops/claude_stream_extractors.py (it is formatted and lint-clean; existing exclusions are not widened)"
+  ],
+  "not_adopted_source_tests": [
+    {
+      "file": "test_issue_design_reviewer_bounded_discovery_runtime_smoke.py",
+      "owner_stage": "Stage 3 (claude_live, needs the live runner)",
+      "reason": "claude_live smoke is Out of Scope of #15; its non-live tests also call the unmigrated runner"
+    },
+    {
+      "file": "test_issue_design_reviewer_reachability_runtime_smoke.py",
+      "owner_stage": "Stage 3 (claude_live, needs the live runner)",
+      "reason": "same as above"
+    }
+  ],
+  "dangling_refs": {
+    "scripts/agent-ops/run_worktree_agent_runtime_smoke.py": "Stage 3: live claude/herdr runner; only its two pure extractors are migrated (claude_stream_extractors.py). When the runner lands, re-export them (output field naming session_ref vs the source's session-id field must be reconciled then).",
+    "tests/fixtures/agent-config/agent_permission_baseline.json": "owner: whichever stage migrates the central agent-permission baseline (covers every Agent incl. Stage 2/3 ones); not needed by the semantic lane",
+    "issue-editor / issue-creator": "Stage 2 (GitHub mutation); referenced as text only (e.g. references/semantic-design-review.md names .claude/agents/issue-editor.md), never executed; allowlisted in test_reviewer_agent_references_resolve_to_migrated_files and the test fails once the file lands so the allowlist cannot go stale. The semantic reviewer's range is unchanged"
+  },
+  "part": "Stage 1b-4 (Closes #15; Parent #5): semantic review consumer (pin -> record -> join), issue-design-reviewer Agent, schema and evaluator tests, on top of Stage 1b-3 (docs/dev/stage1b3a-producer-transport-manifest.json, stage1b3b-pipeline-tests-manifest.json)."
+}
