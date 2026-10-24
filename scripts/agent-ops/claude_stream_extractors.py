@@ -1,6 +1,6 @@
 """Pure stream-json extractors used by the issue-design-reviewer runtime evaluators.
 
-Verbatim extraction (see docs/dev/stage1b4-semantic-review-manifest.json) of the two read-only
+Extraction, verbatim except for the `session_ref` rename below (see docs/dev/stage1b4-semantic-review-manifest.json) of the two read-only
 parsers the evaluators call from the source repository's `run_worktree_agent_runtime_smoke.py`
 runner, plus the two private helpers and one constant they need. Nothing here launches a process,
 touches the network or reads the filesystem: it only parses an already-captured stdout string.

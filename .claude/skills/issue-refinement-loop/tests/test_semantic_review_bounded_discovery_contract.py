@@ -729,6 +729,8 @@ _AGENT_FRONTMATTER_KEYS = {"name", "description", "tools", "disallowedTools", "m
 _AGENT_TOOLS = ["Bash", "Read", "Grep", "Glob"]
 _AGENT_DISALLOWED_TOOLS = ["Edit", "Write", "MultiEdit", "Agent", "Skill"]
 _SKILL_DIR = _REPO_ROOT / ".claude/skills/issue-refinement-loop"
+# 参照のみ・実行しない dangling (owner_stage: Stage 2 = GitHub mutation Agent)。manifest dangling_refs と対応。
+_STAGE2_DANGLING_REFS = {".claude/agents/issue-editor.md"}
 
 
 def _agent_contract_violations(text: str, *, file_stem: str) -> list[str]:
@@ -794,12 +796,16 @@ def test_reviewer_agent_references_resolve_to_migrated_files() -> None:
     for text in (agent_text, reference_text):
         for schema in set(re.findall(r"schemas/[A-Za-z0-9_.-]+\.json", text)):
             assert (_REPO_ROOT / schema).is_file(), f"dangling schema reference: {schema}"
-    for script in set(re.findall(r"\b([a-z_]+\.py)\b", agent_text)) & {
-        "semantic_review_transport.py",
-        "semantic_review_trigger.py",
-        "join_review_results.py",
-    }:
-        assert (_SKILL_DIR / "scripts" / script).is_file(), f"dangling script reference: {script}"
+    # 名指された script 名 (*.py) と .claude/ 配下 path は全て実在しなければならない (typo も検出する)。
+    skill_scripts = {path.name for path in (_SKILL_DIR / "scripts").glob("*.py")}
+    for script in set(re.findall(r"\b(semantic_review_[a-z_]+\.py|join_review_results\.py)\b", agent_text)):
+        assert script in skill_scripts, f"dangling script reference: {script}"
+    for text in (agent_text, reference_text):
+        for rel in set(re.findall(r"\.claude/[A-Za-z0-9_./-]*[A-Za-z0-9_]\.(?:py|md|json)", text)):
+            if rel in _STAGE2_DANGLING_REFS:
+                assert not (_REPO_ROOT / rel).exists(), f"{rel} landed: drop it from the allowlist"
+                continue
+            assert (_REPO_ROOT / rel).is_file(), f"dangling path reference: {rel}"
     assert "semantic_review_transport.py" in agent_text and "semantic-design-review.md" in agent_text
     assert (_SKILL_DIR / "references/semantic-design-review.md").is_file()
     # reference は同じ Agent 名を起動対象として名指し、Agent 定義 file を正本として参照する。

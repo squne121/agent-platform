@@ -305,3 +305,47 @@ def test_layout_shift_fails_closed_instead_of_skipping_schema_validation(tmp_pat
     outcome = _pin_and_record(module, tmp_path)
     assert outcome["transport_status"] == "error"
     assert outcome["reason_code"].startswith("schema_validation_failed")
+
+
+@pytest.mark.parametrize(
+    "findings",
+    [
+        [{"severity": "critical", "summary": "x"}],
+        [{"severity": "BLOCKER", "summary": "x"}],
+        [{"summary": "no severity"}],
+        ["not-a-dict"],
+        "blocker",
+        {"severity": "high"},
+    ],
+    ids=["unknown", "wrong-case", "missing", "non-dict", "string", "mapping"],
+)
+def test_malformed_findings_reaching_the_joiner_are_a_transport_failure_not_approve(findings):
+    joined = JOINER.join_review_results(
+        deterministic_verdict="approve",
+        semantic_assessment="findings",
+        transport_status="ok",
+        findings=findings,
+        transport_policy="required",
+    )
+    assert joined["effective_verdict"] == "human_judgment_required"
+
+
+def test_unhashable_enum_inputs_do_not_crash_the_joiner():
+    joined = JOINER.join_review_results(
+        deterministic_verdict="approve",
+        semantic_assessment=["x"],
+        transport_status={"a": 1},
+        transport_policy="required",
+    )
+    assert joined["effective_verdict"] == "human_judgment_required"
+
+
+def test_valid_blocker_still_wins_next_to_a_malformed_entry():
+    joined = JOINER.join_review_results(
+        deterministic_verdict="approve",
+        semantic_assessment="findings",
+        transport_status="ok",
+        findings=[{"severity": "blocker", "summary": "real"}, "junk"],
+        transport_policy="required",
+    )
+    assert joined["effective_verdict"] == "needs-fix"

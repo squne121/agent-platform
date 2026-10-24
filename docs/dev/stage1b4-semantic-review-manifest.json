@@ -64,7 +64,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 21,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
-    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 21,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 29,
     ".claude/skills/issue-refinement-loop/tests/test_join_review_results.py": 22,
     ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_bounded_discovery_evaluator.py": 239,
     ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_reachability_evaluator.py": 49
@@ -74,7 +74,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 21,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
-    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 21,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 29,
     ".claude/skills/issue-refinement-loop/tests/test_join_review_results.py": 22,
     ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_bounded_discovery_evaluator.py": 239,
     ".claude/skills/issue-refinement-loop/tests/test_issue_design_reviewer_reachability_evaluator.py": 49
@@ -91,6 +91,7 @@
     "stage_boundaries": "issue-reviewer (legacy) is Out of Scope of Parent #5; issue-editor / issue-creator and every GitHub mutation are Stage 2; claude_live smoke and the runner are Stage 3; nothing of Stage 2 / I-4 / Stage 3 / Issue #27 is implemented."
   },
   "intentional_diffs": [
+    "join_review_results.py: findings are validated (list of dicts with severity in blocker/high/medium/low) and enum inputs are type-checked; malformed findings / unhashable enums are treated as a transport failure instead of approving (unknown severity) or raising (reviewer B M1/M2). Valid blocker/high findings still win. Only deviation from verbatim in the three scripts.",
     "schemas/semantic_review_result_v1.schema.json: $id https://<legacy-domain>.internal/... -> urn:agent-platform:schemas:semantic_review_result_v1 (public hygiene; nothing resolves the schema by $id, it is loaded by path via parents[4])",
     ".claude/agents/issue-design-reviewer.md: persona sentence 'LOOP_PROTOCOL' -> 'agent-platform'",
     "scripts/agent-ops/claude_stream_extractors.py: NEW, verbatim extraction (see decisions.closure_extractors); stream-json wire key session_id/sessionId spelled session_ref/sessionRef (public hygiene, same rename as reviewer_transport in 1b-3a)",
@@ -100,7 +101,8 @@
     "test_semantic_review_{bounded_discovery,consumer_reachability}_contract.py: the *_runtime_smoke.py entries are removed from _OWN_FILES (those files are not migrated)",
     "test_semantic_review_consumer_reachability_contract.py: the cross-check against tests/fixtures/agent-config/agent_permission_baseline.json is removed (central multi-agent baseline is not migrated); the same tools / disallowedTools / permissionMode / model / effort are still asserted literally just above it",
     "test_semantic_review_bounded_discovery_contract.py: test_reviewer_frontmatter_unchanged_from_origin_main -> two non-vacuous tests (see decisions.frontmatter_test); unused subprocess import dropped, yaml import added",
-    "test_semantic_review_stage1b4_closure.py: NEW (21 tests): real pin -> record -> join wiring with positive / tampered controls, python -I import, jsonschema validation of the schema, parents[4] layout-shift negatives"
+    "test_semantic_review_stage1b4_closure.py: NEW (29 tests): real pin -> record -> join wiring with positive / tampered controls, python -I import, jsonschema validation of the schema, parents[4] layout-shift negatives",
+    "docs/dev/stage1a-core-manifest.json: 7 files removed from not_migrated_source_tests (count 110 -> 103) and this manifest added to later_stage_test_manifests"
   ],
   "not_adopted_source_tests": [
     {
@@ -117,7 +119,7 @@
   "dangling_refs": {
     "scripts/agent-ops/run_worktree_agent_runtime_smoke.py": "Stage 3: live claude/herdr runner; only its two pure extractors are migrated (claude_stream_extractors.py). When the runner lands, re-export them and restore the session_id wire key.",
     "tests/fixtures/agent-config/agent_permission_baseline.json": "owner: whichever stage migrates the central agent-permission baseline (covers every Agent incl. Stage 2/3 ones); not needed by the semantic lane",
-    "issue-editor / issue-creator": "Stage 2 (GitHub mutation); the semantic reviewer's range is unchanged"
+    "issue-editor / issue-creator": "Stage 2 (GitHub mutation); referenced as text only (e.g. references/semantic-design-review.md names .claude/agents/issue-editor.md), never executed; allowlisted in test_reviewer_agent_references_resolve_to_migrated_files and the test fails once the file lands so the allowlist cannot go stale. The semantic reviewer's range is unchanged"
   },
   "part": "Stage 1b-4 (Closes #15; Parent #5): semantic review consumer (pin -> record -> join), issue-design-reviewer Agent, schema and evaluator tests, on top of Stage 1b-3 (docs/dev/stage1b3a-producer-transport-manifest.json, stage1b3b-pipeline-tests-manifest.json)."
 }

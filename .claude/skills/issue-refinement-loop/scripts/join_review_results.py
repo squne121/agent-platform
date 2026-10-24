@@ -101,6 +101,8 @@ DEFAULT_NO_PROGRESS_ROUTE = "human_judgment_required"
 
 SEMANTIC_REVIEW_UNAVAILABLE_WARNING = "SEMANTIC_REVIEW_UNAVAILABLE"
 
+_VALID_FINDING_SEVERITIES = ("blocker", "high", "medium", "low")
+
 
 def _valid_owner_disposition(disposition: Any) -> bool:
     """P1-1: only a fully-formed, owner-authored disposition neutralizes a
@@ -203,14 +205,31 @@ def join_review_results(
     # (2) unknown/invalid enum values are never silently treated as ok/clear
     # -- normalize them to the same fail-closed "known transport failure"
     # handling as an explicit missing/stale/error transport_status.
-    assessment_invalid = semantic_assessment not in _VALID_SEMANTIC_ASSESSMENTS
-    transport_status_invalid = transport_status not in _VALID_TRANSPORT_STATUSES
+    assessment_invalid = (
+        not isinstance(semantic_assessment, str)
+        or semantic_assessment not in _VALID_SEMANTIC_ASSESSMENTS
+    )
+    transport_status_invalid = (
+        not isinstance(transport_status, str) or transport_status not in _VALID_TRANSPORT_STATUSES
+    )
+    # Stage 1b-4: a findings list that is not a list of dicts with a known severity must not be
+    # approved as "non-blocking" (unknown severity) nor crash the joiner; keep the well-formed
+    # entries (a valid blocker still wins below) and treat the rest as a transport failure.
+    findings_invalid = not isinstance(findings, list)
+    if findings_invalid:
+        findings = []
+    else:
+        well_formed = [
+            f for f in findings if isinstance(f, dict) and f.get("severity") in _VALID_FINDING_SEVERITIES
+        ]
+        findings_invalid = len(well_formed) != len(findings)
+        findings = well_formed
     effective_transport_status = transport_status
-    if assessment_invalid or transport_status_invalid:
+    if assessment_invalid or transport_status_invalid or findings_invalid:
         warnings.append(
-            f"invalid semantic_assessment={semantic_assessment!r} or "
-            f"transport_status={transport_status!r}: treated as a transport "
-            "failure (fail-closed)"
+            f"invalid semantic_assessment={semantic_assessment!r}, "
+            f"transport_status={transport_status!r} or findings shape/severity: treated as a "
+            "transport failure (fail-closed)"
         )
         effective_transport_status = "error"
 
