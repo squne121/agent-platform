@@ -1,14 +1,18 @@
 """Pure stream-json extractors used by the issue-design-reviewer runtime evaluators.
 
-Extraction, verbatim except for the `session_ref` rename below (see docs/dev/stage1b4-semantic-review-manifest.json) of the two read-only
+Extraction, verbatim except for the `session_ref` output rename below (see docs/dev/stage1b4-semantic-review-manifest.json) of the two read-only
 parsers the evaluators call from the source repository's `run_worktree_agent_runtime_smoke.py`
 runner, plus the two private helpers and one constant they need. Nothing here launches a process,
 touches the network or reads the filesystem: it only parses an already-captured stdout string.
 
 The full runner (live `claude` / herdr launch lane, ~11k lines) is NOT migrated; it is Stage 3
 (owner_stage in the manifest). When that runner lands, these functions should be re-exported from
-it. One intentional deviation from the source: the stream-json wire key `session_id` / `sessionId` is spelled
-`session_ref` / `sessionRef` (public hygiene, same rename as reviewer_transport in Stage 1b-3a).
+it. One intentional deviation from the source, on the OUTPUT side only: the normalised per-event
+field is named `session_ref` (public hygiene, same rename as reviewer_transport in Stage 1b-3a).
+The INPUT wire contract is the native Claude Code one: the hook payload and the outer stream-json
+event carry the session under the `session_id` key (outer also `sessionId`), per the official hooks
+reference (common input fields). `session_ref` / `sessionRef` input keys are accepted only as a
+compatibility fallback, after the native keys.
 """
 
 from __future__ import annotations
@@ -16,6 +20,18 @@ from __future__ import annotations
 import json
 
 _CLAUDE_HOOK_LIFECYCLE_EVENTS = ("SubagentStart", "SubagentStop")
+# Native wire key first (hook stdin payload: ``session_id``; outer stream event: also ``sessionId``),
+# then the compatibility spellings.
+_SESSION_INPUT_KEYS = ("session_id", "sessionId", "session_ref", "sessionRef")
+
+
+def _first_nonempty_str(mapping: dict, keys: tuple[str, ...]) -> str | None:
+    """First non-empty string value among ``keys`` (in priority order), else ``None``."""
+    for key in keys:
+        value = mapping.get(key)
+        if isinstance(value, str) and value:
+            return value
+    return None
 
 
 def _iter_claude_stream_events(stdout: str):
@@ -96,10 +112,11 @@ def extract_claude_hook_lifecycle_events(stdout: str) -> list[dict]:
 
     ``session_ref`` / ``prompt_id`` (Issue #2183 PR #2220 P0-3 fix-delta):
     recovered, in priority order, from the embedded hook stdin payload's own
-    ``session_ref``/``prompt_id`` fields (the official per-invocation hook
-    payload channel), falling back to the OUTER native stream-json event's
-    own top-level ``session_ref``/``sessionRef`` field when the embedded
-    payload does not carry one. ``None`` when neither source has a value --
+    native session key and ``prompt_id`` fields (the official per-invocation
+    hook payload channel), falling back to the OUTER native stream-json
+    event's own top-level session key when the embedded payload does not
+    carry one (input keys: see ``_SESSION_INPUT_KEYS``; the output field is
+    always named ``session_ref``). ``None`` when neither source has a value --
     never guessed.
 
     ``agent_transcript_path`` (Issue #2183 AC1/AC2 causal evidence): the
@@ -145,9 +162,7 @@ def extract_claude_hook_lifecycle_events(stdout: str) -> list[dict]:
             "stop_hook_active": None,
             "contradictory": False,
         }
-        outer_session_ref = payload.get("session_ref")
-        if not isinstance(outer_session_ref, str) or not outer_session_ref:
-            outer_session_ref = payload.get("sessionRef")
+        outer_session_ref = _first_nonempty_str(payload, _SESSION_INPUT_KEYS)
 
         hook_name_agent_type: str | None = None
         hook_name = payload.get("hook_name")
@@ -201,12 +216,8 @@ def extract_claude_hook_lifecycle_events(stdout: str) -> list[dict]:
                     and entry["last_assistant_message"] is None
                 ):
                     entry["last_assistant_message"] = last_assistant_message
-                embedded_session_ref = parsed.get("session_ref")
-                if (
-                    isinstance(embedded_session_ref, str)
-                    and embedded_session_ref
-                    and entry["session_ref"] is None
-                ):
+                embedded_session_ref = _first_nonempty_str(parsed, _SESSION_INPUT_KEYS)
+                if embedded_session_ref is not None and entry["session_ref"] is None:
                     entry["session_ref"] = embedded_session_ref
                 prompt_id = parsed.get("prompt_id")
                 if isinstance(prompt_id, str) and prompt_id and entry["prompt_id"] is None:

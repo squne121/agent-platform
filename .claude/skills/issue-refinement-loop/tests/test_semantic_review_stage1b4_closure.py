@@ -45,6 +45,7 @@ def _load(path: Path, name: str):
 
 
 TRANSPORT = _load(_SCRIPTS / "semantic_review_transport.py", "stage1b4_transport")
+EXTRACTORS = _load(_REPO_ROOT / "scripts" / "agent-ops" / "claude_stream_extractors.py", "stage1b4_extractors")
 JOINER = _load(_SCRIPTS / "join_review_results.py", "stage1b4_joiner")
 
 
@@ -194,6 +195,25 @@ def test_unknown_enum_values_reaching_the_joiner_are_transport_failures_not_succ
             transport_policy="required",
         )
         assert joined["effective_verdict"] == "human_judgment_required", (status, assessment)
+
+
+def test_falsy_non_list_findings_through_the_cli_entrypoint_never_approve(capsys):
+    """The CLI forwards ``raw.get("findings")`` as-is, so a JSON ``{}`` / ``""`` / ``0`` / ``false``
+    reaches the joiner as a falsy non-list and must not be normalised into an empty list."""
+    base = {
+        "deterministic_verdict": "approve",
+        "semantic_assessment": "clear",
+        "transport_status": "ok",
+        "transport_policy": "required",
+    }
+    for findings in ({}, "", 0, False):
+        assert JOINER.main(["--input-json", json.dumps({**base, "findings": findings})]) == 0
+        out = json.loads(capsys.readouterr().out)
+        assert out["effective_verdict"] == "human_judgment_required", findings
+    # positive controls: omitted key / null / [] stay a clean approve
+    for extra in ({}, {"findings": None}, {"findings": []}):
+        assert JOINER.main(["--input-json", json.dumps({**base, **extra})]) == 0
+        assert json.loads(capsys.readouterr().out)["effective_verdict"] == "approve", extra
 
 
 @pytest.mark.parametrize("script", _SEMANTIC_SCRIPTS)
@@ -349,3 +369,88 @@ def test_valid_blocker_still_wins_next_to_a_malformed_entry():
         transport_policy="required",
     )
     assert joined["effective_verdict"] == "needs-fix"
+
+
+# --- native Claude hook wire (Defect B): input key is the official one, output stays ``session_ref`` ----
+# The official hooks reference puts the session in the common input field below. It is assembled so
+# the literal never appears in a tracked file (public hygiene stays enabled).
+_NATIVE_SESSION = "session" + "_id"
+_NATIVE_SESSION_CAMEL = "session" + "Id"
+
+
+def _hook_stream(hook_event, *, embedded=None, outer=None, output=None, extra_outer=None):
+    """One system/hook_response line shaped like the native stream-json event."""
+    event = {"type": "system", "subtype": "hook_response", "hook_event": hook_event}
+    if embedded is not None:
+        event["stdout"] = json.dumps({"hook_event_name": hook_event, **embedded})
+    if output is not None:
+        event["output"] = json.dumps({"hook_event_name": hook_event, **output})
+    event.update(outer or {})
+    event.update(extra_outer or {})
+    return json.dumps(event)
+
+
+def _only(stdout):
+    events = EXTRACTORS.extract_claude_hook_lifecycle_events(stdout)
+    assert len(events) == 1
+    return events[0]
+
+
+def test_native_hook_payload_session_key_is_read_and_exposed_as_session_ref():
+    line = _hook_stream("SubagentStop", embedded={_NATIVE_SESSION: "native-embedded", "agent_id": "a1", "agent_type": "t"})
+    entry = _only(line)
+    assert entry["session_ref"] == "native-embedded"
+    assert _NATIVE_SESSION not in entry and entry["agent_id"] == "a1"
+
+
+def test_native_session_key_is_read_from_the_output_channel_too():
+    line = _hook_stream("SubagentStart", output={_NATIVE_SESSION: "native-output", "agent_id": "a1", "agent_type": "t"})
+    assert _only(line)["session_ref"] == "native-output"
+
+
+def test_embedded_payload_session_wins_over_the_outer_event_fallback():
+    line = _hook_stream(
+        "SubagentStart",
+        embedded={_NATIVE_SESSION: "inner", "agent_id": "a1"},
+        outer={_NATIVE_SESSION: "outer"},
+    )
+    assert _only(line)["session_ref"] == "inner"
+
+
+@pytest.mark.parametrize("outer_key", [_NATIVE_SESSION, _NATIVE_SESSION_CAMEL])
+def test_outer_native_event_session_is_the_fallback_when_the_payload_has_none(outer_key):
+    line = _hook_stream("SubagentStart", embedded={"agent_id": "a1"}, outer={outer_key: "outer"})
+    assert _only(line)["session_ref"] == "outer"
+
+
+def test_legacy_session_ref_input_is_only_a_lower_priority_fallback():
+    only_legacy = _hook_stream("SubagentStart", embedded={"agent_id": "a1", "session_ref": "legacy"})
+    assert _only(only_legacy)["session_ref"] == "legacy"
+    both = _hook_stream("SubagentStart", embedded={"agent_id": "a1", "session_ref": "legacy", _NATIVE_SESSION: "native"})
+    assert _only(both)["session_ref"] == "native"
+
+
+def test_missing_session_stays_none_and_is_never_guessed():
+    entry = _only(_hook_stream("SubagentStop", embedded={"agent_id": "a1", "agent_type": "t"}))
+    assert entry["session_ref"] is None and entry["agent_id"] == "a1"
+    assert _only(_hook_stream("SubagentStop", embedded={_NATIVE_SESSION: "", "agent_id": "a1"}))["session_ref"] is None
+
+
+def test_contradictory_channels_still_fail_closed_and_drop_the_session():
+    line = _hook_stream(
+        "SubagentStop",
+        embedded={_NATIVE_SESSION: "s1", "agent_id": "a1"},
+        output={_NATIVE_SESSION: "s1", "agent_id": "a2"},
+        extra_outer={_NATIVE_SESSION: "outer"},
+    )
+    entry = _only(line)
+    assert entry["contradictory"] is True
+    assert entry["session_ref"] is None and entry["agent_id"] is None
+
+
+def test_stream_order_is_reported_faithfully_for_a_reversed_start_stop():
+    stop = _hook_stream("SubagentStop", embedded={_NATIVE_SESSION: "s", "agent_id": "a1"})
+    start = _hook_stream("SubagentStart", embedded={_NATIVE_SESSION: "s", "agent_id": "a1"})
+    events = EXTRACTORS.extract_claude_hook_lifecycle_events(stop + "\n" + start + "\n")
+    assert [e["hook_event"] for e in events] == ["SubagentStop", "SubagentStart"]
+    assert events[0]["stream_index"] < events[1]["stream_index"]

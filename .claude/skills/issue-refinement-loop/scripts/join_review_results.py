@@ -184,7 +184,10 @@ def join_review_results(
     source_artifact: "str | None" = None,
     checked_body_sha256: "str | None" = None,
 ) -> "dict[str, Any]":
-    findings = findings or []
+    # Only an omitted (None) findings is an empty list; any other non-list value (including falsy
+    # {} / "" / 0 / False / ()) is malformed and is caught by the shape check below.
+    if findings is None:
+        findings = []
     warnings: "list[str]" = []
 
     if transport_policy not in _VALID_TRANSPORT_POLICIES:

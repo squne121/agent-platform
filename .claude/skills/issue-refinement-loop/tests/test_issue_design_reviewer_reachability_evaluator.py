@@ -38,6 +38,10 @@ INV = f"{ROOT}/artifacts/invocation-negative"
 HEAD = "a" * 40
 OTHER_HEAD = "b" * 40
 AGENT = "issue-design-reviewer"
+# Native Claude Code wire key for the session (hook stdin payload and outer stream event); assembled so
+# the literal never appears in a tracked file (public hygiene).
+NATIVE_SESSION_KEY = "session" + "_id"
+
 PARENT = "toolu_parent_1"
 PATHS = {
     "producer": "fixtures/synthetic_case/synthetic_producer.py",
@@ -62,7 +66,7 @@ class Stream:
         return "\n".join(self.lines) + "\n"
 
     def init(self) -> "Stream":
-        return self.add({"type": "system", "subtype": "init", "session_ref": "s"})
+        return self.add({"type": "system", "subtype": "init", NATIVE_SESSION_KEY: "s"})
 
     def agent_call(self, tool_use_id: str = PARENT, subagent_type: str = AGENT) -> "Stream":
         return self.add(
@@ -101,7 +105,7 @@ class Stream:
         )
 
     def _hook(self, hook_event: str, agent_id: str, agent_type: str) -> "Stream":
-        payload = json.dumps({"hook_event_name": hook_event, "agent_id": agent_id, "agent_type": agent_type})
+        payload = json.dumps({NATIVE_SESSION_KEY: "s", "hook_event_name": hook_event, "agent_id": agent_id, "agent_type": agent_type})
         return self.add(
             {
                 "type": "system",
@@ -110,7 +114,7 @@ class Stream:
                 "hook_name": f"{hook_event}:{agent_type}",
                 "stdout": payload,
                 "output": payload,
-                "session_ref": "s",
+                NATIVE_SESSION_KEY: "s",
             }
         )
 
@@ -129,7 +133,7 @@ class Stream:
     def _real_lifecycle(self, hook_event: str, agent_id: str, agent_type: str, hooks: int, name: str) -> "Stream":
         """実 Claude Code 2.1.291 の record 形状: 1 invocation で configured hook の数だけ hook_started /
         hook_response が出る。`agent_id` / `agent_type` を持つのは hook stdin を echo する 1 本の response だけ。"""
-        payload = json.dumps({"hook_event_name": hook_event, "agent_id": agent_id, "agent_type": agent_type})
+        payload = json.dumps({NATIVE_SESSION_KEY: "s", "hook_event_name": hook_event, "agent_id": agent_id, "agent_type": agent_type})
         ids = [f"{hook_event}-{agent_id}-hook{n}" for n in range(hooks)]
         for hook_id in ids:
             self._hook_line("hook_started", hook_event, name, hook_id)

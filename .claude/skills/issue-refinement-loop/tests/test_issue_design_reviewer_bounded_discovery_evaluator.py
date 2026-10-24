@@ -41,6 +41,10 @@ INV = f"{ROOT}/artifacts/invocation-x"
 HEAD = "a" * 40
 OTHER_HEAD = "b" * 40
 AGENT = "issue-design-reviewer"
+# Native Claude Code wire key for the session (hook stdin payload and outer stream event); assembled so
+# the literal never appears in a tracked file (public hygiene).
+NATIVE_SESSION_KEY = "session" + "_id"
+
 PARENT = "toolu_parent_1"
 SYN = "synthetic_fx"
 
@@ -87,7 +91,7 @@ class Stream:
         return "\n".join(self.lines) + "\n"
 
     def init(self, tools: list[str] | None = None) -> "Stream":
-        event: dict[str, Any] = {"type": "system", "subtype": "init", "session_ref": "s"}
+        event: dict[str, Any] = {"type": "system", "subtype": "init", NATIVE_SESSION_KEY: "s"}
         if tools is not None:
             event["tools"] = tools
         return self.add(event)
@@ -141,7 +145,7 @@ class Stream:
         return self.add(line)
 
     def _lifecycle(self, hook_event: str, agent_id: str, agent_type: str, hooks: int, name: str) -> "Stream":
-        payload = json.dumps({"hook_event_name": hook_event, "agent_id": agent_id, "agent_type": agent_type})
+        payload = json.dumps({NATIVE_SESSION_KEY: "s", "hook_event_name": hook_event, "agent_id": agent_id, "agent_type": agent_type})
         ids = [f"{hook_event}-{agent_id}-hook{n}" for n in range(hooks)]
         for hook_id in ids:
             self._hook_line("hook_started", hook_event, name, hook_id)

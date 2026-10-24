@@ -27,6 +27,8 @@ Covers the effective_verdict decision table:
 import sys
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import join_review_results as joiner  # noqa: E402
@@ -327,3 +329,51 @@ if __name__ == "__main__":
     import pytest
 
     pytest.main([__file__, "-v"])
+
+
+# Defect A (PR #28 adversarial re-review): ``findings or []`` ran before any type check, so every
+# falsy non-list value was silently an empty list and approved.
+_FALSY_NON_LIST_FINDINGS = [
+    pytest.param({}, id="empty-dict"),
+    pytest.param("", id="empty-str"),
+    pytest.param(0, id="zero"),
+    pytest.param(0.0, id="zero-float"),
+    pytest.param(False, id="false"),
+    pytest.param((), id="empty-tuple"),
+    pytest.param(b"", id="empty-bytes"),
+    pytest.param(set(), id="empty-set"),
+]
+
+
+def _approve_path(findings, **kwargs):
+    return joiner.join_review_results(
+        deterministic_verdict="approve",
+        semantic_assessment="clear",
+        transport_status="ok",
+        findings=findings,
+        **kwargs,
+    )
+
+
+@pytest.mark.parametrize("findings", _FALSY_NON_LIST_FINDINGS)
+def test_falsy_non_list_findings_are_malformed_never_an_empty_list(findings):
+    required = _approve_path(findings, transport_policy="required")
+    assert required["effective_verdict"] == "human_judgment_required"
+    assert any("findings shape/severity" in w for w in required["warnings"])
+
+    first = _approve_path(findings, transport_policy="best_effort")
+    assert first["effective_verdict"] == "retry"
+
+    retried = _approve_path(findings, transport_policy="best_effort", retry_already_attempted=True)
+    assert retried["effective_verdict"] == "approve"
+    assert retried["semantic_review_unavailable"] is True
+    assert any(joiner.SEMANTIC_REVIEW_UNAVAILABLE_WARNING in w for w in retried["warnings"])
+
+
+@pytest.mark.parametrize("findings", [None, []], ids=["omitted-none", "empty-list"])
+def test_none_and_empty_list_findings_remain_a_clean_approve(findings):
+    for policy in ("required", "best_effort"):
+        result = _approve_path(findings, transport_policy=policy)
+        assert result["effective_verdict"] == "approve"
+        assert result["warnings"] == []
+        assert result["semantic_review_unavailable"] is False
