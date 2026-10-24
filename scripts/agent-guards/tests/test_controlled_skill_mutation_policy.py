@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 Tests for controlled_skill_mutation_policy.py (Issue #1166).
 

@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """
 controlled_skill_mutation_policy.py
 

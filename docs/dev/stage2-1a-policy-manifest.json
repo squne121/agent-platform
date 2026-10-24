@@ -57,7 +57,7 @@
   },
   "intentional_diffs": [
     "controlled_skill_mutation_policy.py: TRUSTED_REPO = '<legacy slug>' -> load_trusted_repo_slug() from repo_identity (sys.path insert of the script directory, like skill_runtime_command_policy.py)",
-    "controlled_skill_mutation_policy.py: _validate_executor_argv tail 'if not issubset: return False / return True' -> 'return issubset(...)' (ruff SIM103; identical behaviour); file ruff-formatted",
+    "controlled_skill_mutation_policy.py: _validate_executor_argv tail 'if not issubset: return False / return True' -> 'return issubset(...)' (ruff SIM103; identical behaviour); file ruff-formatted; shebang line removed from the module and its test (ruff EXE001: modules are imported, never executed, and the files are not mode +x)",
     "test_controlled_skill_mutation_policy.py: 'TRUSTED_REPO == <legacy slug>' pin -> equals load_trusted_repo_slug(); every other slug literal -> TRUSTED_REPO / f-string (no functional slug left); noqa/import order and ruff format applied; collect count unchanged (102)",
     "tests/stage2/test_stage2_1a_policy_closure.py: NEW (18 tests): python -I import, identity binding, 9 fail-closed config negatives, registry binding, validator positive/negative controls, argv gate not widened, manifest honesty",
     "docs/dev/stage1a-core-manifest.json: import_closure.deferred_script_refs += the 3 refs above; later_stage_test_manifests += this manifest (so the 1a lane does not collect the new test file)",
