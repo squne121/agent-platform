@@ -42,7 +42,6 @@ SCRIPTS_DIR = ROOT / ".claude" / "skills" / "issue-refinement-loop" / "scripts"
 PIPELINE_SCRIPT = SCRIPTS_DIR / "run_root_review_pipeline.py"
 SKILL_MD = ROOT / ".claude" / "skills" / "issue-refinement-loop" / "SKILL.md"
 REVIEW_ISSUE_SKILL_MD = ROOT / ".claude" / "skills" / "review-issue" / "SKILL.md"
-ISSUE_REVIEWER_AGENT_MD = ROOT / ".claude" / "agents" / "issue-reviewer.md"
 COMMAND_REGISTRY_PY = SCRIPTS_DIR / "command_registry.py"
 
 if str(SCRIPTS_DIR) not in sys.path:
@@ -438,12 +437,6 @@ _LEGACY_RELAY_REGRESSION_PHRASES: dict[Path, list[str]] = {
         # AGENT's own self-reported VERDICT directly (as opposed to the
         # root-verified `compact_result.verdict` `produce` itself returns).
         "orchestratorは`issue-reviewer`のVERDICTを独立に再計算せず直接信頼する",
-    ],
-    ISSUE_REVIEWER_AGENT_MD: [
-        "issue-refinement-loop`のStep2loopworkerです",
-        "orchestratorから呼ばれ、結果を返して終了する",
-        "orchestratorは判定を再評価せず、機械的にroutingする",
-        "orchestratorは本SubAgentの`VERDICT`を独立に再計算せず直接信頼する",
     ],
     REVIEW_ISSUE_SKILL_MD: [
         "`invoked_as_loop:true`（`issue-reviewer`経由）",

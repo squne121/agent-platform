@@ -52,7 +52,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route.py": 8,
     ".claude/skills/issue-refinement-loop/tests/test_operator_intervention_route_scope_delta.py": 6,
     ".claude/skills/issue-refinement-loop/tests/test_review_budget_wiring.py": 3,
-    ".claude/skills/issue-refinement-loop/tests/test_root_review_canonical_delivery.py": 26,
+    ".claude/skills/issue-refinement-loop/tests/test_root_review_canonical_delivery.py": 25,
     ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_outer_timeout_budget.py": 6,
     ".claude/skills/issue-refinement-loop/tests/test_root_review_pipeline_readback_v2_ssot.py": 38,
     ".claude/skills/issue-refinement-loop/tests/test_root_review_timeout_diagnostics.py": 5,
@@ -87,12 +87,6 @@
       "owner_stage": "live-smoke (optional, post-merge)",
       "reason": "explicit opt-in (LOOP_CANARY_STEP2_LIVE_ENABLE=1) one-time live producer smoke against source-repo Issue 2584; skips by default. The file stays migrated because test_step2_canary_collection_contract runs it in real child pytest/xdist processes.",
       "rerun_condition": "LOOP_CANARY_STEP2_LIVE_ENABLE=1 with authenticated gh and a repository Issue; record as live evidence"
-    },
-    {
-      "id": ".claude/skills/issue-refinement-loop/tests/test_root_review_canonical_delivery.py::test_instruction_surfaces_no_longer_contain_legacy_relay_regression_phrases[issue-reviewer.md]",
-      "owner_stage": "stage_1b-4 (#15)",
-      "reason": ".claude/agents/issue-reviewer.md (issue-design-reviewer / reviewer Agent definition) is migrated by #15; the other parametrized surface cases run",
-      "rerun_condition": "#15 migrates .claude/agents/issue-reviewer.md"
     }
   ],
   "decisions": {
@@ -102,14 +96,13 @@
     "closure_judgement": "test_runtime_assertion_disposition_propagation and test_operator_intervention_route* were classified by running them against the migrated closure: all pass, none needs I-4 / Stage 2 code, so they are included. test_loop_handoff_contract.py (31 tests) needs root_entry_router symbols owned by I-4 and is excluded (see the 3a manifest)."
   },
   "intentional_diffs": [
-    "tests: legacy slug literals -> example-org/example-repo (opaque) or TRUSTED_REPO from tests/_trusted_repo.py (tests that drive the real produce path); ac1 / canary / canonical_delivery cases listed in deferred_tests",
+    "tests: legacy slug literals -> example-org/example-repo (opaque) or TRUSTED_REPO from tests/_trusted_repo.py (tests that drive the real produce path); ac1 / canary cases listed in deferred_tests",
     "tests/_trusted_repo.py: new helper (TRUSTED_REPO from repo_identity) for tests that drive the real produce path",
     "test_ac1_live_issue_no_environment_failure.py: session_id -> session_ref (follows reviewer_transport)",
-    "legacy PR URLs in comments/docstrings of test_operator_intervention_route_scope_delta, test_root_review_pipeline_readback_v2_ssot, test_issue_reviewer_contract_static -> plain 'source-repo PR #N comment M' text"
+    "legacy PR URLs in comments/docstrings of test_operator_intervention_route_scope_delta, test_root_review_pipeline_readback_v2_ssot, test_issue_reviewer_contract_static -> plain 'source-repo PR #N comment M' text",
+    "test_root_review_canonical_delivery.py: the legacy `.claude/agents/issue-reviewer.md` parametrized case (and its ISSUE_REVIEWER_AGENT_MD constant) is removed from test_instruction_surfaces_no_longer_contain_legacy_relay_regression_phrases. issue-reviewer (legacy) is Out of Scope of Parent #5 and is not migrated by #15 (#15 migrates issue-design-reviewer only); the remaining instruction-surface cases are kept"
   ],
   "not_adopted_source_tests": [],
-  "dangling_refs": {
-    ".claude/agents/issue-reviewer.md": "#15; one deferred parametrized case"
-  },
+  "dangling_refs": {},
   "part": "Stage 1b-3b (Closes #14): produce-path / canonical Step 2 / timeout-budget / xdist-canary tests on top of 1b-3a (docs/dev/stage1b3a-producer-transport-manifest.json)."
 }
