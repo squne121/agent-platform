@@ -200,12 +200,11 @@
     "tests/test_run_refinement_preflight_credentialless_transport.py:1279: synthetic home path literal split (same value at runtime)"
   ],
   "not_migrated_source_tests": {
-    "count": 123,
+    "count": 110,
     "owner_stage": "follows the stage that migrates the implementation each file covers; per-file triage happens at that stage's closure (not assigned individually here)",
     "source": "pre-split-agent-platform-20261020 issue-refinement-loop/tests and scripts/tests",
     "files": [
       "test_1035_provenance.py",
-      "test_ac1_live_issue_no_environment_failure.py",
       "test_anchor_comment_artifact_boundary.py",
       "test_anchor_comment_classification_aliases.py",
       "test_anchor_comment_multiple_urls.py",
@@ -219,7 +218,6 @@
       "test_anchor_scope_reframe_preflight.py",
       "test_anchor_scope_reframe_schema.py",
       "test_apply_triage_label_transition.py",
-      "test_canonical_step2_route_wiring.py",
       "test_check_vc_scope.py",
       "test_claude_gpt_stale_surface_migration.py",
       "test_codebase_investigator_actual_wrapper_fallback_smoke.py",
@@ -246,7 +244,6 @@
       "test_issue_execution_decision_schema_parity.py",
       "test_issue_execution_decision_semantic_validator.py",
       "test_issue_kind_design_unknown_regression.py",
-      "test_issue_reviewer_contract_static.py",
       "test_join_review_results.py",
       "test_loop_handoff_contract.py",
       "test_loop_handoff_schema_vocabulary.py",
@@ -254,8 +251,6 @@
       "test_main_drift_evidence_epoch.py",
       "test_native_session_continuation_canary.py",
       "test_native_session_continuation_canary_current_receipt.py",
-      "test_operator_intervention_route.py",
-      "test_operator_intervention_route_scope_delta.py",
       "test_operator_selected_scope_reframe.py",
       "test_owner_reaction_decide_dispatch.py",
       "test_owner_reaction_decide_failure_boundary.py",
@@ -282,16 +277,10 @@
       "test_repair_apply_unknown_outcome.py",
       "test_repair_diagnostics_routing.py",
       "test_retrospective_candidate_handoff.py",
-      "test_review_budget_wiring.py",
       "test_rewrite_router.py",
-      "test_root_review_canonical_delivery.py",
-      "test_root_review_pipeline_outer_timeout_budget.py",
-      "test_root_review_pipeline_readback_v2_ssot.py",
-      "test_root_review_timeout_diagnostics.py",
       "test_route_after_rewrite.py",
       "test_route_agy_advisory_fallback.py",
       "test_run_codebase_investigator_agy_advisory.py",
-      "test_runtime_assertion_disposition_propagation.py",
       "test_scope_delta_authority.py",
       "test_scope_delta_authority_artifact_integrity.py",
       "test_scope_delta_authority_cross_target.py",
@@ -310,8 +299,6 @@
       "test_semantic_review_trigger.py",
       "test_skill_md_wiring.py",
       "test_source_evidence_recovery.py",
-      "test_step2_canary_collection_contract.py",
-      "test_step2_execution_surface_canary.py",
       "test_step5_termination_no_auto_dispatch.py",
       "test_structural_repair_action_apply_consumer.py",
       "test_structural_repair_deadlock_arbitration.py",
@@ -400,10 +387,11 @@
     "note": "deferred test test_operator_intervention_not_triggered_by_no_path_marker re-enabled (89 collected / 89 ran); contract_readiness_check.py and check_issue_contract.py migrated, so their deferred_script_refs entries are removed and .claude/skills/review-issue/scripts joins the import-closure scan/closure dirs."
   },
   "later_stage_test_manifests": [
-    "docs/dev/stage1b3a-producer-transport-manifest.json"
+    "docs/dev/stage1b3a-producer-transport-manifest.json",
+    "docs/dev/stage1b3b-pipeline-tests-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",
-    "note": "Stage 1b-3a: run_root_review_pipeline / reviewer_transport / compact_review_result / compact_author_result / validate_review_compact_output migrated, so the reviewer_transport deferred import and the run_root_review_pipeline.py / validate_review_compact_output.py deferred script refs are removed (see docs/dev/stage1b3a-producer-transport-manifest.json). Their test files live in the same dirs as the 1a lane, so run_stage1a_tests.py ignores the files owned by `later_stage_test_manifests` (each is pinned and run by its own lane); the migrated names are removed from not_migrated_source_tests."
+    "note": "Stage 1b-3a: run_root_review_pipeline / reviewer_transport / compact_review_result / compact_author_result / validate_review_compact_output migrated, so the reviewer_transport deferred import and the run_root_review_pipeline.py / validate_review_compact_output.py deferred script refs are removed (see docs/dev/stage1b3a-producer-transport-manifest.json). Their test files live in the same dirs as the 1a lane, so run_stage1a_tests.py ignores the files owned by `later_stage_test_manifests` (each is pinned and run by its own lane); the migrated names are removed from not_migrated_source_tests. Stage 1b-3b (docs/dev/stage1b3b-pipeline-tests-manifest.json) adds the pipeline-path tests the same way."
   }
 }
