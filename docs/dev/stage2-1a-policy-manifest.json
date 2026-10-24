@@ -20,11 +20,11 @@
   ],
   "expected_collect": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py": 102,
-    "tests/stage2/test_stage2_1a_policy_closure.py": 18
+    "tests/stage2/test_stage2_1a_policy_closure.py": 37
   },
   "expected_ran": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py": 102,
-    "tests/stage2/test_stage2_1a_policy_closure.py": 18
+    "tests/stage2/test_stage2_1a_policy_closure.py": 37
   },
   "deferred_tests": [],
   "deferred_script_refs": [
@@ -53,13 +53,15 @@
     "repository_identity": "TRUSTED_REPO is load_trusted_repo_slug() (config/repository_identity.v1.json) evaluated at import. An unusable config or layout shift raises RepositoryIdentityError at import (9 negative cases in a replica layout under python -I), so no registry entry can exist without a trusted slug. The policy keeps no slug literal; the 8 requires_repo entries and the three request validators are tested positive (trusted) and negative (legacy / empty / malformed / case / suffix).",
     "registry_scope": "the registry is migrated whole, including relationship / dependency-remove / contract_snapshot / test_verdict / scope-snapshot entries: definitions and input validators are inert data. Nothing in this slice can execute them (the executor is Stage 2-1b), so no unapproved live operation is reachable. The executor must reject those lanes at run time (#31 AC5).",
     "wire_identifiers": "the 'human-history' namespace marker lives in the executor, not in this policy; its keep/rename decision belongs to #31.",
-    "enforcement_boundary": "the policy is the registry plus argv-shape gate; repo trust at write time is enforced by the executor (#31). is_controlled_skill_mutation_exec_command checks the argv shape and the executor path only, not the repo value (unchanged from the source)."
+    "enforcement_boundary": "the policy is the registry plus argv-shape gate; repo trust at write time is enforced by the executor (#31). is_controlled_skill_mutation_exec_command checks the argv shape and the executor path only, not the repo value (unchanged from the source).",
+    "parents_N_note": "Issue #30 AC1 mentions the source's repo-root inference; the migrated policy has no parents[N] at all (0 occurrences). The only inference left is repo_identity.py's DEFAULT_CONFIG_PATH (parents[2]), covered by the 'missing config' layout-replica negative. The 9 config negatives run the policy copy under python -I in a replica layout.",
+    "argv_gate_detection_power": "independent review found the shell-metacharacter check could be deleted with all 102 migrated tests still green (same weakness in the source). Closed by 19 parametrized metachar-in-value negatives plus a same-shape positive control; mutation verified."
   },
   "intentional_diffs": [
     "controlled_skill_mutation_policy.py: TRUSTED_REPO = '<legacy slug>' -> load_trusted_repo_slug() from repo_identity (sys.path insert of the script directory, like skill_runtime_command_policy.py)",
     "controlled_skill_mutation_policy.py: _validate_executor_argv tail 'if not issubset: return False / return True' -> 'return issubset(...)' (ruff SIM103; identical behaviour); file ruff-formatted; shebang line removed from the module and its test (ruff EXE001: modules are imported, never executed, and the files are not mode +x)",
     "test_controlled_skill_mutation_policy.py: 'TRUSTED_REPO == <legacy slug>' pin -> equals load_trusted_repo_slug(); every other slug literal -> TRUSTED_REPO / f-string (no functional slug left); noqa/import order and ruff format applied; collect count unchanged (102)",
-    "tests/stage2/test_stage2_1a_policy_closure.py: NEW (18 tests): python -I import, identity binding, 9 fail-closed config negatives, registry binding, validator positive/negative controls, argv gate not widened, manifest honesty",
+    "tests/stage2/test_stage2_1a_policy_closure.py: NEW (37 tests): python -I import, identity binding, 9 fail-closed config negatives, registry binding, validator positive/negative controls, argv gate not widened incl. 19 metachar-inside-value-token negatives, manifest honesty",
     "docs/dev/stage1a-core-manifest.json: import_closure.deferred_script_refs += the 3 refs above; later_stage_test_manifests += this manifest (so the 1a lane does not collect the new test file)",
     "docs/dev/refinement-migration-manifest.json: deferred.stage_2 'controlled_skill_mutation_*' split into migrated policy + remaining executor",
     ".github/workflows/ci.yml: job stage2-1a-policy"

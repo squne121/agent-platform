@@ -209,6 +209,22 @@ def test_executor_argv_gate_is_not_widened() -> None:
     assert not (GUARDS / "controlled_skill_mutation_exec.py").exists()
 
 
+@pytest.mark.parametrize("char", list("$*()`!~?[]{};&|<>\\") + ["\n"])
+def test_executor_argv_gate_rejects_metachar_inside_a_value_token(char: str) -> None:
+    # The metachar regex is the only thing that rejects these: shlex and the flag whitelist both
+    # accept a value token such as a$b.json (verified by deleting the check: all of them pass).
+    ok = (
+        "python3 scripts/agent-guards/controlled_skill_mutation_exec.py "
+        f"--command-id issue_comment.publish --issue-number 42 --repo {TRUSTED} "
+    )
+    assert policy.is_controlled_skill_mutation_exec_command(
+        ok + "--input-file artifacts/42/ab.json", str(ROOT)
+    )  # control: same shape without the metachar
+    assert not policy.is_controlled_skill_mutation_exec_command(
+        ok + f"--input-file artifacts/42/a{char}b.json", str(ROOT)
+    )
+
+
 def test_manifest_pins_files_and_honest_deferrals() -> None:
     m = json.loads(MANIFEST.read_text())
     assert m["source"]["commit"] == "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
