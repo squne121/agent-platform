@@ -32,6 +32,8 @@ extend-exclude = [
     # Stage 1b-1 verbatim-migrated sources/tests (docs/dev/stage1b1-leaf-manifest.json).
     "scripts/agent-guards/extension_surface_policy_matcher.py",
     "scripts/agent-guards/changed_file_matcher.py",
+    # Stage 1b-4 verbatim extraction (docs/dev/stage1b4-semantic-review-manifest.json).
+    "scripts/agent-ops/claude_stream_extractors.py",
     "tests/stage1b/test_changed_file_matcher.py",
     "tests/stage1b/test_extension_surface_policy_matcher.py",
     "tests/stage1b/test_extension_surface_policy_matcher_candidate_perimeter.py",
