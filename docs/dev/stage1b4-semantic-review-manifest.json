@@ -105,7 +105,8 @@
     "test_semantic_review_bounded_discovery_contract.py: test_reviewer_frontmatter_unchanged_from_origin_main -> two non-vacuous tests (see decisions.frontmatter_test); unused subprocess import dropped, yaml import added",
     "test_semantic_review_stage1b4_closure.py: NEW (39 tests): real pin -> record -> join wiring with positive / tampered controls, python -I import, jsonschema validation of the schema, parents[4] layout-shift negatives, falsy-findings CLI negatives, native hook wire (session_id input -> session_ref output) tests",
     "docs/dev/stage1a-core-manifest.json: 7 files removed from not_migrated_source_tests (count 110 -> 103) and this manifest added to later_stage_test_manifests",
-    "test_join_review_results.py: +10 tests (8 falsy non-list findings negatives, 2 None/[] positive controls)"
+    "test_join_review_results.py: +10 tests (8 falsy non-list findings negatives, 2 None/[] positive controls)",
+    "pyproject.toml: no Ruff exclusion for scripts/agent-ops/claude_stream_extractors.py (it is formatted and lint-clean; existing exclusions are not widened)"
   ],
   "not_adopted_source_tests": [
     {

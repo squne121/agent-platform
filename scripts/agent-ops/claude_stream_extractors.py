@@ -1,6 +1,6 @@
 """Pure stream-json extractors used by the issue-design-reviewer runtime evaluators.
 
-Extraction, verbatim except for the `session_ref` output rename below (see docs/dev/stage1b4-semantic-review-manifest.json) of the two read-only
+Extraction (see docs/dev/stage1b4-semantic-review-manifest.json; deviations from the source are listed in its intentional_diffs) of the two read-only
 parsers the evaluators call from the source repository's `run_worktree_agent_runtime_smoke.py`
 runner, plus the two private helpers and one constant they need. Nothing here launches a process,
 touches the network or reads the filesystem: it only parses an already-captured stdout string.
@@ -87,7 +87,6 @@ def extract_claude_permission_denials(stdout: str | None) -> list:
         if isinstance(denials, list):
             return denials
     return []
-
 
 
 def extract_claude_hook_lifecycle_events(stdout: str) -> list[dict]:
@@ -227,9 +226,12 @@ def extract_claude_hook_lifecycle_events(stdout: str) -> list[dict]:
                     entry["stop_hook_active"] = stop_hook_active
             if entry["agent_type"] is None and hook_name_agent_type is not None:
                 entry["agent_type"] = hook_name_agent_type
-            if entry["session_ref"] is None and isinstance(outer_session_ref, str) and outer_session_ref:
+            if (
+                entry["session_ref"] is None
+                and isinstance(outer_session_ref, str)
+                and outer_session_ref
+            ):
                 entry["session_ref"] = outer_session_ref
 
         events.append(entry)
     return events
-
