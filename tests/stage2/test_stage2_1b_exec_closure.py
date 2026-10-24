@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -53,7 +54,17 @@ UNAPPROVED = {
     policy.COMMAND_ID_TEST_VERDICT_PUBLISH,
     policy.COMMAND_ID_ISSUE_SCOPE_SNAPSHOT_MATERIALIZE,
 }
-_real_run = subprocess.run
+_real_subprocess_run = subprocess.run
+
+
+def _real_run(argv, *args, **kwargs):
+    """Real subprocess for tmp-repo setup/git, immune to an ambient GIT_DIR / GIT_WORK_TREE."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    if kwargs.get("env") is None:
+        kwargs["env"] = env
+    return _real_subprocess_run(argv, *args, **kwargs)
+
+
 _IMPORT_CODE = (
     "import sys; sys.path.insert(0, {path!r}); "
     "import controlled_skill_mutation_exec as e; print(e.TRUSTED_REPO)"
