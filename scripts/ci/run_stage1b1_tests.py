@@ -1,4 +1,4 @@
-"""Run the Stage 1b-1 (checker leaf) pytest lane with false-green guards.
+"""Run the Stage 1b-1 / 1b-2 (manifest-selected) pytest lane with false-green guards.
 
 1. Every manifest `required_files` / `required_fixtures` entry must exist (a missing policy YAML,
    matcher or evaluator is a closure defect, not a degrade).
@@ -22,6 +22,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST = ROOT / "docs" / "dev" / "stage1b1-leaf-manifest.json"
+# Stage 1b-2 reuses this lane: `run_stage1b1_tests.py docs/dev/stage1b2-contract-checkers-manifest.json`.
+if len(sys.argv) > 1:
+    MANIFEST = (ROOT / sys.argv[1]).resolve()
+    if ROOT not in MANIFEST.parents or not MANIFEST.is_file():
+        sys.exit(f"FAIL: manifest must be an existing file inside the repo: {sys.argv[1]}")
 
 
 def _pytest(*args: str) -> subprocess.CompletedProcess[str]:
@@ -100,7 +105,7 @@ def main() -> int:
         print(f"FAIL: skipped={skipped} bad={bad} ran={ran} expected_ran={expected_ran}")
         return 1
     print(
-        f"stage1b-1 tests: OK ({len(ids)} collected, {len(deferred_ids)} deferred with reasons, "
+        f"{MANIFEST.name}: OK ({len(ids)} collected, {len(deferred_ids)} deferred with reasons, "
         f"{ran} ran, 0 skipped)"
     )
     return 0

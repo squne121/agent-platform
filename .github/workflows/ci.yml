@@ -65,6 +65,7 @@ jobs:
       - run: uv sync --locked
       - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
       - run: uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py
+      - run: uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage1b2-contract-checkers-manifest.json
   lint:
     runs-on: ubuntu-latest
     steps:
