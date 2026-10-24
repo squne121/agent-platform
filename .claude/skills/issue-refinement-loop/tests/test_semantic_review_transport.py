@@ -22,6 +22,8 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import pytest
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import semantic_review_transport as transport  # noqa: E402
@@ -125,15 +127,7 @@ def test_pin_bundle_never_reuses_a_prior_successful_result_without_relaunch():
     requested_model) again always re-pins fresh and does not report or
     return any prior cached result."""
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=12,
-            body_text="cache reuse body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "cache reuse body", 12)
         result_file = Path(d) / "result.json"
         _fake_agent_writes_result(result_file, "clear")
         transport.record_result(
@@ -148,7 +142,7 @@ def test_pin_bundle_never_reuses_a_prior_successful_result_without_relaunch():
             body_text="cache reuse body",
             prompt_version="v1",
             requested_model="sonnet",
-            artifacts_root=artifacts_root,
+            artifacts_root=Path(d) / "artifacts",
         )
         assert "cache_hit" not in bundle2
         assert "cached_result" not in bundle2
@@ -163,15 +157,7 @@ def test_record_result_success_after_genuine_wait():
     artifact restricted to the model-writable + transport-bound fields,
     validated against schemas/semantic_review_result_v1.schema.json."""
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=42,
-            body_text="genuine wait body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "genuine wait body", 42)
         result_file = Path(d) / "result.json"
         _fake_agent_writes_result(result_file, "clear")
 
@@ -199,15 +185,7 @@ def test_record_result_rejects_stale_result_reused_without_genuine_wait():
     mtime check is a weak staleness heuristic only (P0-2), not proof of
     genuine agent execution."""
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=42,
-            body_text="stale reuse body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "stale reuse body", 42)
         stale_result = Path(d) / "stale_result.json"
         _fake_agent_writes_result(stale_result, "clear")
         old_epoch = time.time() - 10_000
@@ -272,15 +250,7 @@ def test_record_result_rejects_missing_result_file():
 def test_record_result_rejects_model_self_disposition_top_level():
     """P0-3: model output must not include owner_disposition at all."""
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=8,
-            body_text="self disposition body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "self disposition body", 8)
         result_file = Path(d) / "result.json"
         result_file.write_text(
             json.dumps(
@@ -304,15 +274,7 @@ def test_record_result_rejects_model_self_disposition_top_level():
 
 def test_record_result_rejects_model_self_disposition_inside_finding():
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=9,
-            body_text="finding disposition body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "finding disposition body", 9)
         result_file = Path(d) / "result.json"
         result_file.write_text(
             json.dumps(
@@ -344,15 +306,7 @@ def test_record_result_rejects_model_self_disposition_inside_finding():
 
 def test_record_result_rejects_duplicate_json_keys():
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=10,
-            body_text="dup key body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "dup key body", 10)
         result_file = Path(d) / "result.json"
         result_file.write_text(
             '{"assessment": "clear", "assessment": "findings", "findings": []}',
@@ -370,15 +324,7 @@ def test_record_result_rejects_duplicate_json_keys():
 
 def test_record_result_rejects_invalid_severity():
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=11,
-            body_text="bad severity body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "bad severity body", 11)
         result_file = Path(d) / "result.json"
         result_file.write_text(
             json.dumps(
@@ -399,20 +345,41 @@ def test_record_result_rejects_invalid_severity():
         assert outcome["reason_code"] == "invalid_finding_severity"
 
 
+_MISSING = object()
+_OK = {"assessment": "findings", "findings": [{"severity": "high", "summary": "x"}]}
+
+
+@pytest.mark.parametrize(
+    "raw_findings, ok",
+    [({}, 0), (False, 0), (0, 0), ("", 0), (None, 0), (_MISSING, 0), ([], 1), (_OK["findings"], 1)],
+)
+def test_record_result_raw_findings_shape(raw_findings, ok):
+    """Raw non-list/absent findings are rejected, never normalized to []."""
+    with tempfile.TemporaryDirectory() as d:
+        bundle = _pin_and_wait(d, "raw findings shape body", 12)
+        raw = {"assessment": "findings" if raw_findings else "clear"}
+        if raw_findings is not _MISSING:
+            raw["findings"] = raw_findings
+        result_file = Path(d) / "result.json"
+        result_file.write_text(json.dumps(raw), encoding="utf-8")
+        outcome = transport.record_result(
+            invocation_dir=bundle["invocation_dir"],
+            result_file=result_file,
+            completed_at=_now_str(),
+            current_body_sha256=bundle["body_sha256"],
+        )
+        persisted = (Path(bundle["invocation_dir"]) / "semantic_review_result.json").exists()
+        assert (outcome["transport_status"] == "ok") == bool(ok) == persisted
+        if not ok:
+            assert outcome["reason_code"] == "invalid_findings_shape"
+
+
 def test_record_result_rejects_assessment_clear_with_nonempty_findings():
     """P0-3 (schema + explicit invariant): assessment=clear plus a
     blocker/high finding present must be rejected as invalid, not
     approved."""
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=20,
-            body_text="clear with findings body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "clear with findings body", 20)
         result_file = Path(d) / "result.json"
         result_file.write_text(
             json.dumps(
@@ -437,15 +404,7 @@ def test_record_result_rejects_assessment_clear_with_nonempty_findings():
 
 def test_record_result_rejects_assessment_findings_with_empty_findings():
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=21,
-            body_text="findings empty body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "findings empty body", 21)
         result_file = Path(d) / "result.json"
         result_file.write_text(
             json.dumps({"assessment": "findings", "findings": []}),
@@ -463,15 +422,7 @@ def test_record_result_rejects_assessment_findings_with_empty_findings():
 
 def test_record_result_freshness_invalid_when_body_sha256_stale():
     with tempfile.TemporaryDirectory() as d:
-        artifacts_root = Path(d) / "artifacts"
-        bundle = transport.pin_bundle(
-            issue_number=13,
-            body_text="freshness body",
-            prompt_version="v1",
-            requested_model="sonnet",
-            artifacts_root=artifacts_root,
-        )
-        time.sleep(1.05)
+        bundle = _pin_and_wait(d, "freshness body", 13)
         result_file = Path(d) / "result.json"
         _fake_agent_writes_result(result_file, "clear")
         outcome = transport.record_result(

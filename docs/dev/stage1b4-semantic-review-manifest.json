@@ -61,7 +61,7 @@
   ],
   "expected_collect": {
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py": 55,
-    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 21,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 29,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 39,
@@ -71,7 +71,7 @@
   },
   "expected_ran": {
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_trigger.py": 55,
-    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 21,
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_transport.py": 29,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": 9,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_consumer_reachability_contract.py": 11,
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_stage1b4_closure.py": 39,
@@ -93,7 +93,8 @@
     "extractor_authority_note": "scripts/agent-ops/claude_stream_extractors.py is ratified for Issue #15 / PR #28 only by explicit human limited approval dated 2026-10-24 (pure stream-json parser needed by the Stage 1b-4 evaluator test closure; native hook key session_id kept; Stage 3 live runner NOT migrated; Ruff exclusions not widened; Parent #5 general Allowed Paths unchanged)."
   },
   "intentional_diffs": [
-    "join_review_results.py: findings are validated (list of dicts with severity in blocker/high/medium/low) and enum inputs are type-checked; malformed findings / unhashable enums are treated as a transport failure instead of approving (unknown severity) or raising (reviewer B M1/M2). Valid blocker/high findings still win. Only deviation from verbatim in the three scripts. retry_already_attempted must be a real bool (TypeError otherwise; the CLI no longer applies bool()). Only None is normalised to an empty list; every other non-list value, including falsy {} / '' / 0 / False / (), is malformed input and fails closed (Defect A, PR #28 re-review).",
+    "join_review_results.py: findings are validated (list of dicts with severity in blocker/high/medium/low) and enum inputs are type-checked; malformed findings / unhashable enums are treated as a transport failure instead of approving (unknown severity) or raising (reviewer B M1/M2). Valid blocker/high findings still win. One of two deviations from verbatim in the three scripts (the other is below). retry_already_attempted must be a real bool (TypeError otherwise; the CLI no longer applies bool()). Only None is normalised to an empty list; every other non-list value, including falsy {} / '' / 0 / False / (), is malformed input and fails closed (Defect A, PR #28 re-review).",
+    "semantic_review_transport.py: record_result no longer normalises raw findings with `or []`; a non-list or missing raw `findings` (including {} / false / 0 / \"\" / null) is rejected via the existing invalid_findings_shape path and no artifact is persisted. A valid empty list is still accepted. Second (and last) deviation from verbatim in the three scripts. No new schema or gate.",
     "schemas/semantic_review_result_v1.schema.json: $id https://<legacy-domain>.internal/... -> urn:agent-platform:schemas:semantic_review_result_v1 (public hygiene; nothing resolves the schema by $id, it is loaded by path via parents[4])",
     ".claude/agents/issue-design-reviewer.md: persona sentence 'LOOP_PROTOCOL' -> 'agent-platform'",
     "scripts/agent-ops/claude_stream_extractors.py: NEW extraction of two pure parsers. Input wire keys stay native (session_id / sessionId, per the official hooks reference); session_ref / sessionRef inputs are a lower-priority compat fallback; the normalised OUTPUT field is named session_ref (public hygiene, same rename as reviewer_transport in 1b-3a). New helper _first_nonempty_str + _SESSION_INPUT_KEYS only (Defect B, PR #28 re-review)",

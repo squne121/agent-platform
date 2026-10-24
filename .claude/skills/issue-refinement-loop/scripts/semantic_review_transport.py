@@ -262,7 +262,7 @@ def record_result(
     if assessment not in ("clear", "findings"):
         return _error_result(bundle, reason_code="invalid_assessment")
 
-    findings = raw_model_output.get("findings") or []
+    findings = raw_model_output.get("findings")
     if not isinstance(findings, list):
         return _error_result(bundle, reason_code="invalid_findings_shape")
     for finding in findings:
