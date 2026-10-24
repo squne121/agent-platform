@@ -570,7 +570,7 @@ def test_artifact_subcommands_reject_foreign_expected_repo(tmp_path: Path, sub: 
     if sub == "gate-final-review":
         args.append("--remote-update-ok")
     run = _run(tree, PRODUCE_REL, *args)
-    assert run.returncode == 2, run.stdout + run.stderr
+    assert run.returncode == 1, run.stdout + run.stderr
     assert "repository_identity_mismatch" in run.stdout
 
 

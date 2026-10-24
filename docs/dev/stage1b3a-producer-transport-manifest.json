@@ -103,7 +103,7 @@
     "tests/stage1b/test_stage1b3_closure.py: new (python -I import, missing-module and layout-shift negatives, canonical approve / broken needs-fix / tampered wire invalid, --repo and identity-config fail-closed before gh, closed retry matrix, consumer stale/foreign/fixture rejection)",
     ".gitignore: +/tmp/ +artifacts/ (run_root_review_pipeline and the ac1 test write under <repo>/tmp and <repo>/artifacts; same ignore as the source repo)",
     "decide_next_loop_action.py consumer hardening (review B): type-strict binding (bool/float issue_number rejected), top-level verdict must equal final attempt semantic_verdict and compact.VERDICT, final attempt must be clean (exit_code 0/None, no timeout/signal/reason_code), 1..3 attempts with no earlier ok attempt. Forging a result by someone who knows invocation_id + body SHA + issue + slug and writes a self-consistent JSON is NOT prevented (artifact re-verification by the consumer is out of scope; produce does not emit this file -- no production writer exists yet, owner Stage 1b-4/I-4)",
-    "run_root_review_pipeline.py: readback / gate-final-review --expected-repo and an explicit classify-child-stdout --repo must equal the trusted slug (repository_identity_mismatch, exit 2/1)"
+    "run_root_review_pipeline.py: readback / gate-final-review --expected-repo and an explicit classify-child-stdout --repo must equal the trusted slug (repository_identity_mismatch, exit 1: same code as the other binding failures)"
   ],
   "not_adopted_source_tests": [
     {

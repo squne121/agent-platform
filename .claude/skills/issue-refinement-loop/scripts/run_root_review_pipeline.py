@@ -1749,7 +1749,7 @@ def _cmd_readback(args: argparse.Namespace) -> int:
     expected_repo, identity_error = resolve_trusted_repo(args.expected_repo)
     if identity_error is not None:
         print(json.dumps({"verdict_identity": False, "final_review_allowed": False, "error_code": identity_error}))
-        return 2
+        return 1
     args.expected_repo = expected_repo
     result = readback_persisted_artifact(
         artifact_root=args.artifact_root,
@@ -1770,7 +1770,7 @@ def _cmd_gate_final_review(args: argparse.Namespace) -> int:
     expected_repo, identity_error = resolve_trusted_repo(args.expected_repo)
     if identity_error is not None:
         print(json.dumps({"verdict_identity": False, "final_review_allowed": False, "error_code": identity_error}))
-        return 2
+        return 1
     args.expected_repo = expected_repo
     readback = readback_persisted_artifact(
         artifact_root=args.artifact_root,
