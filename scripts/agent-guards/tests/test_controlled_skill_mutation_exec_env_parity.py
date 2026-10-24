@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Issue #2340 AC1: GitHub read/write subprocess env-sanitization parity.
 
 Regression coverage for the P0 credential-parity bug: `_patch_issue_body()`

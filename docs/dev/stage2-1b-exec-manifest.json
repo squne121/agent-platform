@@ -118,6 +118,7 @@
     "controlled_skill_mutation_exec.py: + APPROVED_LIVE_COMMAND_IDS and the refusal 'command_id_not_approved_for_live_execution' right after the unknown_command_id check",
     "controlled_skill_mutation_exec.py: repo gate also requires TRUSTED_REPO to be a str",
     "controlled_skill_mutation_exec.py: comment example 'attacker.example/<owner>/<repo>.git' (no legacy slug literal)",
+    "controlled_skill_mutation_exec.py and test_controlled_skill_mutation_exec_env_parity.py: shebang line removed (ruff EXE001: modules are imported or run as `python3 <path>`, files are not mode +x; same as Stage 2-1a)",
     "controlled_skill_mutation_exec.py: ruff format + ruff --fix (behaviour-preserving, e.g. datetime.UTC) + line-level noqa for BLE001 / PLW1510 / B023 / RUF059 / C408 / RUF012",
     "test_controlled_skill_mutation_exec_env_parity.py / test_human_history_controlled_publish.py: slug literals -> TRUSTED_REPO; env parity workflow_capability_preflight path scripts/claude-gpt -> scripts/agent-ops; ruff format + noqa",
     "tests/stage2/test_stage2_1b_exec_closure.py: NEW (84 tests)",
