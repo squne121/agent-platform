@@ -24,6 +24,7 @@ Covers the effective_verdict decision table:
 - transport missing/stale/error x required -> human_judgment_required
 """
 
+import json
 import sys
 from pathlib import Path
 
@@ -260,6 +261,19 @@ def test_transport_missing_best_effort_after_retry_falls_back_to_approve_with_wa
     assert result["effective_verdict"] == "approve"
     assert result["semantic_review_unavailable"] is True
     assert any(joiner.SEMANTIC_REVIEW_UNAVAILABLE_WARNING in w for w in result["warnings"])
+
+
+@pytest.mark.parametrize("flag,expect", [(False, "retry"), (True, "approve")] + [(v, None) for v in ("false", "true", "", 0, 1, None, [], {})])
+def test_cli_retry_flag_must_be_bool(flag, expect, capsys):
+    raw = {"deterministic_verdict": "approve", "semantic_assessment": "findings", "transport_status": "error", "transport_policy": "best_effort", "retry_already_attempted": flag}
+    if expect is None:
+        with pytest.raises(TypeError):
+            joiner.main(["--input-json", json.dumps(raw)])
+        return
+    assert joiner.main(["--input-json", json.dumps(raw)]) == 0
+    out = json.loads(capsys.readouterr().out)
+    assert out["effective_verdict"] == expect and out.get("semantic_review_unavailable", False) is flag
+    assert (joiner.SEMANTIC_REVIEW_UNAVAILABLE_WARNING in "".join(out["warnings"])) is flag
 
 
 def test_transport_stale_best_effort_first_failure_routes_to_retry():

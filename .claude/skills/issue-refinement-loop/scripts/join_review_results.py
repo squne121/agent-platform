@@ -190,6 +190,8 @@ def join_review_results(
         findings = []
     warnings: "list[str]" = []
 
+    if not isinstance(retry_already_attempted, bool):  # "false"/0/[] must never be coerced
+        raise TypeError("retry_already_attempted must be bool")
     if transport_policy not in _VALID_TRANSPORT_POLICIES:
         raise ValueError(f"unknown transport_policy: {transport_policy!r}")
     if finding_policy not in _VALID_FINDING_POLICIES:
@@ -346,7 +348,7 @@ def main(argv: "list[str] | None" = None) -> int:
         findings=raw.get("findings"),
         transport_policy=raw.get("transport_policy", DEFAULT_TRANSPORT_POLICY),
         finding_policy=raw.get("finding_policy", DEFAULT_FINDING_POLICY),
-        retry_already_attempted=bool(raw.get("retry_already_attempted", False)),
+        retry_already_attempted=raw.get("retry_already_attempted", False),
         source_artifact=raw.get("source_artifact"),
         checked_body_sha256=raw.get("checked_body_sha256"),
     )
