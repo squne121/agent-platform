@@ -20,11 +20,11 @@
   ],
   "expected_collect": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py": 102,
-    "tests/stage2/test_stage2_1a_policy_closure.py": 37
+    "tests/stage2/test_stage2_1a_policy_closure.py": 39
   },
   "expected_ran": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_policy.py": 102,
-    "tests/stage2/test_stage2_1a_policy_closure.py": 37
+    "tests/stage2/test_stage2_1a_policy_closure.py": 39
   },
   "deferred_tests": [],
   "deferred_script_refs": [
@@ -55,13 +55,13 @@
     "wire_identifiers": "the 'human-history' namespace marker lives in the executor, not in this policy; its keep/rename decision belongs to #31.",
     "enforcement_boundary": "the policy is the registry plus argv-shape gate; repo trust at write time is enforced by the executor (#31). is_controlled_skill_mutation_exec_command checks the argv shape and the executor path only, not the repo value (unchanged from the source).",
     "parents_N_note": "Issue #30 AC1 mentions the source's repo-root inference; the migrated policy has no parents[N] at all (0 occurrences). The only inference left is repo_identity.py's DEFAULT_CONFIG_PATH (parents[2]), covered by the 'missing config' layout-replica negative. The 9 config negatives run the policy copy under python -I in a replica layout.",
-    "argv_gate_detection_power": "independent review found the shell-metacharacter check could be deleted with all 102 migrated tests still green (same weakness in the source). Closed by 19 parametrized metachar-in-value negatives plus a same-shape positive control; mutation verified."
+    "argv_gate_detection_power": "independent review found the shell-metacharacter check could be deleted with all 102 migrated tests still green (same weakness in the source). Closed by 19 parametrized metachar-in-value negatives (incl. NUL), 2 newline-separator negatives (shlex treats a newline as whitespace, so only the regex rejects them) and a same-shape positive control; mutation verified for deleting the gate and for removing each character from the regex (CR is also rejected by shlex, so it is not pinned by the regex alone)."
   },
   "intentional_diffs": [
     "controlled_skill_mutation_policy.py: TRUSTED_REPO = '<legacy slug>' -> load_trusted_repo_slug() from repo_identity (sys.path insert of the script directory, like skill_runtime_command_policy.py)",
     "controlled_skill_mutation_policy.py: _validate_executor_argv tail 'if not issubset: return False / return True' -> 'return issubset(...)' (ruff SIM103; identical behaviour); file ruff-formatted; shebang line removed from the module and its test (ruff EXE001: modules are imported, never executed, and the files are not mode +x)",
     "test_controlled_skill_mutation_policy.py: 'TRUSTED_REPO == <legacy slug>' pin -> equals load_trusted_repo_slug(); every other slug literal -> TRUSTED_REPO / f-string (no functional slug left); noqa/import order and ruff format applied; collect count unchanged (102)",
-    "tests/stage2/test_stage2_1a_policy_closure.py: NEW (37 tests): python -I import, identity binding, 9 fail-closed config negatives, registry binding, validator positive/negative controls, argv gate not widened incl. 19 metachar-inside-value-token negatives, manifest honesty",
+    "tests/stage2/test_stage2_1a_policy_closure.py: NEW (39 tests): python -I import, identity binding, 9 fail-closed config negatives, registry binding, validator positive/negative controls, argv gate not widened incl. 19 metachar-inside-value-token + 2 newline-separator negatives, manifest honesty",
     "docs/dev/stage1a-core-manifest.json: import_closure.deferred_script_refs += the 3 refs above; later_stage_test_manifests += this manifest (so the 1a lane does not collect the new test file)",
     "docs/dev/refinement-migration-manifest.json: deferred.stage_2 'controlled_skill_mutation_*' split into migrated policy + remaining executor",
     ".github/workflows/ci.yml: job stage2-1a-policy"

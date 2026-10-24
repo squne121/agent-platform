@@ -209,20 +209,33 @@ def test_executor_argv_gate_is_not_widened() -> None:
     assert not (GUARDS / "controlled_skill_mutation_exec.py").exists()
 
 
-@pytest.mark.parametrize("char", list("$*()`!~?[]{};&|<>\\") + ["\n"])
+_EXEC_OK = (
+    "python3 scripts/agent-guards/controlled_skill_mutation_exec.py "
+    f"--command-id issue_comment.publish --issue-number 42 --repo {TRUSTED} "
+    "--input-file artifacts/42/ab.json"
+)
+
+
+@pytest.mark.parametrize("char", [*list("$*()`!~?[]{};&|<>\\"), "\0"])
 def test_executor_argv_gate_rejects_metachar_inside_a_value_token(char: str) -> None:
-    # The metachar regex is the only thing that rejects these: shlex and the flag whitelist both
-    # accept a value token such as a$b.json (verified by deleting the check: all of them pass).
-    ok = (
-        "python3 scripts/agent-guards/controlled_skill_mutation_exec.py "
-        f"--command-id issue_comment.publish --issue-number 42 --repo {TRUSTED} "
-    )
-    assert policy.is_controlled_skill_mutation_exec_command(
-        ok + "--input-file artifacts/42/ab.json", str(ROOT)
-    )  # control: same shape without the metachar
-    assert not policy.is_controlled_skill_mutation_exec_command(
-        ok + f"--input-file artifacts/42/a{char}b.json", str(ROOT)
-    )
+    # Only the metachar regex rejects these: shlex and the flag whitelist both accept a value
+    # token such as a$b.json (verified by deleting the check, then each character in turn).
+    assert policy.is_controlled_skill_mutation_exec_command(_EXEC_OK, str(ROOT))  # control
+    bad = _EXEC_OK.replace("ab.json", f"a{char}b.json")
+    assert not policy.is_controlled_skill_mutation_exec_command(bad, str(ROOT))
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        _EXEC_OK + "\n",
+        _EXEC_OK.replace(" --input-file", "\n--input-file"),
+    ],
+    ids=["trailing_newline", "newline_between_flags"],
+)
+def test_executor_argv_gate_rejects_newline_separators(cmd: str) -> None:
+    # shlex treats a newline as plain whitespace, so only the regex stops a multi-line command.
+    assert not policy.is_controlled_skill_mutation_exec_command(cmd, str(ROOT))
 
 
 def test_manifest_pins_files_and_honest_deferrals() -> None:
