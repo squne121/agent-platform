@@ -754,21 +754,39 @@ def _bind_transport_result(data: dict[str, Any], args: argparse.Namespace) -> st
     ok+approve. Every expected value must be supplied by the caller (a missing one is a failure).
     """
     attempts = data.get("attempts")
-    final = attempts[-1] if isinstance(attempts, list) and attempts else None
-    if not isinstance(final, dict) or final.get("transport_status") != "ok":
+    if not isinstance(attempts, list) or not 1 <= len(attempts) <= 3:  # MAX_ATTEMPTS
         return "attempt"
+    final = attempts[-1]
+    if not all(isinstance(a, dict) for a in attempts) or any(
+        a.get("transport_status") == "ok" for a in attempts[:-1]
+    ):
+        return "attempt"
+    if final.get("transport_status") != "ok":
+        return "attempt"
+    # An ok attempt is a clean child run whose verdict agrees with the top-level verdict.
+    compact = final.get("compact")
+    if (
+        final.get("exit_code") not in (0, None)
+        or final.get("timeout") is True
+        or final.get("signal") is not None
+        or final.get("reason_code") is not None
+        or final.get("semantic_verdict") != data.get("semantic_verdict")
+        or (isinstance(compact, dict) and compact.get("VERDICT") != data.get("semantic_verdict"))
+    ):
+        return "attempt_inconsistent"
     backend = data.get("backend")
     if backend not in _REAL_REVIEW_BACKENDS or final.get("backend") != backend:
         return "backend_not_real_review"
     expected = {
-        "invocation_id": args.invocation_id,
-        "issue_number": args.issue_number,
-        "reviewed_body_sha256": args.expected_body_sha256,
+        "invocation_id": (args.invocation_id, str),
+        "issue_number": (args.issue_number, int),
+        "reviewed_body_sha256": (args.expected_body_sha256, str),
     }
-    for key, want in expected.items():
+    for key, (want, kind) in expected.items():
         if want is None:
             return f"expected_{key}_missing"
-        if data.get(key) != want:
+        got = data.get(key)
+        if type(got) is not kind or got != want:  # bool / float never equal an int binding
             return f"{key}_mismatch"
     if final.get("invocation_id") != args.invocation_id:
         return "invocation_id_mismatch"

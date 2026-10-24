@@ -338,6 +338,7 @@ def test_consumer_accepts_a_bound_real_review_result(tmp_path: Path):
     run = _route(tmp_path, _result())
     assert run.returncode != 4, run.stdout
     assert "environment_failure" not in run.stdout
+    assert "STATUS: pass" in run.stdout and "proceed_to_step_4_5" in run.stdout
 
 
 @pytest.mark.parametrize(
@@ -352,7 +353,12 @@ def test_consumer_accepts_a_bound_real_review_result(tmp_path: Path):
             {
                 "backend": "fixture",
                 "attempts": [
-                    {"transport_status": "ok", "invocation_id": INVOCATION, "backend": "fixture"}
+                    {
+                        "transport_status": "ok",
+                        "semantic_verdict": "approve",
+                        "invocation_id": INVOCATION,
+                        "backend": "fixture",
+                    }
                 ],
             },
             {},
@@ -365,6 +371,7 @@ def test_consumer_accepts_a_bound_real_review_result(tmp_path: Path):
                 "attempts": [
                     {
                         "transport_status": "ok",
+                        "semantic_verdict": "approve",
                         "invocation_id": "inv-other",
                         "backend": "deterministic",
                     }
@@ -469,3 +476,99 @@ def test_migrated_scripts_carry_no_session_id_or_legacy_slug(name: str):
     text = (LOOP / "scripts" / f"{name}.py").read_text(encoding="utf-8")
     assert "session_id" not in text
     assert "/".join(("squne121", "loop-protocol")) not in text  # noqa: FLY002
+
+
+def _ok_attempt(**kw) -> dict:
+    return {
+        "transport_status": "ok",
+        "semantic_verdict": "approve",
+        "invocation_id": INVOCATION,
+        "backend": "deterministic",
+        "exit_code": 0,
+        "timeout": False,
+        "signal": None,
+        "reason_code": None,
+        **kw,
+    }
+
+
+@pytest.mark.parametrize(
+    ("override", "reason"),
+    [
+        ({"issue_number": True}, "issue_number_mismatch"),
+        ({"issue_number": 7.0}, "issue_number_mismatch"),
+        ({"issue_number": "7"}, "issue_number_mismatch"),
+        ({"attempts": [_ok_attempt(semantic_verdict="needs-fix")]}, "attempt_inconsistent"),
+        ({"attempts": [_ok_attempt(compact={"VERDICT": "needs-fix"})]}, "attempt_inconsistent"),
+        ({"attempts": [_ok_attempt(timeout=True)]}, "attempt_inconsistent"),
+        ({"attempts": [_ok_attempt(exit_code=1)]}, "attempt_inconsistent"),
+        ({"attempts": [_ok_attempt(reason_code="timeout")]}, "attempt_inconsistent"),
+        ({"attempts": [_ok_attempt(), _ok_attempt()]}, "attempt"),
+        ({"attempts": [_ok_attempt()] * 4}, "attempt"),
+        ({"attempts": [_ok_attempt(backend="fixture")]}, "backend_not_real_review"),
+    ],
+)
+def test_consumer_rejects_forged_or_inconsistent_ok_result(tmp_path: Path, override, reason):
+    run = _route(tmp_path, _result(**override))
+    assert run.returncode == 4, run.stdout
+    assert f"reviewer_transport_result_unbound:{reason}" in run.stdout
+
+
+def test_consumer_accepts_real_transport_deterministic_result(tmp_path: Path):
+    """Positive e2e: the additive binding fields the REAL transport emits satisfy the consumer."""
+    sys.path.insert(0, str(LOOP / "scripts"))
+    try:
+        import reviewer_transport as rt
+    finally:
+        sys.path.remove(str(LOOP / "scripts"))
+    result = rt.run_reviewer_transport(
+        base_argv=[
+            sys.executable,
+            "-c",
+            "import json; print(json.dumps({'verdict':'approve','blocking_issues':[]}))",
+        ],
+        command_id="issue-reviewer.run",
+        argv_template_id="issue-reviewer.run/v2",
+        backend="deterministic",
+        issue_number=7,
+        repo=TRUSTED_SLUG,
+        reviewed_body_sha256=BODY_SHA,
+        artifact_root=tmp_path / "artifacts",
+        invocation_id=INVOCATION,
+        per_attempt_deadline=5,
+        total_deadline=10,
+    )
+    assert result["transport_status"] == "ok" and result["backend"] == "deterministic"
+    run = _route(tmp_path, result)
+    assert "STATUS: pass" in run.stdout, run.stdout
+
+
+@pytest.mark.parametrize("sub", ["readback", "gate-final-review"])
+def test_artifact_subcommands_reject_foreign_expected_repo(tmp_path: Path, sub: str):
+    tree = _tree(tmp_path / "tree")
+    args = [
+        sub,
+        "--artifact-root",
+        str(tmp_path),
+        "--artifact-relative",
+        "7/x/attempt-001/a.json",
+        "--expected-repo",
+        "example-org/example-repo",
+        "--expected-issue",
+        "7",
+        "--expected-body-sha256",
+        BODY_SHA,
+        "--expected-invocation-id",
+        "x",
+        "--expected-attempt",
+        "1",
+        "--expected-artifact-sha256",
+        BODY_SHA,
+        "--expected-verdict",
+        "approve",
+    ]
+    if sub == "gate-final-review":
+        args.append("--remote-update-ok")
+    run = _run(tree, PRODUCE_REL, *args)
+    assert run.returncode == 2, run.stdout + run.stderr
+    assert "repository_identity_mismatch" in run.stdout
