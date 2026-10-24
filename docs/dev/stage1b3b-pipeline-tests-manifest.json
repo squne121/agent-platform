@@ -98,10 +98,14 @@
   "decisions": {
     "pytest_markers": "github_live / claude_live are NOT registered and no migrated test uses them (addopts keeps --strict-markers, so a stray use fails). Live-only tests are listed in deferred_tests with owner/reason instead of being hidden behind a default deselect marker.",
     "pytest_xdist": "pytest-xdist>=3.8,<4 added to the dev group (required by the two real-xdist tests in test_step2_canary_collection_contract.py; both run, none skipped).",
-    "evidence_boundary": "every result in this lane is fixture / fake-gh evidence. No live GitHub read and no live LLM reviewer was executed; `backend=claude` is never started. A post-merge read-only live smoke is optional (AC-4) and must be recorded separately."
+    "evidence_boundary": "every result in this lane is fixture / fake-gh evidence. No live GitHub read and no live LLM reviewer was executed; `backend=claude` is never started. A post-merge read-only live smoke is optional (AC-4) and must be recorded separately.",
+    "closure_judgement": "test_runtime_assertion_disposition_propagation and test_operator_intervention_route* were classified by running them against the migrated closure: all pass, none needs I-4 / Stage 2 code, so they are included. test_loop_handoff_contract.py (31 tests) needs root_entry_router symbols owned by I-4 and is excluded (see the 3a manifest)."
   },
   "intentional_diffs": [
-    "tests: legacy slug literals -> example-org/example-repo (opaque) or TRUSTED_REPO from tests/_trusted_repo.py (tests that drive the real produce path); test_compact_author_result / ac1 / canary / canonical_delivery cases listed in deferred_tests"
+    "tests: legacy slug literals -> example-org/example-repo (opaque) or TRUSTED_REPO from tests/_trusted_repo.py (tests that drive the real produce path); ac1 / canary / canonical_delivery cases listed in deferred_tests",
+    "tests/_trusted_repo.py: new helper (TRUSTED_REPO from repo_identity) for tests that drive the real produce path",
+    "test_ac1_live_issue_no_environment_failure.py: session_id -> session_ref (follows reviewer_transport)",
+    "legacy PR URLs in comments/docstrings of test_operator_intervention_route_scope_delta, test_root_review_pipeline_readback_v2_ssot, test_issue_reviewer_contract_static -> plain 'source-repo PR #N comment M' text"
   ],
   "not_adopted_source_tests": [],
   "dangling_refs": {
