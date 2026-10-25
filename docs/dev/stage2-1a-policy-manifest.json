@@ -29,12 +29,6 @@
   "deferred_tests": [],
   "deferred_script_refs": [
     {
-      "script": "controlled_skill_mutation_exec.py",
-      "reason": "the executor named by EXECUTOR_SCRIPT and by the policy tests as a path string only; migrated by Stage 2-1b",
-      "owner_stage": "stage_2 (#31)",
-      "rerun_condition": "Stage 2-1b merged; remove this entry together with the stage1a import_closure entry"
-    },
-    {
       "script": "ensure_contract_snapshot.py",
       "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
       "owner_stage": "I-4",
@@ -43,17 +37,17 @@
     {
       "script": "materialize_issue_scope_snapshot.py",
       "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
-      "owner_stage": "stage_2 (decided in #31)",
-      "rerun_condition": "#31 decides migrate-or-keep-deferred for the scope snapshot lane"
+      "owner_stage": "stage_2 (follow-up; #31 decided: keep deferred, lane refused before execution)",
+      "rerun_condition": "a human approves the scope-snapshot lane; then migrate it together with controlled_git_change_exec"
     }
   ],
   "decisions": {
     "evidence_boundary": "every result in this lane is fixture evidence: no gh, no network, no GitHub write. Nothing here is live GitHub evidence.",
     "no_skip_policy": "0 skipped / 0 xfailed / 0 deselected; deferred_tests is empty.",
     "repository_identity": "TRUSTED_REPO is load_trusted_repo_slug() (config/repository_identity.v1.json) evaluated at import. An unusable config or layout shift raises RepositoryIdentityError at import (9 negative cases in a replica layout under python -I), so no registry entry can exist without a trusted slug. The policy keeps no slug literal; the 8 requires_repo entries and the three request validators are tested positive (trusted) and negative (legacy / empty / malformed / case / suffix).",
-    "registry_scope": "the registry is migrated whole, including relationship / dependency-remove / contract_snapshot / test_verdict / scope-snapshot entries: definitions and input validators are inert data. Nothing in this slice can execute them (the executor is Stage 2-1b), so no unapproved live operation is reachable. The executor must reject those lanes at run time (#31 AC5).",
+    "registry_scope": "the registry is migrated whole, including relationship / dependency-remove / contract_snapshot / test_verdict / scope-snapshot entries: definitions and input validators are inert data. Stage 2-1b (#31) migrated the executor, which refuses every lane except the three approved ones before any git / gh call (APPROVED_LIVE_COMMAND_IDS; tests/stage2/test_stage2_1b_exec_closure.py).",
     "wire_identifiers": "the 'human-history' namespace marker lives in the executor, not in this policy; its keep/rename decision belongs to #31.",
-    "enforcement_boundary": "the policy is the registry plus argv-shape gate; repo trust at write time is enforced by the executor (#31). is_controlled_skill_mutation_exec_command checks the argv shape and the executor path only, not the repo value (unchanged from the source).",
+    "enforcement_boundary": "the policy is the registry plus argv-shape gate; repo trust at write time is enforced by the executor (migrated by #31). is_controlled_skill_mutation_exec_command checks the argv shape and the executor path only, not the repo value (unchanged from the source).",
     "parents_N_note": "Issue #30 AC1 mentions the source's repo-root inference; the migrated policy has no parents[N] at all (0 occurrences). The only inference left is repo_identity.py's DEFAULT_CONFIG_PATH (parents[2]), covered by the 'missing config' layout-replica negative. The 9 config negatives run the policy copy under python -I in a replica layout.",
     "argv_gate_detection_power": "independent review found the shell-metacharacter check could be deleted with all 102 migrated tests still green (same weakness in the source). Closed by 19 parametrized metachar-in-value negatives (incl. NUL), 2 newline-separator negatives (shlex treats a newline as whitespace, so only the regex rejects them) and a same-shape positive control; mutation verified for deleting the gate and for removing each character from the regex (CR is also rejected by shlex, so it is not pinned by the regex alone)."
   },
@@ -67,10 +61,9 @@
     ".github/workflows/ci.yml: job stage2-1a-policy"
   ],
   "dangling_refs": {
-    "controlled_skill_mutation_exec.py": "Stage 2-1b (#31)",
     "ensure_contract_snapshot.py": "I-4",
-    "materialize_issue_scope_snapshot.py": "Stage 2 (#31 decides)",
+    "materialize_issue_scope_snapshot.py": "Stage 2 follow-up (#31 decided: kept deferred, lane refused)",
     "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the executor's test_verdict lane; not referenced by the policy)"
   },
-  "part": "Stage 2-1a (Closes #30; Parent #29 / #5): controlled_skill_mutation_policy on top of Stage 1b-4 (main 8caa46a)."
+  "part": "Stage 2-1a (Closes #30; Parent #29 / #5): controlled_skill_mutation_policy on top of Stage 1b-4 (main 8caa46a). Updated by Stage 2-1b (#31): the executor now exists; its stale deferred/dangling record is resolved."
 }

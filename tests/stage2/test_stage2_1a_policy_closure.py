@@ -8,7 +8,8 @@ Fixture only: no `gh`, no network, no GitHub write. Pins:
 - the legacy and malformed repo slugs are rejected by every request validator and no registry
   entry accepts them (positive control: the trusted slug is accepted);
 - the executor argv gate still rejects shell metacharacters / unknown flags (no widening);
-- the closure manifest pins the files, deferred refs and the executor-less state honestly.
+- the closure manifest pins the files and deferred refs honestly (the executor, migrated by
+  Stage 2-1b, is no longer recorded as deferred).
 """
 
 from __future__ import annotations
@@ -204,9 +205,11 @@ def test_executor_argv_gate_is_not_widened() -> None:
         assert not policy.is_controlled_skill_mutation_exec_command(
             base + ok_tail + bad_suffix, str(ROOT)
         )
-    # The executor itself is not migrated yet (Stage 2-1b): resolution is path-only.
+    # Stage 2-1b migrated the executor: the policy path now resolves to a real file, and the
+    # negative controls above still hold against it (positive control: ok_tail accepted).
     assert policy.EXECUTOR_SCRIPT == "scripts/agent-guards/controlled_skill_mutation_exec.py"
-    assert not (GUARDS / "controlled_skill_mutation_exec.py").exists()
+    assert (ROOT / policy.EXECUTOR_SCRIPT).is_file()
+    assert (GUARDS / "controlled_skill_mutation_exec.py").is_file()
 
 
 _EXEC_OK = (
@@ -246,13 +249,14 @@ def test_manifest_pins_files_and_honest_deferrals() -> None:
     assert set(m["test_files"]) == set(m["expected_collect"]) == set(m["expected_ran"])
     assert m["deferred_tests"] == []
     refs = {d["script"]: d["owner_stage"] for d in m["deferred_script_refs"]}
-    assert set(refs) == {
-        "controlled_skill_mutation_exec.py",
-        "ensure_contract_snapshot.py",
-        "materialize_issue_scope_snapshot.py",
-    }
+    # controlled_skill_mutation_exec.py was resolved by Stage 2-1b (#31): it exists, so it must
+    # no longer be recorded as deferred (check_import_closure fails on a stale entry).
+    assert set(refs) == {"ensure_contract_snapshot.py", "materialize_issue_scope_snapshot.py"}
+    assert "controlled_skill_mutation_exec.py" not in m["dangling_refs"]
+    assert (GUARDS / "controlled_skill_mutation_exec.py").is_file()
     assert refs["ensure_contract_snapshot.py"].startswith("I-4")
     stage1a = json.loads((ROOT / "docs/dev/stage1a-core-manifest.json").read_text())
     listed = {d["script"] for d in stage1a["import_closure"]["deferred_script_refs"]}
     assert set(refs) <= listed
+    assert "controlled_skill_mutation_exec.py" not in listed
     assert "docs/dev/stage2-1a-policy-manifest.json" in stage1a["later_stage_test_manifests"]

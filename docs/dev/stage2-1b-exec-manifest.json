@@ -1,0 +1,134 @@
+{
+  "schema": "STAGE2_1B_EXEC_MANIFEST_V1",
+  "issue": "squne121/agent-platform#31",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "scripts/agent-guards/controlled_skill_mutation_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py",
+    "scripts/agent-guards/tests/test_human_history_controlled_publish.py",
+    "scripts/agent-ops/workflow_capability_preflight.py",
+    "tests/stage2/test_stage2_1b_exec_closure.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py",
+    "scripts/agent-guards/tests/test_human_history_controlled_publish.py",
+    "tests/stage2/test_stage2_1b_exec_closure.py"
+  ],
+  "expected_collect": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 17,
+    "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
+    "tests/stage2/test_stage2_1b_exec_closure.py": 102
+  },
+  "expected_ran": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 15,
+    "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
+    "tests/stage2/test_stage2_1b_exec_closure.py": 102
+  },
+  "deferred_tests": [
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py::test_edit_issue_txn_sanitize_key_list_matches_controlled_executor",
+      "owner_stage": "stage_2 (#34, Stage 2-4)",
+      "reason": "imports edit_issue_txn, which is migrated with the edit-issue Skill in Stage 2-4",
+      "rerun_condition": "#34 migrates edit_issue_txn; remove this entry and the stage1a deferred_imports entry together"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py::test_edit_issue_txn_fetch_issue_uses_sanitized_env",
+      "owner_stage": "stage_2 (#34, Stage 2-4)",
+      "reason": "imports edit_issue_txn, which is migrated with the edit-issue Skill in Stage 2-4",
+      "rerun_condition": "#34 migrates edit_issue_txn; remove this entry and the stage1a deferred_imports entry together"
+    }
+  ],
+  "live_operations": {
+    "approved": [
+      "issue_body.update",
+      "issue_comment.publish",
+      "issue_content.update"
+    ],
+    "refused": [
+      "contract_snapshot.publish",
+      "issue_dependency.remove",
+      "issue_relationship.update",
+      "issue_scope_snapshot.materialize",
+      "test_verdict.publish"
+    ],
+    "note": "Issue creation is a later Stage 2 slice (no command id exists in this executor). Refused ids stay registered as inert data and are refused by APPROVED_LIVE_COMMAND_IDS before any git / gh call; their handlers are kept verbatim from the source."
+  },
+  "deferred_script_refs": [
+    {
+      "script": "ensure_contract_snapshot.py",
+      "reason": "publisher_script of contract_snapshot.publish; I-4 impl-review-loop asset; the lane is refused before execution",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot and a human approves the lane"
+    },
+    {
+      "script": "run_contract_review_once.py",
+      "reason": "module-path constant of the contract_snapshot.publish trust chain; I-4 asset; lane refused before execution",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates run_contract_review_once"
+    },
+    {
+      "script": "contract_review_result_parser.py",
+      "reason": "module-path constant of the contract_snapshot.publish trust chain; I-4 asset; lane refused before execution",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates the contract review parser"
+    },
+    {
+      "script": "materialize_issue_scope_snapshot.py",
+      "reason": "materializer of issue_scope_snapshot.materialize, lazily imported by the executor; drags controlled_git_change_exec (1614 lines). Decision (#31): keep deferred; the lane is refused before execution and the dormant handler fails closed without the module (negative test)",
+      "owner_stage": "stage_2 (follow-up, needs human approval of a live git/scope lane)",
+      "rerun_condition": "a human approves the scope-snapshot lane; then migrate materialize_issue_scope_snapshot together with controlled_git_change_exec"
+    }
+  ],
+  "dangling_refs": {
+    "ensure_contract_snapshot.py": "I-4",
+    "run_contract_review_once.py": "I-4",
+    "contract_review_result_parser.py": "I-4",
+    "materialize_issue_scope_snapshot.py": "stage 2 follow-up (deferred, lane refused)",
+    "edit_issue_txn.py": "Stage 2-4 (#34), imported only by 2 deferred env-parity tests",
+    "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the test_verdict lane, which is refused before execution)"
+  },
+  "split": {
+    "rule": "Issue #31 Stop Conditions: when 10k lines are unavoidable, the exec tests are split out as Stage 2-1c (a split, not a stop). With the 3405-line test_controlled_skill_mutation_exec.py the PR was 10464 insertions.",
+    "moved_to_2_1c": [
+      "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py (114 tests; 10 of them drive main() for issue_dependency.remove, which this PR refuses before execution, and must be deferred with owner_stage there)",
+      "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py (1886 lines, mostly contract_snapshot / I-4 classes; needs the github_live marker decision)"
+    ],
+    "coverage_in_this_pr": "AC1-AC6 are carried by tests/stage2/test_stage2_1b_exec_closure.py (102 tests: python -I import, layout shift, write-zero, approval gate, fake-gh write->readback with stale / duplicate / timeout / partial / mismatch, gh pin) plus the env-parity and human-history source tests. The moved source tests add depth, not the only proof of any AC.",
+    "follow_up_issue": "squne121/agent-platform#39",
+    "closure_gate": "Stage 2 closure (#29) must not be declared before #39 (the moved source tests) is merged; #39 carries this as a precondition."
+  },
+  "decisions": {
+    "evidence_boundary": "every result in this lane is fixture evidence: an in-process fake gh / mocks / isolated subprocess that is refused before any gh. No real GitHub write and no network. Nothing here is live GitHub evidence.",
+    "no_skip_policy": "0 skipped / 0 xfailed. The 2 deselected tests are the listed deferred_tests, each with owner_stage / reason / rerun_condition; nothing else is deselected.",
+    "repository_identity": "TRUSTED_REPO = load_trusted_repo_slug() (config/repository_identity.v1.json) evaluated at import; the policy already does the same. An unusable config or layout shift raises RepositoryIdentityError at import (10 negative cases under python -I). main() additionally refuses a non-str TRUSTED_REPO and any --repo that is not exactly equal, before any subprocess (spy: 0 calls, not even git).",
+    "approval_gate": "APPROVED_LIVE_COMMAND_IDS = {issue_body.update, issue_content.update, issue_comment.publish}. The gate sits right after the unknown-command check in main() (the existing dispatch boundary): refused ids never reach the repo/git/gh checks or any handler (handlers spied in test).",
+    "gh_binary": "_find_gh_bin and _GH_TRUSTED_PATHS are unchanged; a decoy gh first on PATH is ignored (test). The fake gh is injected through the existing subprocess.run / _find_gh_bin patch seam only; no new seam was added.",
+    "wire_identifiers": "the 'human-history' comment namespace marker (loop-protocol/human-history) is a wire identifier already embedded in published comments, not a repository identity; it is retained verbatim (decision for #31).",
+    "lint_scope": "pyproject.toml is outside the Allowed Paths, so the migrated files are ruff-formatted/linted instead of excluded. Semantic lints on verbatim code (BLE001 broad except, PLW1510 subprocess check) are suppressed with line noqa, not rewritten.",
+    "known_fixture_gap": "issue_comment.publish's update-an-existing-same-marker-comment branch (gh api user + PATCH comments/<id>) is not exercised by the closure fake (it records any such call as unexpected, so it cannot silently pass); its source tests move with #39."
+  },
+  "intentional_diffs": [
+    "controlled_skill_mutation_exec.py: TRUSTED_REPO import from the policy -> load_trusted_repo_slug() from repo_identity (sys.path already holds the script directory)",
+    "controlled_skill_mutation_exec.py: + APPROVED_LIVE_COMMAND_IDS and the refusal 'command_id_not_approved_for_live_execution' right after the unknown_command_id check; refused lanes also refuse --dry-run (the source let dry-run validate them); the gate lives in main() only, so it is a CLI-boundary guarantee (the handlers have no other caller, and the dormant handlers are not imported by anything else)",
+    "controlled_skill_mutation_exec.py: repo gate also requires TRUSTED_REPO to be a str",
+    "controlled_skill_mutation_exec.py: comment example 'attacker.example/<owner>/<repo>.git' (no legacy slug literal)",
+    "controlled_skill_mutation_exec.py and test_controlled_skill_mutation_exec_env_parity.py: shebang line removed (ruff EXE001: modules are imported or run as `python3 <path>`, files are not mode +x; same as Stage 2-1a)",
+    "controlled_skill_mutation_exec.py: ruff format + ruff --fix (behaviour-preserving, e.g. datetime.UTC) + line-level noqa for BLE001 / PLW1510 / B023 / RUF059 / C408 / RUF012; includes equivalent ruff --fix rewrites (str.removesuffix, re.MULTILINE, import order)",
+    "test_controlled_skill_mutation_exec_env_parity.py / test_human_history_controlled_publish.py: slug literals -> TRUSTED_REPO; env parity workflow_capability_preflight path scripts/claude-gpt -> scripts/agent-ops; ruff format + noqa",
+    "tests/stage2/test_stage2_1b_exec_closure.py: NEW (102 tests)",
+    "tests/stage2/test_stage2_1a_policy_closure.py: executor-absence assertion -> existence + gate positive controls; manifest honesty test updated",
+    "docs/dev/stage2-1a-policy-manifest.json: executor removed from deferred_script_refs / dangling_refs; materialize record updated to the #31 keep-deferred decision (closure test count unchanged at 39)",
+    "docs/dev/stage1a-core-manifest.json: executor script ref removed; + run_contract_review_once.py / contract_review_result_parser.py script refs; + edit_issue_txn / materialize_issue_scope_snapshot deferred imports; later_stage_test_manifests += this manifest",
+    "docs/dev/refinement-migration-manifest.json: stage_2 'controlled_skill_mutation_exec' entry replaced by the migrated record",
+    ".github/workflows/ci.yml: job stage2-1b-exec"
+  ],
+  "part": "Stage 2-1b (Closes #31; Parent #29 / #5): controlled_skill_mutation_exec on top of Stage 2-1a (main 1d3bc99). The exec test bodies are split to Stage 2-1c."
+}
