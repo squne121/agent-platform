@@ -120,7 +120,7 @@ _SECRET_OR_UNSAFE_RE = __import__("re").compile(
     r"|github_pat_[A-Za-z0-9_]{16,}"
     r"|authorization:\s*bearer"
     r"|(?:^|\s)/[^\s]+"
-    # Windows drive-absolute path (e.g. C:\Users\...).
+    # Windows drive-absolute path (e.g. C:\Temp\...).
     r"|[A-Za-z]:\\\S+"
     # UNC path (e.g. \\server\share\...).
     r"|\\\\\S+\\\S+"

@@ -60,8 +60,8 @@
   "source_parity": {
     ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py": {
       "source_sha256": "f18e79b9f7368a843df0d1e8dfcd3c42633df4ab74862f52913809692bc789d5",
-      "moved_sha256": "f18e79b9f7368a843df0d1e8dfcd3c42633df4ab74862f52913809692bc789d5",
-      "verbatim": true
+      "moved_sha256": "eaac6340b59e03f50c2fdde5619274dfb816cb4c24ef51ecfa29ac46c7c2996f",
+      "verbatim": false
     },
     ".claude/skills/issue-refinement-loop/scripts/isolation_issue_comment_bridge.py": {
       "source_sha256": "edcbef19131ac30b6b938d5697169120e7c438c3c59da240e20e75caab2861ec",
@@ -205,6 +205,48 @@
       "where": "publish_termination_report.py (runtime subprocess target)",
       "reason": "Stage 3 asset; registered in stage1a-core-manifest import_closure.deferred_script_refs",
       "owner_stage": "Stage 3"
+    },
+    {
+      "ref": "scripts/dependency_materializer.py",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "2-6",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "scripts/run_contract_review_once.py",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "I-4",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "scripts/task-context/task_context_workflow_signals.py",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "Stage 3",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "references/anchor-comment-handling.md, references/dependency-materialization.md, references/loop-state.md",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "later references stage (#37 / 2-6)",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "schemas/loop_handoff_result_v1.json, schemas/loop_state.schema.json",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "removed in the source / not needed by the comment lane",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "docs/dev/workflow.md, docs/dev/agent-skill-boundaries.md, docs/dev/secret-policy.md",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "not migrated; prose-only",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
     }
   ],
   "live_operations": {
@@ -218,7 +260,8 @@
     "live": "none produced; a real GitHub Pilot-1 is out of scope and is not claimed"
   },
   "intentional_diffs": [
-    "publish_termination_report.py / isolation_issue_comment_bridge.py / termination-policy.md / scope-signal-guard.md: byte-identical to the source tag (no legacy slug is hard-coded in them; repo identity is enforced by the controlled executor via repo_identity)",
+    "isolation_issue_comment_bridge.py / termination-policy.md / scope-signal-guard.md: byte-identical to the source tag (no legacy slug is hard-coded; repo identity is enforced by the controlled executor via repo_identity)",
+    "publish_termination_report.py: one comment line (123) `C:\\Users\\...` -> `C:\\Temp\\...` so scripts/check_public_hygiene.sh (Windows home-path pattern) passes; no code change",
     "test_isolation_issue_comment_bridge.py / test_publish_termination_report.py: legacy slug literals -> TRUSTED_REPO (tests/_trusted_repo.py)",
     "test_publish_termination_report_dry_run.py: legacy slug -> TRUSTED_REPO; the disposable fixture repository also copies repo_identity.py + config/repository_identity.v1.json (the policy now imports them); the child interceptor reads the expected repo from HARNESS_REPO; the human-history evidence URL is derived from the trusted slug. The `loop-protocol/human-history` marker is a wire identifier and is kept",
     "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py: shebang removed, ruff format + 12 noqa (SIM117 nested with, as in stage 2-1c), stub write for the removed render_termination_report.py dropped",
