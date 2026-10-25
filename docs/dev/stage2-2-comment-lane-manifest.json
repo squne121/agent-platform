@@ -43,7 +43,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_termination_marker_scoping_1914.py": 8,
     ".claude/skills/issue-refinement-loop/tests/test_termination_policy_contract.py": 2,
     ".claude/skills/issue-refinement-loop/tests/test_scope_signal_guard_termination.py": 7,
-    "tests/stage2/test_stage2_2_comment_lane.py": 36
+    "tests/stage2/test_stage2_2_comment_lane.py": 46
   },
   "expected_ran": {
     "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py": 11,
@@ -54,7 +54,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_termination_marker_scoping_1914.py": 8,
     ".claude/skills/issue-refinement-loop/tests/test_termination_policy_contract.py": 2,
     ".claude/skills/issue-refinement-loop/tests/test_scope_signal_guard_termination.py": 7,
-    "tests/stage2/test_stage2_2_comment_lane.py": 36
+    "tests/stage2/test_stage2_2_comment_lane.py": 46
   },
   "deferred_tests": [],
   "source_parity": {
@@ -133,10 +133,10 @@
     "source_collected_total": 83,
     "moved_collected_total": 83,
     "new_tests": {
-      "tests/stage2/test_stage2_2_comment_lane.py": 36
+      "tests/stage2/test_stage2_2_comment_lane.py": 46
     },
-    "collected_total": 119,
-    "ran_total": 119,
+    "collected_total": 129,
+    "ran_total": 129,
     "deferred_total": 0,
     "skipped": 0
   },
@@ -265,10 +265,28 @@
     "test_isolation_issue_comment_bridge.py / test_publish_termination_report.py: legacy slug literals -> TRUSTED_REPO (tests/_trusted_repo.py)",
     "test_publish_termination_report_dry_run.py: legacy slug -> TRUSTED_REPO; the disposable fixture repository also copies repo_identity.py + config/repository_identity.v1.json (the policy now imports them); the child interceptor reads the expected repo from HARNESS_REPO; the human-history evidence URL is derived from the trusted slug. The `loop-protocol/human-history` marker is a wire identifier and is kept",
     "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py: shebang removed, ruff format + 12 noqa (SIM117 nested with, as in stage 2-1c), stub write for the removed render_termination_report.py dropped",
-    "tests/stage2/test_stage2_2_comment_lane.py: NEW (publisher -> bridge -> real controlled executor -> FakeGh; write-zero, marker/idempotency, readback/partial/timeout, dry-run, task_contextctl deferred, closure)",
+    "tests/stage2/test_stage2_2_comment_lane.py: NEW (publisher -> bridge -> real controlled executor -> FakeGh; write-zero, marker/idempotency, readback/partial/timeout, dry-run, task_contextctl deferred, bridge helper, human-history env/occurrence, closure; 46 tests)",
     "docs/dev/stage1a-core-manifest.json: later_stage_test_manifests += this manifest; not_migrated_source_tests -= 7 migrated files (103 -> 96); import_closure.deferred_script_refs: publish_termination_report.py (stale) removed, task_contextctl.py added",
     ".github/workflows/ci.yml: job stage2-2-comment-lane",
     "executor / policy / SKILL.md / pyproject.toml / AGENTS.md / CLAUDE.md / hooks: unchanged"
   ],
-  "part": "Stage 2-2 (Closes #32; Parent #29 / #5; predecessors PR #40 / #41): Step 5 comment lane"
+  "part": "Stage 2-2 (Closes #32; Parent #29 / #5; predecessors PR #40 / #41): Step 5 comment lane",
+  "mutation": {
+    "method": "isolated scratch copy of the tree (never the worktree); one line-level mutation per run",
+    "reviewer_b_round1": {
+      "mutants": 63,
+      "note": "survivors in publisher signal gate (approved), marker-precheck listing failure, bridge post_isolation_issue_comment (timeout/repo/materialize), human-history env pop were closed by tests added in the follow-up commit"
+    },
+    "rechecked_killed": [
+      "approved-gate -> is not None",
+      "marker precheck list_err ignored",
+      "bridge timeout -1 -> 0",
+      "bridge --repo hard-coded",
+      "human-history LOOP_ISSUE_NUMBER not popped"
+    ],
+    "residual_equivalent": [
+      "human-history namespace occurrence count (!=1 -> <1) is also rejected by the later opening/closing/final-line checks and pinned by the 2-1b parse tests (test_human_history_controlled_publish.py, lane stage2-1c)",
+      "origin check / PATCH readback digest / human-history final line are pinned by the stage 2-1c lane files (test_human_history_controlled_publish.py, test_controlled_exec_comment_content_reconciliation.py), not duplicated here"
+    ]
+  }
 }

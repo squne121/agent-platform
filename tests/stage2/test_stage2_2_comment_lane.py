@@ -20,9 +20,11 @@ import ast
 import contextlib
 import io
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest import mock
 
 import pytest
 
@@ -34,6 +36,7 @@ for p in (GUARDS, GUARDS / "tests", SKILL_SCRIPTS):
         sys.path.insert(0, str(p))
 
 import controlled_skill_mutation_exec as ex
+import isolation_issue_comment_bridge as bridge
 import publish_termination_report as pub
 from test_controlled_exec_comment_content_reconciliation import (
     ACTOR,
@@ -56,6 +59,7 @@ class Harness:
         self.exec_argv: list[list[str]] = []
         self.signal_calls: list[list[str]] = []
         self.exec_timeout = False
+        self.exec_env: dict[str, str] = {}
         self.after_post = None  # callable run right after a gh POST
 
     def run(self, argv, *a, **kw):
@@ -66,7 +70,12 @@ class Harness:
             if self.exec_timeout:
                 raise subprocess.TimeoutExpired(argv, 30)
             out, err = io.StringIO(), io.StringIO()
-            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            self.exec_env = dict(kw.get("env") or os.environ)
+            with (
+                mock.patch.dict(os.environ, self.exec_env, clear=True),
+                contextlib.redirect_stdout(out),
+                contextlib.redirect_stderr(err),
+            ):
                 rc = ex.main(argv[2:])
             return subprocess.CompletedProcess(
                 argv, rc, stdout=out.getvalue(), stderr=err.getvalue()
@@ -100,6 +109,7 @@ def h(tmp_path, monkeypatch):
     harness = Harness(fg, project)
     monkeypatch.setattr(ex, "PROJECT_ROOT", project)
     monkeypatch.setattr(pub, "_PROJECT_ROOT", project)
+    monkeypatch.setattr(bridge, "_PROJECT_ROOT", project)
     monkeypatch.setattr(ex, "_find_gh_bin", lambda: (fg.gh, ""))
     monkeypatch.setattr(subprocess, "run", harness.run)
     monkeypatch.setattr(pub, "ARTIFACT_DIR", tmp_path / "publisher-artifacts")
@@ -421,3 +431,108 @@ def test_no_functional_legacy_slug_and_identity_is_single_sourced():
     for name in ("publish_termination_report.py", "isolation_issue_comment_bridge.py"):
         assert LEGACY_SLUG not in (SKILL_SCRIPTS / name).read_text(encoding="utf-8")
     assert TRUSTED == pub.TRUSTED_REPO if hasattr(pub, "TRUSTED_REPO") else True
+
+
+# ------------------------------------------- reviewer B gaps: signal gate, precheck, bridge, history
+
+
+@pytest.mark.parametrize("reason", ["needs_fix", "human_judgment"])
+def test_only_approved_termination_emits_the_signal(h, monkeypatch, reason):
+    monkeypatch.setenv("CLAUDE_CODE_SESSION_ID", "session-ref")
+    assert _publish(termination_reason=reason, approved_body_sha256=SHA) == 0
+    assert h.signal_calls == []
+
+
+def test_marker_precheck_listing_failure_means_no_post(h, monkeypatch):
+    real = h.fg.run
+
+    def list_fails(argv, *a, **kw):
+        if argv[1:3] == ["issue", "view"]:
+            return subprocess.CompletedProcess(argv, 1, stdout="", stderr="HTTP 502")
+        return real(argv, *a, **kw)
+
+    monkeypatch.setattr(h.fg, "run", list_fails)
+    assert _publish() != 0
+    assert h.mutations() == [] and h.fg.posts == 0
+
+
+def _bridge_post(**kw) -> int:
+    kw.setdefault("issue_number", ISSUE)
+    kw.setdefault("repo", TRUSTED)
+    kw.setdefault("body", "## Report\n")
+    return bridge.post_isolation_issue_comment(**kw)
+
+
+def test_bridge_post_forwards_repo_and_issue_and_publishes(h):
+    assert _bridge_post() == 0
+    argv = h.exec_argv[0]
+    assert argv[argv.index("--repo") + 1] == TRUSTED
+    assert argv[argv.index("--issue-number") + 1] == str(ISSUE)
+    assert h.fg.posts == 1
+    assert _bridge_post() == 0 and h.fg.posts == 1  # idempotent
+
+
+def test_bridge_post_wrong_repo_is_write_zero(h):
+    assert _bridge_post(repo=LEGACY_SLUG) != 0
+    assert h.mutations() == []
+
+
+def test_bridge_post_timeout_is_minus_one(h):
+    h.exec_timeout = True
+    assert _bridge_post() == -1
+    assert h.mutations() == []
+
+
+def test_bridge_post_materialize_failure_is_nonzero_without_executor(h, monkeypatch):
+    monkeypatch.setattr(
+        bridge, "materialize_isolation_issue_comment_request", lambda **_: ("", "boom")
+    )
+    assert _bridge_post() == 1
+    assert h.exec_argv == [] and h.mutations() == []
+
+
+def _publish_history(**kw) -> int:
+    return pub.publish_human_history(
+        target_number=ISSUE,
+        repo=TRUSTED,
+        identity={
+            "loop_kind": "issue-refinement-loop",
+            "phase": "review-complete",
+            "source_issue_number": ISSUE,
+            "target_kind": "issue",
+            "target_number": ISSUE,
+            "route_or_termination_reason": "completed",
+            "reviewed_ref": SHA,
+        },
+        result="履歴を記録します",
+        evidence_refs=[f"https://github.com/{TRUSTED}/issues/{ISSUE}"],
+        recommended_action="検証を継続してください",
+        recommended_reason="隔離された履歴の動作確認です",
+        impact_if_unaddressed="履歴が失われます",
+        **kw,
+    )
+
+
+def test_human_history_publish_drops_the_inherited_source_issue_binding(h, monkeypatch):
+    monkeypatch.setenv("LOOP_ISSUE_NUMBER", str(ISSUE + 7))
+    assert _publish_history() == 0
+    assert "LOOP_ISSUE_NUMBER" not in h.exec_env
+    assert h.fg.posts == 1 and HUMAN_HISTORY_NS in h.fg.comments[0]["body"]
+
+
+def test_generic_publish_keeps_the_issue_binding_in_the_child_env(h, monkeypatch):
+    monkeypatch.setenv("LOOP_ISSUE_NUMBER", str(ISSUE))
+    assert _publish() == 0
+    assert h.exec_env["LOOP_ISSUE_NUMBER"] == str(ISSUE)
+    assert h.exec_env["GH_PROMPT_DISABLED"] == "1"
+
+
+def test_human_history_marker_must_occur_exactly_once(h):
+    assert _publish_history() == 0
+    body = h.fg.comments[0]["body"]
+    marker = body.strip().splitlines()[-1]
+    h.fg.comments.clear()
+    for bad in (body + marker + "\n", body + body):
+        rc = pub._post_github_comment(issue_number=ISSUE, body=bad, repo=TRUSTED, marker=marker)
+        assert rc != 0
+    assert h.fg.comments == []
