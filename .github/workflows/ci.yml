@@ -197,7 +197,7 @@ jobs:
           set -eo pipefail
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-3-edit-guards-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
-          grep -Eq "(^|[^0-9])0 deferred with reasons, 221 ran, 0 skipped" runner.out
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 228 ran, 0 skipped" runner.out
   lint:
     runs-on: ubuntu-latest
     steps:

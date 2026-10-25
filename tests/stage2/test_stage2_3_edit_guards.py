@@ -688,3 +688,36 @@ def test_ci_has_a_dedicated_lane_for_this_manifest():
     ci = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
     assert "run_stage1b1_tests.py docs/dev/stage2-3-edit-guards-manifest.json" in ci
     assert "stage2-3-edit-guards:" in ci
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "{}",
+        '{"error": "boom"}',
+        '{"blocking_issues": null}',
+        '{"blocking_issues": "x"}',
+        "[]",
+        "null",
+    ],
+)
+def test_contract_checker_json_without_a_blocking_issues_list_is_fail_closed(
+    tmp_path: Path, payload
+):
+    stub = f"import sys\nsys.stdout.write({payload!r})\nsys.exit(1)\n"
+    lay = _build_layout(tmp_path / "ok", stub_checker=stub)
+    r = _hygiene(lay, C4_BODY)
+    assert r.returncode == 2, (payload, r.stderr)
+    assert r.stdout == ""
+
+
+def test_hygiene_undecodable_input_exits_2_not_no_change(layout: Path, tmp_path: Path):
+    bad = tmp_path / "bad.md"
+    bad.write_bytes(b"\xff\xfe## Outcome\n")
+    h = _hygiene_in(layout)
+    r = _run([sys.executable, "-I", str(h), "--body-file", str(bad)])
+    assert r.returncode == 2 and "Traceback" not in r.stderr
+    r = subprocess.run(
+        [sys.executable, "-I", str(h)], input=b"\xff\xfe", capture_output=True, check=False
+    )
+    assert r.returncode == 2 and b"Traceback" not in r.stderr

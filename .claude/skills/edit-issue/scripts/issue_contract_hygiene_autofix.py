@@ -391,7 +391,14 @@ def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
                     file=sys.stderr,
                 )
                 return True, ["check_error"]
-            blocking = data.get("blocking_issues", [])
+            blocking = data.get("blocking_issues") if isinstance(data, dict) else None
+            if not isinstance(blocking, list):
+                # verdict without a blocking_issues list (e.g. {"error": ...}): no verdict -> closed
+                print(
+                    "[WARN] check_issue_contract.py --json had no blocking_issues list; failing closed",
+                    file=sys.stderr,
+                )
+                return True, ["check_error"]
             # blocking_issues is a list of strings (human-readable messages).
             # This script can only autofix C4 ($ prefix) and C9 (RVA section).
             # Filter out messages that belong to checks this script handles or cannot
@@ -605,11 +612,18 @@ def main() -> int:
         try:
             with open(args.body_file, "r", encoding="utf-8") as f:
                 original_body = f.read()
-        except OSError as e:
+        except (OSError, UnicodeDecodeError) as e:
             print(f"[ERROR] Cannot read body file: {e}", file=sys.stderr)
             return 2
     else:
-        original_body = sys.stdin.read()
+        try:
+            stdin_buffer = getattr(sys.stdin, "buffer", None)  # strict UTF-8 on the raw bytes
+            original_body = (
+                stdin_buffer.read().decode("utf-8") if stdin_buffer else sys.stdin.read()
+            )
+        except UnicodeDecodeError as e:
+            print(f"[ERROR] Cannot decode stdin as UTF-8: {e}", file=sys.stderr)
+            return 2
 
     original_sha256 = sha256_of(original_body)
     lines = original_body.splitlines(keepends=True)

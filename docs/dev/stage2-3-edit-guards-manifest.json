@@ -32,14 +32,14 @@
     ".claude/skills/edit-issue/tests/test_guard_ac_vc_alignment.py": 22,
     ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py": 31,
     ".claude/skills/issue-contract-review/tests/test_pytest_vc_baseline_shape_compiler.py": 38,
-    "tests/stage2/test_stage2_3_edit_guards.py": 60
+    "tests/stage2/test_stage2_3_edit_guards.py": 67
   },
   "expected_ran": {
     ".claude/skills/edit-issue/tests/test_guard_issue_body.py": 70,
     ".claude/skills/edit-issue/tests/test_guard_ac_vc_alignment.py": 22,
     ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py": 31,
     ".claude/skills/issue-contract-review/tests/test_pytest_vc_baseline_shape_compiler.py": 38,
-    "tests/stage2/test_stage2_3_edit_guards.py": 60
+    "tests/stage2/test_stage2_3_edit_guards.py": 67
   },
   "deferred_tests": [],
   "source_parity": {
@@ -50,9 +50,9 @@
     },
     ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py": {
       "source_sha256": "663ba27ae2633535c2f6415525484e0724cc629202097add492988b9b3c66f58",
-      "moved_sha256": "0c288355197aea4d24807782d96652166d6904b74308b234330fc3795b2682cf",
+      "moved_sha256": "4150c767af824bf9ce3230c66450d29cd774e14ae489d75aeeb48b4b4c068975",
       "verbatim": false,
-      "intentional_diff": "check_non_c4_c9_blockers fails closed (returns check_error -> exit 2) when check_issue_contract.py is missing, cannot write its temp file, times out (120s), crashes with empty stdout, or raises; source returned (False, []) i.e. fail-open for those cases. Invalid-JSON stdout was already fail-closed. repair_vc_baseline_shape also treats a loaded compiler without a callable compile_body, or whose compile_body raises / returns a non-dict, as compiler_load_failed (exit 2); source let that escape as a traceback with exit 1, indistinguishable from 'no repair needed'. Required by 'missing dependency is never success/skip'."
+      "intentional_diff": "check_non_c4_c9_blockers fails closed (returns check_error -> exit 2) when check_issue_contract.py is missing, cannot write its temp file, times out (120s), crashes with empty stdout, or raises; source returned (False, []) i.e. fail-open for those cases. Invalid-JSON stdout was already fail-closed. repair_vc_baseline_shape also treats a loaded compiler without a callable compile_body, or whose compile_body raises / returns a non-dict, as compiler_load_failed (exit 2); source let that escape as a traceback with exit 1, indistinguishable from 'no repair needed'. Required by 'missing dependency is never success/skip'. A checker JSON that is not an object or lacks a blocking_issues list is check_error (source: .get default [] = no blockers). Undecodable UTF-8 body file/stdin exits 2 (source: traceback, exit 1 = no_change)."
     },
     ".claude/skills/issue-contract-review/scripts/vc_baseline_shape_compiler.py": {
       "source_sha256": "40eb0465a15044227953f5629db97d7f110fb221878180f1449f9d4f0097e2a7",
@@ -90,10 +90,10 @@
     "source_collected_total": 161,
     "moved_collected_total": 161,
     "new_tests": {
-      "tests/stage2/test_stage2_3_edit_guards.py": 60
+      "tests/stage2/test_stage2_3_edit_guards.py": 67
     },
-    "collected_total": 221,
-    "ran_total": 221,
+    "collected_total": 228,
+    "ran_total": 228,
     "deferred_total": 0,
     "skipped": 0
   },
@@ -200,5 +200,22 @@
     }
   ],
   "evidence_boundary": "fixture / temporary-layout evidence only; no gh, no network, no real GitHub mutation. Source tests write short-lived probe files under the checkout (scripts/*_probe, some_dir_ac5_probe) and remove them in finally blocks.",
-  "lint_scope": "pyproject.toml ruff extend-exclude already covers .claude/skills; tests/stage2/test_stage2_3_edit_guards.py is linted and formatted."
+  "lint_scope": "pyproject.toml ruff extend-exclude already covers .claude/skills; tests/stage2/test_stage2_3_edit_guards.py is linted and formatted.",
+  "known_limitations": [
+    {
+      "item": "hygiene leaves compiler not_autofixable VC lines untouched when nothing else is mixed",
+      "basis": "source docstring contract of repair_vc_baseline_shape (only changed+warnings is UNSAFE_MIXED); VC non-canonical shape remains a review-issue/contract-review blocker, not a hygiene responsibility",
+      "owner_stage": "unchanged from source; revisit only with a contract decision"
+    },
+    {
+      "item": "guard_ac_vc_alignment(template_dir=None) library call reports skipped when the template dir is unresolved",
+      "basis": "CLI cannot reach it (guard_template raises first, exit 1); source behavior",
+      "owner_stage": "unchanged from source"
+    },
+    {
+      "item": "other repos' tests mention the scripts by name only (scripts/agent-guards/tests/test_issue_metadata_write_capability.py comment, scripts/ci/tests/test_python_invocation_policy.py string)",
+      "basis": "neither executes the scripts; not part of this slice",
+      "owner_stage": "stages migrating those files"
+    }
+  ]
 }
