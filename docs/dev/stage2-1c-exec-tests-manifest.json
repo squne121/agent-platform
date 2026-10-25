@@ -1,0 +1,347 @@
+{
+  "schema": "STAGE2_1C_EXEC_TESTS_MANIFEST_V1",
+  "issue": "squne121/agent-platform#39",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "scripts/agent-guards/controlled_skill_mutation_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "docs/dev/stage2-1b-exec-manifest.json",
+    "tests/stage2/test_stage2_1b_exec_closure.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py",
+    "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py",
+    "scripts/agent-guards/tests/test_controlled_exec_comment_content_reconciliation.py"
+  ],
+  "expected_collect": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py": 114,
+    "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py": 66,
+    "scripts/agent-guards/tests/test_controlled_exec_comment_content_reconciliation.py": 88
+  },
+  "expected_ran": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py": 104,
+    "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py": 44,
+    "scripts/agent-guards/tests/test_controlled_exec_comment_content_reconciliation.py": 88
+  },
+  "deferred_tests": [
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveCredentialActor::test_issue_dependency_remove_rejects_untrusted_or_unreadable_credential_actor",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveClosedStatusNoRetry::test_issue_dependency_remove_records_closed_status_and_never_retries_mutation",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveClosedStatusNoRetry::test_issue_dependency_remove_success_reports_removed_status",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemovePostconditionAndIdempotency::test_issue_dependency_remove_requires_all_page_post_snapshot_and_idempotency_marker",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveFailurePathsFailClosed::test_issue_dependency_remove_failure_paths_fail_closed_without_network_mutation",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveMutationFieldNames::test_mutation_call_site_variables_use_official_field_name",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemovePreMutationTrackedChanges::test_pre_existing_tracked_changes_block_mutation_before_network_call",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveAttemptMarker::test_marker_written_before_mutation_records_mutation_attempted",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveAttemptMarker::test_marker_records_actor_permission_and_blocker_identity_on_success",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py::TestIssueDependencyRemoveClosedStatusSetNoFailedValue::test_post_mutation_tracked_changes_status_is_postcondition_rejected",
+      "owner_stage": "stage_2 (follow-up; needs human approval of the issue_dependency.remove live lane)",
+      "reason": "drives main() with command id issue_dependency.remove, refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); handler kept verbatim and never reached (observed rc 2, not the handler's rc)",
+      "rerun_condition": "a human approves the issue_dependency.remove lane and adds it to APPROVED_LIVE_COMMAND_IDS in its own Issue; then remove these entries"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestContractSnapshotPublish::test_ac1_contract_snapshot_publish_from_root",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestContractSnapshotPublish::test_ac8_publisher_invoked_argv_list_shell_false",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestContractSnapshotPublish::test_contract_snapshot_publish_failure_not_success",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestContractSnapshotPublish::test_contract_snapshot_publish_remote_marker_missing_not_success",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestContractSnapshotPublish::test_contract_snapshot_publish_target_body_sha256_mismatch",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestContractSnapshotPublish::test_contract_snapshot_publish_ok_but_marker_missing_rc1",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestReadbackContractSnapshotLiveBodyRevalidation::test_contract_snapshot_publish_end_to_end_fails_closed_and_preserves_evidence",
+      "owner_stage": "I-4",
+      "reason": "drives main() with command id contract_snapshot.publish (I-4 contract_snapshot class), refused before any git/gh call by APPROVED_LIVE_COMMAND_IDS (#31); publisher ensure_contract_snapshot.py is an I-4 asset",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot / run_contract_review_once / contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_production_parser_accepts_trusted_snapshot",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author-None]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author-63350259]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_id-None]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_id-63350259]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_id-True]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_type-None]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_type-1]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_association-None]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_missing_identity_fails_closed[author_association-1]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_identity_tuple_mismatch_fails_closed[override0]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_identity_tuple_mismatch_fails_closed[override1]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_identity_tuple_mismatch_fails_closed[override2]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_identity_tuple_mismatch_fails_closed[override3]",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    },
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_identity_fixture_preserves_existing_safeguards",
+      "owner_stage": "I-4",
+      "reason": "loads .claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4 asset, FileNotFoundError); only meaningful for the contract_snapshot.publish trust chain whose lane is refused before execution",
+      "rerun_condition": "I-4 migrates contract_review_result_parser and a human approves the contract_snapshot.publish lane"
+    }
+  ],
+  "source_inventory": {
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec.py": {
+      "source_test_functions": 108,
+      "source_collected": 114,
+      "moved_collected": 114,
+      "ran": 104,
+      "deferred": 10,
+      "not_adopted": 0
+    },
+    "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py": {
+      "source_test_functions": 56,
+      "moved_test_functions": 55,
+      "moved_collected": 66,
+      "ran": 44,
+      "deferred": 22,
+      "not_adopted": 1,
+      "source_collected": 67
+    },
+    "scripts/agent-guards/tests/test_controlled_exec_comment_content_reconciliation.py": {
+      "note": "NEW in this Issue (AC4 / AC5 / PR #40 review residue); not a source file",
+      "collected": 88,
+      "ran": 88,
+      "deferred": 0
+    }
+  },
+  "not_adopted_tests": [
+    {
+      "id": "scripts/agent-guards/tests/test_controlled_issue_metadata_exec.py::TestSingleCommentCanonicalReadback::test_single_comment_read_only_github_smoke",
+      "marker": "github_live",
+      "reason": "performs a real read against github.com (and pytest.exit(77) when unavailable); the marker is unregistered under --strict-markers and deselecting it would be a hidden skip. Removed from the moved file instead (it is not collected, so nothing is deselected or skipped). No live evidence is produced by this lane.",
+      "owner_stage": "I-4 / live-evidence lane (human-approved only)",
+      "rerun_condition": "a separate Issue registers the marker and a human approves a read-only live smoke; its result must be recorded as live evidence, never as fixture evidence"
+    }
+  ],
+  "live_operations": {
+    "approved": [
+      "issue_body.update",
+      "issue_comment.publish",
+      "issue_content.update"
+    ],
+    "refused": [
+      "contract_snapshot.publish",
+      "issue_dependency.remove",
+      "issue_relationship.update",
+      "issue_scope_snapshot.materialize",
+      "test_verdict.publish"
+    ],
+    "note": "Issue creation is a later Stage 2 slice (no command id exists in this executor). Refused ids stay registered as inert data and are refused by APPROVED_LIVE_COMMAND_IDS before any git / gh call; their handlers are kept verbatim from the source."
+  },
+  "deferred_script_refs": [
+    {
+      "script": "ensure_contract_snapshot.py",
+      "reason": "publisher_script of contract_snapshot.publish; I-4 impl-review-loop asset; the lane is refused before execution",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates ensure_contract_snapshot and a human approves the lane"
+    },
+    {
+      "script": "run_contract_review_once.py",
+      "reason": "module-path constant of the contract_snapshot.publish trust chain; I-4 asset; lane refused before execution",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates run_contract_review_once"
+    },
+    {
+      "script": "contract_review_result_parser.py",
+      "reason": "module-path constant of the contract_snapshot.publish trust chain; I-4 asset; lane refused before execution",
+      "owner_stage": "I-4",
+      "rerun_condition": "I-4 migrates the contract review parser"
+    },
+    {
+      "script": "materialize_issue_scope_snapshot.py",
+      "reason": "materializer of issue_scope_snapshot.materialize, lazily imported by the executor; drags controlled_git_change_exec (1614 lines). Decision (#31): keep deferred; the lane is refused before execution and the dormant handler fails closed without the module (negative test)",
+      "owner_stage": "stage_2 (follow-up, needs human approval of a live git/scope lane)",
+      "rerun_condition": "a human approves the scope-snapshot lane; then migrate materialize_issue_scope_snapshot together with controlled_git_change_exec"
+    }
+  ],
+  "ac_coverage": {
+    "S2-1c-AC1": "collect 268 / ran 236 / deferred 32 pinned per file; skip 0; the only deselected tests are the listed deferred_tests",
+    "S2-1c-AC2": "controlled_skill_mutation_exec.py and APPROVED_LIVE_COMMAND_IDS are unchanged by this PR; tests/stage2/test_stage2_1b_exec_closure.py (unapproved ids refused before any call) still passes; the 32 deferred tests fail only because of that gate (rc 2) or the missing I-4 parser",
+    "S2-1c-AC3": "CI lane stage2-1c-exec-tests plus every earlier lane; run_stage1a_tests.py ignores this manifest's files via later_stage_test_manifests",
+    "S2-1c-AC4": "source tests already carried the positive update and the author-mismatch negative (test_controlled_skill_mutation_exec.py::test_issue_comment_publish_update_*); both mock executor internals. test_controlled_exec_comment_content_reconciliation.py adds fake-gh (subprocess-level) positive + negatives for the generic branch and for the human-history branch, whose PATCH ('updated') branch the source tests did NOT reach (only noop and foreign-author block): 36 AC4 tests",
+    "S2-1c-AC5": "tests/stage2/test_stage2_1b_exec_closure.py already pins title+body, the three stale checks, title-only partial, timeout-applied, idempotent re-run. This file adds title-only update / silent no-op / idempotency, reverse partial (body applied, title not), title-only applied then timeout (not reconciled as success), stale title for a title-only request, failed / lost PATCH: 18 AC5 tests"
+  },
+  "mutation": {
+    "method": "isolated scratch copy of the tree (never the worktree); one line-level mutation of controlled_skill_mutation_exec.py per run; killed = a test outside the baseline-failing set (the 32 deferred) newly fails",
+    "mutants": 41,
+    "killed": 41,
+    "survived": 0,
+    "groups": {
+      "comment update (author / duplicate / PATCH error / SHA readback / readback error / id resolution / login error)": 8,
+      "human-history update (author / duplicate / PATCH error / digest readback)": 4,
+      "issue_content.update (stale title / updated_at, title + body postconditions, timeout reconcile, idempotent title)": 6,
+      "approval gate (APPROVED_LIVE_COMMAND_IDS check removed)": 1,
+      "gh host / repo path of the comment PATCH": 2,
+      "git origin parser (host, scp host, URL userinfo, scp user, port, scheme, repo)": 7,
+      "LOOP_ISSUE_NUMBER (mismatch, isdigit)": 2,
+      "input file (subtree containment, symlink, dotdot, hardlink)": 4
+    },
+    "independent_review": "Reviewer B ran 60 further mutants on a scratch copy; 26 survived, 6 Major gaps (matched-comment targeting, title/body half-idempotency, ambiguous-readback title, post-PATCH readback failure, human-history create with unconfirmed actor, human-history readback cardinality) were closed with 10 new tests and 7 of those mutants re-run and killed. Not closed (Minor, recorded): tracked-change / marker-write postconditions of issue_content.update and the generic comment update, GitHub-login case-insensitivity of the author compare, patch_attempted on idempotent paths, post-PATCH isPullRequest, human-history readback author re-check (equivalent to the precheck)."
+  },
+  "observations": [
+    "Minor: LOOP_ISSUE_NUMBER is checked with .strip() + str.isdigit(), so ' 4242 ' and non-ASCII digits are accepted when they equal the bound issue number. They can never bind a different issue (pinned by a characterization test); executor left unchanged (outside Allowed Paths).",
+    "issue_comment.publish update-branch PATCH timeout is reported as failed / mutation_outcome=unknown without an in-run readback (unlike issue_content.update, which reads back once); the re-run reconciles through the remote marker precheck without a second PATCH (pinned). This is the fail-closed existing semantic, not changed."
+  ],
+  "decisions": {
+    "evidence_boundary": "every result in this lane is fixture evidence (in-process fake gh / mocks); no network, no real GitHub write. Nothing here is live GitHub evidence.",
+    "no_skip_policy": "0 skipped / 0 xfailed; the 32 deselected tests are exactly deferred_tests, each with owner_stage / reason / rerun_condition.",
+    "slug_literals": "every legacy repository slug in the moved tests was replaced by TRUSTED_REPO (check_no_functional_slug passes); the 'loop-protocol:contract-snapshot' marker namespace and the 'loop-protocol-bot' author fixture are wire/data strings, not repository identities",
+    "lint_scope": "pyproject.toml is outside the Allowed Paths: the moved files were ruff-formatted and linted with line-level noqa (ruff check --add-noqa), not excluded"
+  },
+  "intentional_diffs": [
+    "test_controlled_skill_mutation_exec.py / test_controlled_issue_metadata_exec.py: shebang removed; ruff format + ruff --add-noqa (61 directives) + ruff --fix; legacy slug literals -> TRUSTED_REPO",
+    "test_controlled_issue_metadata_exec.py: TestSingleCommentCanonicalReadback::test_single_comment_read_only_github_smoke (github_live) removed; unused datetime import removed with it",
+    "test_controlled_exec_comment_content_reconciliation.py: NEW",
+    "docs/dev/stage1a-core-manifest.json: later_stage_test_manifests += this manifest (only)",
+    ".github/workflows/ci.yml: job stage2-1c-exec-tests",
+    "executor / policy / pyproject.toml / AGENTS.md / CLAUDE.md / hooks: unchanged",
+    "test_controlled_issue_metadata_exec.py: tmp_project fixture no longer writes the dead stubs publish_termination_report.py / render_termination_report.py (termination_report.publish was retired upstream in #1873; no test reads them; check_import_closure flags the literals as unresolved script refs and the stage1a manifest may not be edited beyond later_stage_test_manifests)",
+    "test_controlled_skill_mutation_exec.py / test_controlled_issue_metadata_exec.py: + autouse fixture _scrub_ambient_env (delenv GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_COMMON_DIR / LOOP_ISSUE_NUMBER) so an ambient environment cannot change results (review C); tests that set these variables themselves are unaffected"
+  ],
+  "part": "Stage 2-1c (Closes #39; Parent #29 / #5; predecessor PR #40): source tests of controlled_skill_mutation_exec"
+}
