@@ -166,6 +166,22 @@ jobs:
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed)" runner.out; then exit 1; fi
           grep -Eq "(^|[^0-9])32 deselected" runner.out
           grep -Eq "(^|[^0-9])32 deferred with reasons, 236 ran, 0 skipped" runner.out
+  stage2-2-comment-lane:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect counts, 0 skipped / xfailed / deselected (fake gh / in-process executor, no real GitHub write)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-2-comment-lane-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 129 ran, 0 skipped" runner.out
   lint:
     runs-on: ubuntu-latest
     steps:

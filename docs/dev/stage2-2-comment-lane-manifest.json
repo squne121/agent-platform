@@ -1,0 +1,292 @@
+{
+  "schema": "STAGE2_2_COMMENT_LANE_MANIFEST_V1",
+  "issue": "squne121/agent-platform#32",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py",
+    ".claude/skills/issue-refinement-loop/scripts/isolation_issue_comment_bridge.py",
+    ".claude/skills/issue-refinement-loop/references/termination-policy.md",
+    ".claude/skills/issue-refinement-loop/references/scope-signal-guard.md",
+    ".claude/skills/issue-refinement-loop/SKILL.md",
+    ".claude/skills/issue-refinement-loop/fixtures/loop_state_v1_fixture.json",
+    ".claude/skills/issue-refinement-loop/tests/_trusted_repo.py",
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "scripts/agent-guards/controlled_skill_mutation_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "scripts/agent-guards/tests/test_controlled_exec_comment_content_reconciliation.py",
+    "docs/dev/stage2-1b-exec-manifest.json",
+    "docs/dev/stage2-1c-exec-tests-manifest.json"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py",
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py",
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report_dry_run.py",
+    ".claude/skills/issue-refinement-loop/tests/test_isolation_issue_comment_bridge.py",
+    ".claude/skills/issue-refinement-loop/tests/test_step5_termination_no_auto_dispatch.py",
+    ".claude/skills/issue-refinement-loop/tests/test_termination_marker_scoping_1914.py",
+    ".claude/skills/issue-refinement-loop/tests/test_termination_policy_contract.py",
+    ".claude/skills/issue-refinement-loop/tests/test_scope_signal_guard_termination.py",
+    "tests/stage2/test_stage2_2_comment_lane.py"
+  ],
+  "expected_collect": {
+    "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 18,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report_dry_run.py": 10,
+    ".claude/skills/issue-refinement-loop/tests/test_isolation_issue_comment_bridge.py": 22,
+    ".claude/skills/issue-refinement-loop/tests/test_step5_termination_no_auto_dispatch.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_termination_marker_scoping_1914.py": 8,
+    ".claude/skills/issue-refinement-loop/tests/test_termination_policy_contract.py": 2,
+    ".claude/skills/issue-refinement-loop/tests/test_scope_signal_guard_termination.py": 7,
+    "tests/stage2/test_stage2_2_comment_lane.py": 46
+  },
+  "expected_ran": {
+    "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py": 11,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 18,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report_dry_run.py": 10,
+    ".claude/skills/issue-refinement-loop/tests/test_isolation_issue_comment_bridge.py": 22,
+    ".claude/skills/issue-refinement-loop/tests/test_step5_termination_no_auto_dispatch.py": 5,
+    ".claude/skills/issue-refinement-loop/tests/test_termination_marker_scoping_1914.py": 8,
+    ".claude/skills/issue-refinement-loop/tests/test_termination_policy_contract.py": 2,
+    ".claude/skills/issue-refinement-loop/tests/test_scope_signal_guard_termination.py": 7,
+    "tests/stage2/test_stage2_2_comment_lane.py": 46
+  },
+  "deferred_tests": [],
+  "source_parity": {
+    ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py": {
+      "source_sha256": "f18e79b9f7368a843df0d1e8dfcd3c42633df4ab74862f52913809692bc789d5",
+      "moved_sha256": "eaac6340b59e03f50c2fdde5619274dfb816cb4c24ef51ecfa29ac46c7c2996f",
+      "verbatim": false
+    },
+    ".claude/skills/issue-refinement-loop/scripts/isolation_issue_comment_bridge.py": {
+      "source_sha256": "edcbef19131ac30b6b938d5697169120e7c438c3c59da240e20e75caab2861ec",
+      "moved_sha256": "edcbef19131ac30b6b938d5697169120e7c438c3c59da240e20e75caab2861ec",
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/references/termination-policy.md": {
+      "source_sha256": "7fda1b338da575fa694e3a782a9bfae053da06d633cb43ae357304c80ed0ca2f",
+      "moved_sha256": "7fda1b338da575fa694e3a782a9bfae053da06d633cb43ae357304c80ed0ca2f",
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/references/scope-signal-guard.md": {
+      "source_sha256": "10e5de6c379381a19888495685335e1581c532b9d5b5bca6a66ab527e1d1c0a8",
+      "moved_sha256": "10e5de6c379381a19888495685335e1581c532b9d5b5bca6a66ab527e1d1c0a8",
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_isolation_issue_comment_bridge.py": {
+      "source_sha256": "2921fe1f241ce73a221de887e83410f00bc54b7f4892aea1395e49e670ab7da5",
+      "moved_sha256": "26ee8ec28ee706fc7e26c0facc5b6f698ab26cde3deecabc1d94ad4bfa25dbf4",
+      "verbatim": false
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": {
+      "source_sha256": "46d7887530f6f1cf3d26ef260a75fe4694174a18334f49d52ae9a51f29cf6b82",
+      "moved_sha256": "be0d8e687a5bf02cb8171f0e3a02d57eaabfed2f0dfad2281575346bd1f48907",
+      "verbatim": false
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report_dry_run.py": {
+      "source_sha256": "40cd210eeebca7c4361a68a85ca13653f2fedbd5f3cd5f7a2078fa6a0b3ed98f",
+      "moved_sha256": "8729fa5fdeb7d567954c38297e55c32e669650d180d621e0ace019e6aa36ac85",
+      "verbatim": false
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_step5_termination_no_auto_dispatch.py": {
+      "source_sha256": "75bb18aa146ffc0a5c0195bb88a57aa389e0080961309cfe36cbc1f4ae841e63",
+      "moved_sha256": "75bb18aa146ffc0a5c0195bb88a57aa389e0080961309cfe36cbc1f4ae841e63",
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_termination_marker_scoping_1914.py": {
+      "source_sha256": "d5d69f8cc41d157a05e87e7510c5026d2351fc9f67cdda3e6d8a3505db45fcc1",
+      "moved_sha256": "d5d69f8cc41d157a05e87e7510c5026d2351fc9f67cdda3e6d8a3505db45fcc1",
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_termination_policy_contract.py": {
+      "source_sha256": "5226a5a594d2ad2a8caaa5911e2cdc1308dd62f9530dd96afd458874b73562b6",
+      "moved_sha256": "5226a5a594d2ad2a8caaa5911e2cdc1308dd62f9530dd96afd458874b73562b6",
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_scope_signal_guard_termination.py": {
+      "source_sha256": "af2248ecf4e0642e3ae681a5a00d819cb7667263c05230d32e7fb34089b737e6",
+      "moved_sha256": "af2248ecf4e0642e3ae681a5a00d819cb7667263c05230d32e7fb34089b737e6",
+      "verbatim": true
+    },
+    "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py": {
+      "source_sha256": "56f751402ea106450c4a59218e024bba2a0fa97a3462a4bd5cf64769b4267161",
+      "moved_sha256": "ff6c0ce0e336487b17fac1902bbcfe0f0711605e297013048895b395aea70f25",
+      "verbatim": false
+    }
+  },
+  "source_inventory": {
+    "source_tests_in_scope": {
+      "publish_termination_report": 18,
+      "dry_run": 10,
+      "bridge": 22,
+      "step5_no_auto_dispatch": 5,
+      "termination_marker_scoping": 8,
+      "termination_policy_contract": 2,
+      "scope_signal_guard_termination": 7,
+      "isolation_issue_comment_publish_bridge": 11
+    },
+    "source_collected_total": 83,
+    "moved_collected_total": 83,
+    "new_tests": {
+      "tests/stage2/test_stage2_2_comment_lane.py": 46
+    },
+    "collected_total": 129,
+    "ran_total": 129,
+    "deferred_total": 0,
+    "skipped": 0
+  },
+  "not_adopted_tests": [
+    {
+      "id": "test_scope_signal_guard_false_positive_regression.py",
+      "reason": "not in the Issue #32 In Scope test list; it exercises scope_signal_guard internals rather than Step 5 termination publishing",
+      "owner_stage": "stage that migrates the scope_signal_delta / guard consumers (follows #29)",
+      "rerun_condition": "the owning stage migrates the file and lists it in its own manifest"
+    },
+    {
+      "id": "test_scope_signal_guard_lane_split.py",
+      "reason": "not in the Issue #32 In Scope test list; it exercises scope_signal_guard internals rather than Step 5 termination publishing",
+      "owner_stage": "stage that migrates the scope_signal_delta / guard consumers (follows #29)",
+      "rerun_condition": "the owning stage migrates the file and lists it in its own manifest"
+    },
+    {
+      "id": "test_scope_signal_guard_new_allowed_path_layer_delta_regression.py",
+      "reason": "not in the Issue #32 In Scope test list; it exercises scope_signal_guard internals rather than Step 5 termination publishing",
+      "owner_stage": "stage that migrates the scope_signal_delta / guard consumers (follows #29)",
+      "rerun_condition": "the owning stage migrates the file and lists it in its own manifest"
+    }
+  ],
+  "deferred_ownership": [
+    {
+      "item": "scripts/task-context/task_contextctl.py",
+      "owner_stage": "Stage 3 (best-effort adapter)",
+      "reason": "not migrated; publish_termination_report invokes it only after a successful post and degrades to disposition=deferred reason_code=ADAPTER_UNAVAILABLE",
+      "rerun_condition": "Stage 3 migrates task_contextctl; then the deferred assertion in tests/stage2/test_stage2_2_comment_lane.py is replaced by an applied-path test",
+      "pinned_by": "tests/stage2/test_stage2_2_comment_lane.py::test_task_context_adapter_absent_is_deferred_not_a_post_failure"
+    },
+    {
+      "item": "dependency / follow-up materialization",
+      "owner_stage": "2-6",
+      "reason": "referenced only from termination-policy.md prose; not part of the comment lane",
+      "rerun_condition": "Stage 2-6"
+    },
+    {
+      "item": "ensure_contract_snapshot / run_contract_review_once (I-4)",
+      "owner_stage": "I-4",
+      "reason": "unchanged from stage 2-1b/2-1c deferral; not reached by the comment lane",
+      "rerun_condition": "I-4 migrates them and a human approves the lane"
+    },
+    {
+      "item": ".claude/skills/issue-refinement-loop/SKILL.md Stage 2 unavailable wording",
+      "owner_stage": "#37 (2-7)",
+      "reason": "partial migration must not flip Step 5 to terminal-ready",
+      "rerun_condition": "#37"
+    }
+  ],
+  "dangling_refs": [
+    {
+      "ref": "render_termination_report.py",
+      "where": "publish_termination_report.py docstring, termination-policy.md, SKILL.md, moved test docstrings",
+      "reason": "removed in the source tag; never revived (tests/stage2/test_stage2_2_comment_lane.py::test_removed_source_assets_are_not_revived)",
+      "owner_stage": "n/a (removed upstream)"
+    },
+    {
+      "ref": "build_loop_state.py",
+      "where": "docstrings / SKILL.md / termination-policy.md",
+      "reason": "removed in the source tag; never revived",
+      "owner_stage": "n/a (removed upstream)"
+    },
+    {
+      "ref": "task_contextctl.py",
+      "where": "publish_termination_report.py (runtime subprocess target)",
+      "reason": "Stage 3 asset; registered in stage1a-core-manifest import_closure.deferred_script_refs",
+      "owner_stage": "Stage 3"
+    },
+    {
+      "ref": "scripts/dependency_materializer.py",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "2-6",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "scripts/run_contract_review_once.py",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "I-4",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "scripts/task-context/task_context_workflow_signals.py",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "Stage 3",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "references/anchor-comment-handling.md, references/dependency-materialization.md, references/loop-state.md",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "later references stage (#37 / 2-6)",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "schemas/loop_handoff_result_v1.json, schemas/loop_state.schema.json",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "removed in the source / not needed by the comment lane",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    },
+    {
+      "ref": "docs/dev/workflow.md, docs/dev/agent-skill-boundaries.md, docs/dev/secret-policy.md",
+      "where": "termination-policy.md / scope-signal-guard.md (verbatim prose, never executed by the comment lane)",
+      "reason": "prose-only reference from a verbatim document; not a runtime dependency of publish_termination_report / the bridge",
+      "owner_stage": "not migrated; prose-only",
+      "rerun_condition": "the owning stage migrates the target; re-check the link then"
+    }
+  ],
+  "live_operations": {
+    "approved_lane": [
+      "issue_comment.publish"
+    ],
+    "note": "This lane performs no live operation. The controlled executor is real, `gh` is the in-process stateful FakeGh (stage 2-1c), git runs against a throw-away repository."
+  },
+  "evidence_boundary": {
+    "fixture": "every result here is fixture evidence (fake gh / mocks); no network and no GitHub write",
+    "live": "none produced; a real GitHub Pilot-1 is out of scope and is not claimed"
+  },
+  "intentional_diffs": [
+    "isolation_issue_comment_bridge.py / termination-policy.md / scope-signal-guard.md: byte-identical to the source tag (no legacy slug is hard-coded; repo identity is enforced by the controlled executor via repo_identity)",
+    "publish_termination_report.py: one comment line (123) `C:\\Users\\...` -> `C:\\Temp\\...` so scripts/check_public_hygiene.sh (Windows home-path pattern) passes; no code change",
+    "test_isolation_issue_comment_bridge.py / test_publish_termination_report.py: legacy slug literals -> TRUSTED_REPO (tests/_trusted_repo.py)",
+    "test_publish_termination_report_dry_run.py: legacy slug -> TRUSTED_REPO; the disposable fixture repository also copies repo_identity.py + config/repository_identity.v1.json (the policy now imports them); the child interceptor reads the expected repo from HARNESS_REPO; the human-history evidence URL is derived from the trusted slug. The `loop-protocol/human-history` marker is a wire identifier and is kept",
+    "scripts/agent-guards/tests/test_isolation_issue_comment_publish_bridge.py: shebang removed, ruff format + 12 noqa (SIM117 nested with, as in stage 2-1c), stub write for the removed render_termination_report.py dropped",
+    "tests/stage2/test_stage2_2_comment_lane.py: NEW (publisher -> bridge -> real controlled executor -> FakeGh; write-zero, marker/idempotency, readback/partial/timeout, dry-run, task_contextctl deferred, bridge helper, human-history env/occurrence, closure; 46 tests)",
+    "docs/dev/stage1a-core-manifest.json: later_stage_test_manifests += this manifest; not_migrated_source_tests -= 7 migrated files (103 -> 96); import_closure.deferred_script_refs: publish_termination_report.py (stale) removed, task_contextctl.py added",
+    ".github/workflows/ci.yml: job stage2-2-comment-lane",
+    "executor / policy / SKILL.md / pyproject.toml / AGENTS.md / CLAUDE.md / hooks: unchanged"
+  ],
+  "part": "Stage 2-2 (Closes #32; Parent #29 / #5; predecessors PR #40 / #41): Step 5 comment lane",
+  "mutation": {
+    "method": "isolated scratch copy of the tree (never the worktree); one line-level mutation per run",
+    "reviewer_b_round1": {
+      "mutants": 63,
+      "note": "survivors in publisher signal gate (approved), marker-precheck listing failure, bridge post_isolation_issue_comment (timeout/repo/materialize), human-history env pop were closed by tests added in the follow-up commit"
+    },
+    "rechecked_killed": [
+      "approved-gate -> is not None",
+      "marker precheck list_err ignored",
+      "bridge timeout -1 -> 0",
+      "bridge --repo hard-coded",
+      "human-history LOOP_ISSUE_NUMBER not popped"
+    ],
+    "residual_equivalent": [
+      "human-history namespace occurrence count (!=1 -> <1) is also rejected by the later opening/closing/final-line checks and pinned by the 2-1b parse tests (test_human_history_controlled_publish.py, lane stage2-1c)",
+      "origin check / PATCH readback digest / human-history final line are pinned by the stage 2-1c lane files (test_human_history_controlled_publish.py, test_controlled_exec_comment_content_reconciliation.py), not duplicated here"
+    ]
+  }
+}

@@ -199,11 +199,6 @@
         "owner_stage": "stage_1b-1 (#12)"
       },
       {
-        "script": "publish_termination_report.py",
-        "reason": "referenced as a string target by test_producer_fail_closed.py (publish/mutation path, Stage 2); the 11 pinned tests do not execute it, so it need not exist (Issue #14 scope)",
-        "owner_stage": "stage_2"
-      },
-      {
         "script": "ensure_contract_snapshot.py",
         "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
         "owner_stage": "I-4"
@@ -222,6 +217,11 @@
         "script": "contract_review_result_parser.py",
         "reason": "module-path constant of the contract_snapshot.publish trust chain in the executor; I-4 asset, lane refused before execution",
         "owner_stage": "I-4"
+      },
+      {
+        "script": "task_contextctl.py",
+        "reason": "runtime subprocess target of publish_termination_report (best-effort refinement_approved signal); not migrated, the publisher degrades to deferred/ADAPTER_UNAVAILABLE (pinned in tests/stage2/test_stage2_2_comment_lane.py)",
+        "owner_stage": "stage_3"
       }
     ]
   },
@@ -230,7 +230,7 @@
     "tests/test_run_refinement_preflight_credentialless_transport.py:1279: synthetic home path literal split (same value at runtime)"
   ],
   "not_migrated_source_tests": {
-    "count": 103,
+    "count": 96,
     "owner_stage": "follows the stage that migrates the implementation each file covers; per-file triage happens at that stage's closure (not assigned individually here)",
     "source": "pre-split-agent-platform-20261020 issue-refinement-loop/tests and scripts/tests",
     "files": [
@@ -264,7 +264,6 @@
       "test_human_history_template_safety.py",
       "test_investigation_evidence_transport_boundary_flags.py",
       "test_investigation_evidence_transport_mutation_guard.py",
-      "test_isolation_issue_comment_bridge.py",
       "test_issue_1952_trusted_directive_regression.py",
       "test_issue_design_reviewer_bounded_discovery_runtime_smoke.py",
       "test_issue_design_reviewer_reachability_runtime_smoke.py",
@@ -289,8 +288,6 @@
       "test_placeholder_angle_token_false_positive.py",
       "test_plan_issue_scope_rollup.py",
       "test_preflight_runtime_schema_recovery.py",
-      "test_publish_termination_report.py",
-      "test_publish_termination_report_dry_run.py",
       "test_readiness_forwarding_contract.py",
       "test_refinement_only_vs_explicit_implementation_dispatch.py",
       "test_repair_action_apply_consumer.py",
@@ -319,16 +316,12 @@
       "test_scope_signal_guard_false_positive_regression.py",
       "test_scope_signal_guard_lane_split.py",
       "test_scope_signal_guard_new_allowed_path_layer_delta_regression.py",
-      "test_scope_signal_guard_termination.py",
       "test_skill_md_wiring.py",
       "test_source_evidence_recovery.py",
-      "test_step5_termination_no_auto_dispatch.py",
       "test_structural_repair_action_apply_consumer.py",
       "test_structural_repair_deadlock_arbitration.py",
       "test_structural_repair_known_scalars_wiring.py",
       "test_template_section_repair.py",
-      "test_termination_marker_scoping_1914.py",
-      "test_termination_policy_contract.py",
       "test_thin_entrypoint.py",
       "test_trusted_anchor_iteration_zero.py",
       "test_trusted_human_context_patch_safety.py",
@@ -415,7 +408,8 @@
     "docs/dev/stage1b4-semantic-review-manifest.json",
     "docs/dev/stage2-1a-policy-manifest.json",
     "docs/dev/stage2-1b-exec-manifest.json",
-    "docs/dev/stage2-1c-exec-tests-manifest.json"
+    "docs/dev/stage2-1c-exec-tests-manifest.json",
+    "docs/dev/stage2-2-comment-lane-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",
