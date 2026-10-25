@@ -340,7 +340,8 @@
     "docs/dev/stage1a-core-manifest.json: later_stage_test_manifests += this manifest (only)",
     ".github/workflows/ci.yml: job stage2-1c-exec-tests",
     "executor / policy / pyproject.toml / AGENTS.md / CLAUDE.md / hooks: unchanged",
-    "test_controlled_issue_metadata_exec.py: tmp_project fixture no longer writes the dead stubs publish_termination_report.py / render_termination_report.py (termination_report.publish was retired upstream in #1873; no test reads them; check_import_closure flags the literals as unresolved script refs and the stage1a manifest may not be edited beyond later_stage_test_manifests)"
+    "test_controlled_issue_metadata_exec.py: tmp_project fixture no longer writes the dead stubs publish_termination_report.py / render_termination_report.py (termination_report.publish was retired upstream in #1873; no test reads them; check_import_closure flags the literals as unresolved script refs and the stage1a manifest may not be edited beyond later_stage_test_manifests)",
+    "test_controlled_skill_mutation_exec.py / test_controlled_issue_metadata_exec.py: + autouse fixture _scrub_ambient_env (delenv GIT_DIR / GIT_WORK_TREE / GIT_INDEX_FILE / GIT_COMMON_DIR / LOOP_ISSUE_NUMBER) so an ambient environment cannot change results (review C); tests that set these variables themselves are unaffected"
   ],
   "part": "Stage 2-1c (Closes #39; Parent #29 / #5; predecessor PR #40): source tests of controlled_skill_mutation_exec"
 }

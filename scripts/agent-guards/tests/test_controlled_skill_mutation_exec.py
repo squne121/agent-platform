@@ -56,6 +56,19 @@ from controlled_skill_mutation_policy import (
 )
 
 
+@pytest.fixture(autouse=True)
+def _scrub_ambient_env(monkeypatch):
+    """Ambient GIT_* / LOOP_ISSUE_NUMBER must not leak into the tmp-repo and binding tests."""
+    for key in (
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_COMMON_DIR",
+        "LOOP_ISSUE_NUMBER",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
 class TestGraphqlCallDiagnosticRedaction:
     def test_errors_redacts_before_truncation_when_token_crosses_boundary(self):
         fake_token = "ghp_" + "A" * 36

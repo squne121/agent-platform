@@ -61,6 +61,19 @@ def _contract_snapshot_input(issue_number: int, **overrides) -> dict:
     return data
 
 
+@pytest.fixture(autouse=True)
+def _scrub_ambient_env(monkeypatch):
+    """Ambient GIT_* / LOOP_ISSUE_NUMBER must not leak into the tmp-repo and binding tests."""
+    for key in (
+        "GIT_DIR",
+        "GIT_WORK_TREE",
+        "GIT_INDEX_FILE",
+        "GIT_COMMON_DIR",
+        "LOOP_ISSUE_NUMBER",
+    ):
+        monkeypatch.delenv(key, raising=False)
+
+
 @pytest.fixture()
 def tmp_project(tmp_path):
     executor_dir = tmp_path / "scripts" / "agent-guards"
