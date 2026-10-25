@@ -1,0 +1,204 @@
+{
+  "schema": "STAGE2_3_EDIT_GUARDS_MANIFEST_V1",
+  "issue": "squne121/agent-platform#33",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/edit-issue/scripts/guard-issue-body.py",
+    ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py",
+    ".claude/skills/issue-contract-review/scripts/vc_baseline_shape_compiler.py",
+    ".claude/skills/issue-contract-review/scripts/vc_contract_syntax.py",
+    ".claude/skills/review-issue/scripts/check_issue_contract.py",
+    ".claude/skills/create-issue/scripts/prose_boundary_policy.py",
+    ".claude/skills/create-issue/scripts/validate_issue_body.py",
+    "scripts/agent-ops/allowed_paths_policy.py",
+    ".github/ISSUE_TEMPLATE/implementation.yml",
+    ".github/ISSUE_TEMPLATE/research.yml",
+    ".github/ISSUE_TEMPLATE/parent.yml"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    ".claude/skills/edit-issue/tests/test_guard_issue_body.py",
+    ".claude/skills/edit-issue/tests/test_guard_ac_vc_alignment.py",
+    ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py",
+    ".claude/skills/issue-contract-review/tests/test_pytest_vc_baseline_shape_compiler.py",
+    "tests/stage2/test_stage2_3_edit_guards.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/edit-issue/tests/test_guard_issue_body.py": 70,
+    ".claude/skills/edit-issue/tests/test_guard_ac_vc_alignment.py": 22,
+    ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py": 31,
+    ".claude/skills/issue-contract-review/tests/test_pytest_vc_baseline_shape_compiler.py": 38,
+    "tests/stage2/test_stage2_3_edit_guards.py": 60
+  },
+  "expected_ran": {
+    ".claude/skills/edit-issue/tests/test_guard_issue_body.py": 70,
+    ".claude/skills/edit-issue/tests/test_guard_ac_vc_alignment.py": 22,
+    ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py": 31,
+    ".claude/skills/issue-contract-review/tests/test_pytest_vc_baseline_shape_compiler.py": 38,
+    "tests/stage2/test_stage2_3_edit_guards.py": 60
+  },
+  "deferred_tests": [],
+  "source_parity": {
+    ".claude/skills/edit-issue/scripts/guard-issue-body.py": {
+      "source_sha256": "bd1bd061ea44ed94b257aa7f949924b6ca9ef610f7b040d5c3b405aef3f94802",
+      "moved_sha256": "bd1bd061ea44ed94b257aa7f949924b6ca9ef610f7b040d5c3b405aef3f94802",
+      "verbatim": true
+    },
+    ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py": {
+      "source_sha256": "663ba27ae2633535c2f6415525484e0724cc629202097add492988b9b3c66f58",
+      "moved_sha256": "0c288355197aea4d24807782d96652166d6904b74308b234330fc3795b2682cf",
+      "verbatim": false,
+      "intentional_diff": "check_non_c4_c9_blockers fails closed (returns check_error -> exit 2) when check_issue_contract.py is missing, cannot write its temp file, times out (120s), crashes with empty stdout, or raises; source returned (False, []) i.e. fail-open for those cases. Invalid-JSON stdout was already fail-closed. repair_vc_baseline_shape also treats a loaded compiler without a callable compile_body, or whose compile_body raises / returns a non-dict, as compiler_load_failed (exit 2); source let that escape as a traceback with exit 1, indistinguishable from 'no repair needed'. Required by 'missing dependency is never success/skip'."
+    },
+    ".claude/skills/issue-contract-review/scripts/vc_baseline_shape_compiler.py": {
+      "source_sha256": "40eb0465a15044227953f5629db97d7f110fb221878180f1449f9d4f0097e2a7",
+      "moved_sha256": "40eb0465a15044227953f5629db97d7f110fb221878180f1449f9d4f0097e2a7",
+      "verbatim": true
+    },
+    ".claude/skills/edit-issue/tests/test_guard_ac_vc_alignment.py": {
+      "source_sha256": "27a532171aef5b8cebbc9b1ed9e1b4183a3f735f89a69db6e456c20ff40826c9",
+      "moved_sha256": "27a532171aef5b8cebbc9b1ed9e1b4183a3f735f89a69db6e456c20ff40826c9",
+      "verbatim": true
+    },
+    ".claude/skills/edit-issue/tests/test_guard_issue_body.py": {
+      "source_sha256": "c84a2d9d90cd107aea6669fc792b5c90eea6a92cba6628a73c64544482754a9a",
+      "moved_sha256": "c84a2d9d90cd107aea6669fc792b5c90eea6a92cba6628a73c64544482754a9a",
+      "verbatim": true
+    },
+    ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py": {
+      "source_sha256": "0371bb8f65bd6424383d4e5c40525aa2dec20c19e2661af015c0e62975b3ff0c",
+      "moved_sha256": "0371bb8f65bd6424383d4e5c40525aa2dec20c19e2661af015c0e62975b3ff0c",
+      "verbatim": true
+    },
+    ".claude/skills/issue-contract-review/tests/test_pytest_vc_baseline_shape_compiler.py": {
+      "source_sha256": "c1c122f99298b39475633286593b860844d4c38ffcd5534922ff775cafff5c7f",
+      "moved_sha256": "c1c122f99298b39475633286593b860844d4c38ffcd5534922ff775cafff5c7f",
+      "verbatim": true
+    }
+  },
+  "source_inventory": {
+    "source_tests_in_scope": {
+      "test_guard_issue_body": 70,
+      "test_guard_ac_vc_alignment": 22,
+      "test_issue_contract_hygiene_autofix": 31,
+      "test_pytest_vc_baseline_shape_compiler": 38
+    },
+    "source_collected_total": 161,
+    "moved_collected_total": 161,
+    "new_tests": {
+      "tests/stage2/test_stage2_3_edit_guards.py": 60
+    },
+    "collected_total": 221,
+    "ran_total": 221,
+    "deferred_total": 0,
+    "skipped": 0
+  },
+  "import_closure": {
+    "subprocess_targets": [
+      "review-issue/scripts/check_issue_contract.py (hygiene, --file X --json, 120s timeout, fail-closed)",
+      "guard-issue-body.py and hygiene run as subprocess by the moved tests"
+    ],
+    "path_loaded_modules": [
+      "issue-contract-review/scripts/vc_baseline_shape_compiler.py (hygiene, spec_from_file_location, load failure -> exit 2)",
+      "issue-contract-review/scripts/vc_contract_syntax.py (compiler)",
+      "create-issue/scripts/prose_boundary_policy.py (guard)",
+      "create-issue/scripts/validate_issue_body.py (guard consumer)",
+      "scripts/agent-ops/allowed_paths_policy.py (guard/hygiene/compiler)"
+    ],
+    "repo_root_rule": "parents[4] of each script; layout shift is a hard failure (pinned by tests/stage2)",
+    "stage1a_import_closure": "edit-issue/scripts added to scan_dirs/closure_dirs in docs/dev/stage1a-core-manifest.json"
+  },
+  "document_excerpt": {
+    "path": "docs/dev/agent-skill-boundaries.md",
+    "created": false,
+    "required_sections": [],
+    "basis": "No moved script or test reads this document or asserts any heading/anchor of it; the only occurrences are path strings inside fixture issue bodies (test_guard_issue_body.py, test_guard_ac_vc_alignment.py). A heading list would therefore be invented to satisfy no assertion, so no excerpt is created and the 3223-line source document is not migrated.",
+    "dependents_unchanged": "SKILL.md / contract_readiness_check.py already on main cite the path or #OUTPUT_BUDGET_V1 as prose; they were not added by this slice and no test here depends on them.",
+    "owner_stage": "stage that migrates docs/dev design documents (follows #29)",
+    "rerun_condition": "a migrated test starts asserting a section of the document; then only that section is excerpted and listed here"
+  },
+  "not_adopted_source_tests": [
+    {
+      "id": "test_edit_issue_txn.py",
+      "owner_stage": "2-4 (#34)",
+      "reason": "covers edit_issue_txn.py (transaction body), out of scope",
+      "rerun_condition": "#34 migrates edit_issue_txn.py"
+    },
+    {
+      "id": "test_edit_issue_txn_preexisting_readiness.py",
+      "owner_stage": "2-4 (#34)",
+      "reason": "covers edit_issue_txn.py",
+      "rerun_condition": "#34"
+    },
+    {
+      "id": "test_issue_content_update_txn.py",
+      "owner_stage": "2-4 (#34)",
+      "reason": "covers the content-update transaction",
+      "rerun_condition": "#34"
+    },
+    {
+      "id": "test_live_canary_full_relationship_cycle.py",
+      "owner_stage": "I-4 / Stage 3",
+      "reason": "live canary against real GitHub; this slice claims no live evidence",
+      "rerun_condition": "Stage 3 live canary approval"
+    },
+    {
+      "id": "live_canary_full_relationship_cycle.sh",
+      "owner_stage": "I-4 / Stage 3",
+      "reason": "live canary script",
+      "rerun_condition": "Stage 3 live canary approval"
+    },
+    {
+      "id": "live_canary_parent_readback.sh",
+      "owner_stage": "I-4 / Stage 3",
+      "reason": "live canary script",
+      "rerun_condition": "Stage 3 live canary approval"
+    }
+  ],
+  "deferred_ownership": [
+    {
+      "item": "edit_issue_txn.py",
+      "owner_stage": "2-4 (#34)",
+      "reason": "transaction body that launches guard/hygiene; consumes them, is not part of this slice",
+      "rerun_condition": "#34"
+    },
+    {
+      "item": "backup-and-parse-issue.py and edit-issue/SKILL.md",
+      "owner_stage": "2-4 (#34)",
+      "reason": "not referenced by the moved guard/hygiene/compiler or their tests",
+      "rerun_condition": "#34"
+    },
+    {
+      "item": ".claude/agents/issue-author.md (Agent)",
+      "owner_stage": "Stage 3 / #34 issue-editor",
+      "reason": "moved tests use the path only as fixture text for the `.claude/agents/` non-runtime prefix; no assertion requires the file to exist, so no replacement test and no Agent migration; pinned by test_issue_author_references_are_fixture_text_only",
+      "rerun_condition": "an Agent-contract assertion that opens the file is migrated; then replace with issue-editor equivalence"
+    },
+    {
+      "item": "live canary / real GitHub mutation",
+      "owner_stage": "I-4 / Stage 3",
+      "reason": "no real GitHub write in this slice",
+      "rerun_condition": "human-approved live canary"
+    }
+  ],
+  "intentional_diffs": [
+    {
+      "file": ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py",
+      "change": "fail-closed contract-checker invocation (see source_parity) plus CHECK_ISSUE_CONTRACT_TIMEOUT_SEC"
+    },
+    {
+      "file": "docs/dev/stage1a-core-manifest.json",
+      "change": "later_stage_test_manifests += this manifest; import_closure scan/closure dirs += edit-issue/scripts"
+    },
+    {
+      "file": ".github/workflows/ci.yml",
+      "change": "stage2-3-edit-guards lane"
+    }
+  ],
+  "evidence_boundary": "fixture / temporary-layout evidence only; no gh, no network, no real GitHub mutation. Source tests write short-lived probe files under the checkout (scripts/*_probe, some_dir_ac5_probe) and remove them in finally blocks.",
+  "lint_scope": "pyproject.toml ruff extend-exclude already covers .claude/skills; tests/stage2/test_stage2_3_edit_guards.py is linted and formatted."
+}
