@@ -414,7 +414,8 @@
     "docs/dev/stage1b3b-pipeline-tests-manifest.json",
     "docs/dev/stage1b4-semantic-review-manifest.json",
     "docs/dev/stage2-1a-policy-manifest.json",
-    "docs/dev/stage2-1b-exec-manifest.json"
+    "docs/dev/stage2-1b-exec-manifest.json",
+    "docs/dev/stage2-1c-exec-tests-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",
