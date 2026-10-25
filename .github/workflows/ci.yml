@@ -165,7 +165,7 @@ jobs:
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-1c-exec-tests-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed)" runner.out; then exit 1; fi
           grep -Eq "(^|[^0-9])32 deselected" runner.out
-          grep -Eq "(^|[^0-9])32 deferred with reasons, 226 ran, 0 skipped" runner.out
+          grep -Eq "(^|[^0-9])32 deferred with reasons, 236 ran, 0 skipped" runner.out
   lint:
     runs-on: ubuntu-latest
     steps:

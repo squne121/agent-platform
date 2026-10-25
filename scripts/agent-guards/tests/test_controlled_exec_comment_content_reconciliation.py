@@ -79,6 +79,7 @@ class FakeGh:
         self.posts = 0
         self.view_fail_after_patch = False
         self.dup_after_patch = False
+        self.issue_get_fail_after_patch = False
 
     def gh_calls(self) -> list[list[str]]:
         return [c for c in self.calls if c and c[0] == self.gh]
@@ -111,7 +112,7 @@ class FakeGh:
             self.unexpected.append(list(argv))
         if argv[-3:] == ["user", "--jq", ".login"]:
             if self.user_rc:
-                return self._cp(argv, rc=1, err="HTTP 401")
+                return self._cp(argv, rc=1, out="ghost\n", err="HTTP 401")
             return self._cp(argv, out=(self.login or "") + "\n")
         method = argv[argv.index("--method") + 1] if "--method" in argv else "GET"
         path = next(x for x in argv if x.startswith("repos/"))
@@ -131,6 +132,8 @@ class FakeGh:
             self.add_comment(body, numeric=9000 + n, author=self.login, url=url)
             return self._cp(argv, out=json.dumps({"html_url": url, "id": 9000 + n}))
         if method == "GET" and path == f"repos/{TRUSTED}/issues/{ISSUE}":
+            if self.issue_get_fail_after_patch and self.issue_patches:
+                return self._cp(argv, rc=1, err="HTTP 502")
             return self._cp(
                 argv,
                 out=json.dumps(
@@ -728,3 +731,89 @@ def test_loop_issue_number_lenient_spellings_still_bind_only_the_same_issue(
     rel = _arm_comment_update(fake)
     monkeypatch.setenv("LOOP_ISSUE_NUMBER", value)
     assert _run(fake, CID_COMMENT, rel) == 0
+
+
+# ----------------------------------------------------------------------------- review B residue
+
+
+def test_ac4_patch_targets_the_matched_comment_not_a_decoy(fake, capsys):
+    fake.add_comment("unrelated\n", numeric=111, author="someone-else")
+    fake.add_comment(_generic_body("old payload"), numeric=555)
+    new = _generic_body("new payload")
+    rel = _write_input(fake, CID_COMMENT, _comment_input(new))
+    assert _run(fake, CID_COMMENT, rel) == 0
+    assert fake.comment_patches == [(f"repos/{TRUSTED}/issues/comments/555", new)]
+    assert fake.comments[0]["body"] == "unrelated\n"
+
+
+def test_ac4_human_history_patch_targets_the_matched_comment_not_a_decoy(fake, capsys):
+    fake.add_comment("unrelated\n", numeric=111, author="someone-else")
+    fake.add_comment(_hh_body("古い履歴"), numeric=555)
+    new = _hh_body("新しい履歴")
+    rel = _write_input(fake, CID_COMMENT, _comment_input(new, _hh_marker()))
+    assert _run(fake, CID_COMMENT, rel) == 0
+    assert fake.comment_patches == [(f"repos/{TRUSTED}/issues/comments/555", new)]
+    assert fake.comments[0]["body"] == "unrelated\n"
+
+
+def test_ac4_human_history_create_with_unconfirmed_actor_writes_nothing(fake, capsys):
+    fake.user_rc = 1
+    rel = _write_input(fake, CID_COMMENT, _comment_input(_hh_body("新しい履歴"), _hh_marker()))
+    assert _run(fake, CID_COMMENT, rel) == 1
+    assert _result(capsys)["reason"].startswith("human_history_author_check_failed")
+    assert fake.posts == 0 and fake.comment_patches == []
+
+
+def test_ac4_human_history_ambiguous_readback_after_patch_is_not_success(fake, capsys):
+    fake.dup_after_patch = True
+    fake.add_comment(_hh_body("古い履歴"))
+    rel = _write_input(fake, CID_COMMENT, _comment_input(_hh_body("新しい履歴"), _hh_marker()))
+    assert _run(fake, CID_COMMENT, rel) == 1
+    assert _result(capsys)["reason"].startswith("human_history_readback_failed")
+
+
+def test_ac5_remote_title_already_new_but_body_old_still_patches_body(fake, capsys):
+    fake.title = "new title"
+    rel = _write_input(fake, CID_CONTENT, _content_input(fake))
+    assert _run(fake, CID_CONTENT, rel) == 0
+    assert (fake.title, fake.body, fake.issue_patches) == ("new title", "new body\n", 1)
+
+
+def test_ac5_remote_body_already_new_but_title_old_still_patches_title(fake, capsys):
+    fake.body = "new body\n"
+    rel = _write_input(fake, CID_CONTENT, _content_input(fake))
+    assert _run(fake, CID_CONTENT, rel) == 0
+    assert (fake.title, fake.body, fake.issue_patches) == ("new title", "new body\n", 1)
+
+
+def test_ac5_body_only_applied_then_timeout_is_not_reconciled_as_success(fake, capsys):
+    fake.partial = "body_only"
+    fake.issue_patch_mode = "timeout_applied"
+    rel = _write_input(fake, CID_CONTENT, _content_input(fake))
+    assert _run(fake, CID_CONTENT, rel) == 1
+    assert _result(capsys)["mutation_outcome"] == "unknown"
+    assert fake.title == "old title"
+
+
+def test_ac5_readback_failure_after_successful_patch_is_not_success(fake, capsys):
+    fake.issue_get_fail_after_patch = True
+    rel = _write_input(fake, CID_CONTENT, _content_input(fake))
+    assert _run(fake, CID_CONTENT, rel) == 1
+    out = _result(capsys)
+    assert out["patch_attempted"] is True and out["mutation_outcome"] == "unknown"
+
+
+def test_ac5_failed_patch_and_unreadable_readback_is_not_success(fake, capsys):
+    fake.issue_get_fail_after_patch = True
+    fake.issue_patch_mode = "fail"
+    rel = _write_input(fake, CID_CONTENT, _content_input(fake))
+    assert _run(fake, CID_CONTENT, rel) == 1
+    assert _result(capsys)["mutation_outcome"] == "unknown"
+
+
+def test_ac5_title_whitespace_difference_is_stale(fake, capsys):
+    rel = _write_input(fake, CID_CONTENT, _content_input(fake))
+    fake.title = "old title "
+    assert _run(fake, CID_CONTENT, rel) == 1
+    assert _result(capsys)["reason"] == "stale_precondition_title_mismatch"
+    assert fake.issue_patches == 0
