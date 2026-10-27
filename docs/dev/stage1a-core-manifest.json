@@ -124,22 +124,12 @@
         "owner_stage": "stage_2 / I-4"
       },
       {
-        "module": "edit_issue_txn",
-        "reason": "imported only by 2 deferred env-parity tests of the executor (test_controlled_skill_mutation_exec_env_parity.py); migrated with the edit-issue Skill",
-        "owner_stage": "stage_2 (#34)"
-      },
-      {
         "module": "materialize_issue_scope_snapshot",
         "reason": "lazily imported by the executor's issue_scope_snapshot.materialize handler; that lane is refused before execution and the handler fails closed without the module (Issue #31 decision: keep deferred)",
         "owner_stage": "stage_2 (follow-up; needs human approval of the lane)"
       }
     ],
     "deferred_script_refs": [
-      {
-        "script": "edit_issue_txn.py",
-        "reason": "mutation transaction (Stage 2)",
-        "owner_stage": "stage_2"
-      },
       {
         "script": "owner_reaction_decision.py",
         "reason": "mutation gate (Stage 2)",

@@ -729,8 +729,8 @@ _AGENT_FRONTMATTER_KEYS = {"name", "description", "tools", "disallowedTools", "m
 _AGENT_TOOLS = ["Bash", "Read", "Grep", "Glob"]
 _AGENT_DISALLOWED_TOOLS = ["Edit", "Write", "MultiEdit", "Agent", "Skill"]
 _SKILL_DIR = _REPO_ROOT / ".claude/skills/issue-refinement-loop"
-# 参照のみ・実行しない dangling (owner_stage: Stage 2 = GitHub mutation Agent)。manifest dangling_refs と対応。
-_STAGE2_DANGLING_REFS = {".claude/agents/issue-editor.md"}
+# 参照のみ・実行しない dangling。issue-editor.md は Stage 2-4 (#34) で着地したため空。
+_STAGE2_DANGLING_REFS: set[str] = set()
 
 
 def _agent_contract_violations(text: str, *, file_stem: str) -> list[str]:
