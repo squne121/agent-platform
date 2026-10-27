@@ -103,7 +103,8 @@
       "scripts/agent-ops",
       "scripts/agent-guards",
       ".claude/skills/impl-review-loop/scripts",
-      ".claude/skills/review-issue/scripts"
+      ".claude/skills/review-issue/scripts",
+      ".claude/skills/edit-issue/scripts"
     ],
     "closure_dirs": [
       ".claude/skills/issue-refinement-loop/scripts",
@@ -113,7 +114,8 @@
       "scripts/agent-guards",
       ".claude/skills/impl-review-loop/scripts",
       "scripts/agent-ops/tests/fixtures",
-      ".claude/skills/review-issue/scripts"
+      ".claude/skills/review-issue/scripts",
+      ".claude/skills/edit-issue/scripts"
     ],
     "deferred_imports": [
       {
@@ -409,10 +411,15 @@
     "docs/dev/stage2-1a-policy-manifest.json",
     "docs/dev/stage2-1b-exec-manifest.json",
     "docs/dev/stage2-1c-exec-tests-manifest.json",
-    "docs/dev/stage2-2-comment-lane-manifest.json"
+    "docs/dev/stage2-2-comment-lane-manifest.json",
+    "docs/dev/stage2-3-edit-guards-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",
     "note": "Stage 1b-3a: run_root_review_pipeline / reviewer_transport / compact_review_result / compact_author_result / validate_review_compact_output migrated, so the reviewer_transport deferred import and the run_root_review_pipeline.py / validate_review_compact_output.py deferred script refs are removed (see docs/dev/stage1b3a-producer-transport-manifest.json). Their test files live in the same dirs as the 1a lane, so run_stage1a_tests.py ignores the files owned by `later_stage_test_manifests` (each is pinned and run by its own lane); the migrated names are removed from not_migrated_source_tests. Stage 1b-3b (docs/dev/stage1b3b-pipeline-tests-manifest.json) adds the pipeline-path tests the same way. Stage 1b-4 (#15): test_issue_design_reviewer_{bounded_discovery,reachability}_evaluator, test_join_review_results and test_semantic_review_{bounded_discovery_contract,consumer_reachability_contract,transport,trigger} moved out of not_migrated_source_tests (count 110 -> 103); docs/dev/stage1b4-semantic-review-manifest.json pins them."
+  },
+  "stage_2_3": {
+    "issue": "squne121/agent-platform#33",
+    "note": "Stage 2-3: test_guard_issue_body / test_guard_ac_vc_alignment / test_issue_contract_hygiene_autofix (edit-issue/tests) and test_pytest_vc_baseline_shape_compiler (issue-contract-review/tests) live outside the 1a test_dirs, so no name left not_migrated_source_tests (count stays 96); docs/dev/stage2-3-edit-guards-manifest.json pins them and edit-issue/scripts joined the import-closure scan."
   }
 }
