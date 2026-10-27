@@ -287,7 +287,7 @@ def _assert_failed_no_mutation(proj: Project, rc: int, res: dict, code: str | No
     assert proj.state["patches"] == 0 and proj.state["posts"] == 0
     assert proj.state["body"] == OLD_BODY
     if code is not None:
-        assert any(code in (e["code"] + e["message"]) for e in res["errors"]), res["errors"]
+        assert any(e["code"] == code or code in e["message"] for e in res["errors"]), res["errors"]
 
 
 # --------------------------------------------------------------------------- AC1: repo identity, write-zero
@@ -434,9 +434,10 @@ def _run_backup(proj: Project, origin: str, issue: str = "34") -> subprocess.Com
     [
         f"https://github.com/{LEGACY_SLUG}.git",
         "git@github.com:someone/agent-platform.git",
+        f"https://evil.example/github.com/{TRUSTED}.git",
         "https://example.com/squne121/agent-platform.git",
     ],
-    ids=["legacy", "other_owner", "other_host"],
+    ids=["legacy", "other_owner", "evil_host_path_trick", "other_host"],
 )
 def test_ac1_backup_script_untrusted_origin_makes_zero_gh_calls(proj: Project, origin: str) -> None:
     cp = _run_backup(proj, origin)
@@ -463,6 +464,21 @@ def test_ac1_backup_script_trusted_origin_backs_up_body_and_metadata(proj: Proje
     assert Path(meta["backup_file"]).read_text(encoding="utf-8") == OLD_BODY
     assert Path(meta["backup_file"]).parent == work / "tmp"
     assert [c[:2] for c in proj.gh_calls] == [["issue", "view"]]
+
+
+@pytest.mark.parametrize("breakage", ["config_missing", "module_missing"])
+def test_ac1_backup_script_unusable_identity_makes_zero_gh_calls(
+    proj: Project, breakage: str
+) -> None:
+    target = {
+        "config_missing": proj.root / "config" / "repository_identity.v1.json",
+        "module_missing": proj.root / "scripts" / "agent-guards" / "repo_identity.py",
+    }[breakage]
+    target.unlink()
+    cp = _run_backup(proj, f"https://github.com/{TRUSTED}.git")
+    assert cp.returncode == 1 and "identity unavailable" in cp.stderr
+    assert proj.gh_calls == []
+    assert not list((proj.root.parent / "backup_work").glob("tmp/issue_*"))
 
 
 @pytest.mark.parametrize(
@@ -605,6 +621,16 @@ def test_ac2_comment_publish_failure_is_failed_after_mutation(proj: Project) -> 
     assert res["comment_publish"]["status"] == "failed"
     assert any(e["code"] == "issue_comment_publish_failed" for e in res["errors"])
     assert proj.state["comments"] == []
+
+
+def test_ac2_comment_failure_after_body_update_is_failed_after_mutation(proj: Project) -> None:
+    proj.set_state(post_mode="fail")
+    rc, res = proj.run_txn(
+        proj.payload(VALID_BODY, comment_mode=_comment_mode(proj, "<!-- m4 -->"))
+    )
+    assert rc == 1 and res["status"] == "failed_after_mutation" and res["mutation_started"] is True
+    assert res["body_update"]["status"] == "ok" and res["comment_publish"]["status"] == "failed"
+    assert proj.state["body"] == VALID_BODY and proj.state["comments"] == []
 
 
 def test_ac2_body_update_then_comment_publishes_both(proj: Project) -> None:
@@ -781,7 +807,10 @@ def test_ac2_controlled_executor_timeout_is_not_failed_no_mutation(
     log = _scripted(monkeypatch, repo_tmp, controlled=(124, "", "child command timeout after 30s"))
     result = txn.run_transaction(_payload(repo_tmp))
     assert result["status"] in {"mutation_outcome_unknown", "failed_after_mutation"}
-    assert result["status"] != "failed_no_mutation" or result["mutation_started"] is False
+    assert (
+        result["body_update"]["attempted"] is True and result["body_update"]["status"] == "failed"
+    )
+    assert any(e["code"] == "issue_body_update_failed" for e in result["errors"])
     assert any(
         n == "controlled_skill_mutation_exec.py" for n, _ in log
     )  # the write was attempted exactly via the executor
@@ -895,6 +924,10 @@ HYGIENE_REJECTED = {
     "exit_3": ((3, "", "boom"), "issue_contract_hygiene_runtime_error"),
     "exit_127": ((127, "", "not found"), "issue_contract_hygiene_runtime_error"),
     "killed_by_signal": ((-9, "", ""), "issue_contract_hygiene_runtime_error"),
+    "exit_1_uncaught_traceback": (
+        (1, "", "Traceback (most recent call last):\n  File x\nValueError"),
+        "issue_contract_hygiene_runtime_error",
+    ),
     "exit_0_with_stdout": (
         (0, "body leaked to stdout", ""),
         "issue_contract_hygiene_invalid_output",

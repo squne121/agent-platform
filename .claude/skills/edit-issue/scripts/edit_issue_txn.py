@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
@@ -229,11 +230,16 @@ def _require_trusted_repo(repo: str) -> None:
     identity config or module is a rejection, never a skip.
     """
     try:
-        if str(AGENT_GUARDS_IMPORT_ROOT) not in sys.path:
-            sys.path.insert(0, str(AGENT_GUARDS_IMPORT_ROOT))
-        from repo_identity import is_trusted_repo
-
-        trusted = is_trusted_repo(repo)
+        # Loaded from the fixed on-disk path on every call (no sys.path / sys.modules lookup), so a
+        # shadowing or pre-registered `repo_identity` module can never answer for the trusted slug.
+        spec = importlib.util.spec_from_file_location(
+            "_edit_issue_txn_repo_identity", AGENT_GUARDS_IMPORT_ROOT / "repo_identity.py"
+        )
+        if spec is None or spec.loader is None:
+            raise ImportError("repo_identity_spec_unavailable")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        trusted = module.is_trusted_repo(repo)
     except Exception as exc:
         raise ValueError("repo_identity_unavailable") from exc
     if not trusted:
@@ -832,6 +838,9 @@ def _hygiene_rejection(hygiene_cp: subprocess.CompletedProcess[str]) -> dict[str
     if rc == 2:
         return _child_error(hygiene_cp, "issue_contract_hygiene_unsafe_or_checker_error")
     if rc not in (0, 1):
+        return _child_error(hygiene_cp, "issue_contract_hygiene_runtime_error")
+    if rc == 1 and "Traceback" in hygiene_cp.stderr:
+        # an uncaught Python exception also exits 1; only a clean `status: no_change` is "no repair needed"
         return _child_error(hygiene_cp, "issue_contract_hygiene_runtime_error")
     if hygiene_cp.stdout.strip():
         return {

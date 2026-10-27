@@ -19,6 +19,7 @@ Files written:
 """
 
 import argparse
+import importlib.util
 import json
 import re
 import subprocess
@@ -44,20 +45,23 @@ def get_repo() -> str:
         capture_output=True, text=True, check=True
     )
     url = result.stdout.strip()
-    # https://github.com/owner/repo.git  or  git@github.com:owner/repo.git
-    url = re.sub(r'.*github\.com[:/]', '', url)
-    url = re.sub(r'\.git$', '', url)
-    return url
+    # Only github.com remotes map to an owner/repo; any other host yields "" (never trusted).
+    # https://github.com/owner/repo.git  or  git@github.com:owner/repo.git  or  ssh://git@github.com/owner/repo.git
+    m = re.fullmatch(
+        r'(?:https://(?:[^/@]+@)?github\.com/|ssh://git@github\.com/|git@github\.com:)(.+?)(?:\.git)?/?',
+        url,
+    )
+    return m.group(1) if m else ""
 
 
 def require_trusted_repo(repo: str) -> None:
     """Fail closed (before any `gh` call) unless the origin remote is the trusted repo."""
     guards = Path(__file__).resolve().parents[4] / "scripts" / "agent-guards"
-    sys.path.insert(0, str(guards))
     try:
-        from repo_identity import is_trusted_repo
-
-        trusted = is_trusted_repo(repo)
+        spec = importlib.util.spec_from_file_location("_backup_repo_identity", guards / "repo_identity.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        trusted = module.is_trusted_repo(repo)
     except Exception as exc:  # unusable identity config/module is a rejection, never a skip
         print(f"[ERROR] repo identity unavailable: {exc}", file=sys.stderr)
         sys.exit(1)
@@ -97,14 +101,14 @@ def main() -> None:
     args = parser.parse_args()
 
     issue_number: int = args.issue_number
+    repo = get_repo()
+    require_trusted_repo(repo)
     ts = int(time.time())
     repo_root = get_repo_root()
     backup_dir = repo_root / "tmp"
     backup_dir.mkdir(parents=True, exist_ok=True)
     backup_file = backup_dir / f"issue_{issue_number}_backup_{ts}.md"
 
-    repo = get_repo()
-    require_trusted_repo(repo)
     title, body = fetch_title_and_body(issue_number, repo)
 
     backup_file.write_text(body, encoding="utf-8")
