@@ -50,7 +50,7 @@
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 1,
-    "tests/stage2/test_stage2_4_edit_txn.py": 180
+    "tests/stage2/test_stage2_4_edit_txn.py": 183
   },
   "expected_ran": {
     ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 43,
@@ -58,7 +58,7 @@
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 3,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 0,
-    "tests/stage2/test_stage2_4_edit_txn.py": 180
+    "tests/stage2/test_stage2_4_edit_txn.py": 183
   },
   "deferred_tests": [
     {
@@ -509,10 +509,10 @@
     },
     "source_collected_total": 198,
     "new_tests": {
-      "tests/stage2/test_stage2_4_edit_txn.py": 180
+      "tests/stage2/test_stage2_4_edit_txn.py": 183
     },
-    "collected_total": 378,
-    "ran_total": 335,
+    "collected_total": 381,
+    "ran_total": 338,
     "deferred_total": 43,
     "skipped": 0,
     "note": "source counts match the Issue text (test_edit_issue_txn 69, preexisting_readiness 118, issue_content_update_txn 3); the source files are collected as moved (only the repo literal differs)."

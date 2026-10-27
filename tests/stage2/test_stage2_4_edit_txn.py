@@ -380,6 +380,27 @@ def test_ac1_unusable_identity_config_rejects_before_any_child_command(
     assert calls == []
 
 
+def test_ac1_shadow_repo_identity_module_cannot_answer(
+    repo_tmp: Path, calls, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A `repo_identity` registered in sys.modules or placed first on sys.path is ignored: the module is
+    always loaded from the fixed on-disk path."""
+    import types
+
+    fake = types.ModuleType("repo_identity")
+    fake.is_trusted_repo = lambda repo, config_path=None: True
+    monkeypatch.setitem(sys.modules, "repo_identity", fake)
+    evil = tmp_path / "evil"
+    evil.mkdir()
+    (evil / "repo_identity.py").write_text(
+        "def is_trusted_repo(repo, config_path=None):\n    return True\n"
+    )
+    monkeypatch.setattr(sys, "path", [str(evil), *sys.path])
+    with pytest.raises(ValueError, match="repo_untrusted"):
+        txn.run_transaction(_payload(repo_tmp, repo="evil/x"))
+    assert calls == []
+
+
 def test_ac1_missing_identity_module_rejects_before_any_child_command(
     repo_tmp: Path, calls, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -435,16 +456,27 @@ def _run_backup(proj: Project, origin: str, issue: str = "34") -> subprocess.Com
         f"https://github.com/{LEGACY_SLUG}.git",
         "git@github.com:someone/agent-platform.git",
         f"https://evil.example/github.com/{TRUSTED}.git",
+        f"ssh://git@evil.example/{TRUSTED}.git",
+        f"git@evil.example:{TRUSTED}.git",
         "https://example.com/squne121/agent-platform.git",
     ],
-    ids=["legacy", "other_owner", "evil_host_path_trick", "other_host"],
+    ids=[
+        "legacy",
+        "other_owner",
+        "evil_host_path_trick",
+        "evil_ssh_host",
+        "evil_scp_host",
+        "other_host",
+    ],
 )
 def test_ac1_backup_script_untrusted_origin_makes_zero_gh_calls(proj: Project, origin: str) -> None:
     cp = _run_backup(proj, origin)
     assert cp.returncode == 1, cp.stderr
     assert "trusted" in cp.stderr
     assert proj.gh_calls == []
-    assert not list((proj.root.parent / "backup_work").glob("tmp/issue_*"))  # nothing backed up
+    assert not (
+        proj.root.parent / "backup_work" / "tmp"
+    ).exists()  # rejected before any local side effect
 
 
 def test_ac1_backup_script_trusted_origin_backs_up_body_and_metadata(proj: Project) -> None:
