@@ -1,0 +1,242 @@
+{
+  "schema": "STAGE2_5_CREATE_TXN_MANIFEST_V1",
+  "issue": "squne121/agent-platform#35",
+  "parents": [
+    "squne121/agent-platform#29",
+    "squne121/agent-platform#5"
+  ],
+  "successors": [
+    "squne121/agent-platform#36",
+    "squne121/agent-platform#37"
+  ],
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "access": "read-only (git show); the legacy repo is never written"
+  },
+  "required_files": [
+    ".claude/skills/create-issue/scripts/create_issue_txn.py",
+    ".claude/skills/create-issue/scripts/validate_issue_body.py",
+    ".claude/skills/create-issue/SKILL.md",
+    ".claude/skills/create-issue/references/body-authoring.md",
+    ".claude/skills/create-issue/references/implementation-label-autoassign.md",
+    ".claude/agents/issue-creator.md",
+    ".claude/agents/issue-editor.md",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "docs/dev/stage2-4-edit-txn-manifest.json"
+  ],
+  "required_fixtures": [
+    "tests/stage2/fixtures/fake_gh_create.py",
+    "tests/stage2/fixtures/valid_implementation_body.md"
+  ],
+  "test_files": [
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py",
+    "tests/stage2/test_stage2_5_create_txn.py"
+  ],
+  "expected_collect": {
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
+    "tests/stage2/test_stage2_5_create_txn.py": 89
+  },
+  "expected_ran": {
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
+    "tests/stage2/test_stage2_5_create_txn.py": 89
+  },
+  "deferred_tests": [],
+  "deferred_files": [],
+  "source_parity": {
+    ".claude/skills/create-issue/scripts/create_issue_txn.py": {
+      "source_sha256": "02215e8b1f6735fe12dbafefede8eba09d41fa361b4e13d826c0afed43789bb1",
+      "moved_sha256": "a9a5b39eea43c4c70a31f8ebfa2e4b3a732399ee824740a42120ef76fea0c95d",
+      "verbatim": false,
+      "source_lines": 3087,
+      "moved_lines": 3355,
+      "intentional_diff": "Stage 2-5 hardening of the source transaction (see intentional_diffs 1-5).",
+      "source_ast_sha256": "b82cb7167a66289bfac578d326d53d4883126be1da0c30d38bbace860c902d01",
+      "moved_ast_sha256": "145f220ed030de0eb5c13d35f644443ebcdef56965bdad633ebb399ac643c887"
+    },
+    ".claude/skills/create-issue/SKILL.md": {
+      "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
+      "moved_sha256": "beda806043aaa654ce16da606020d6fabae724f885f81d321d62b5ab155eb880",
+      "verbatim": false,
+      "source_lines": 574,
+      "moved_lines": 585,
+      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it."
+    },
+    ".claude/agents/issue-creator.md": {
+      "source_sha256": "e348e9918dab4f397df093fb65c4175d90381ddd5ffa883d453e52e354c69af2",
+      "moved_sha256": "aa8d8a498b8c2aa36b043ee807ce9001c655d0256bdbec7e7ef45711d3585220",
+      "verbatim": false,
+      "source_lines": 59,
+      "moved_lines": 66,
+      "intentional_diff": "Added the '承認境界（agent-platform / Stage 2-5）' section before the output contract; frontmatter and every other line are byte-identical to the source."
+    },
+    ".claude/skills/create-issue/references/body-authoring.md": {
+      "source_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
+      "moved_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
+      "verbatim": true,
+      "source_lines": 799,
+      "moved_lines": 799
+    },
+    ".claude/skills/create-issue/references/implementation-label-autoassign.md": {
+      "source_sha256": "22e1290cf572e7cd957938295a1f9cb8564a42145239bd053e453965153e9d0d",
+      "moved_sha256": "22e1290cf572e7cd957938295a1f9cb8564a42145239bd053e453965153e9d0d",
+      "verbatim": true,
+      "source_lines": 47,
+      "moved_lines": 47
+    }
+  },
+  "source_inventory": {
+    "source_tests_in_scope": {
+      "test_create_issue_txn.py": 138,
+      "test_create_issue_txn_blocking.py": 16,
+      "test_create_issue_txn_validation_hook.py": 5,
+      "test_create_issue_txn_validator_parity.py": 5,
+      "test_issue_creator_issue_editor_split.py (re-run, owned by #34 manifest)": 7
+    },
+    "source_in_scope_total": 164,
+    "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
+    "new_tests": {
+      "tests/stage2/test_stage2_5_create_txn.py": 89
+    },
+    "collected_total": 96,
+    "ran_total": 96,
+    "deferred_total": 0,
+    "skipped": 0,
+    "not_migrated_source_tests": {
+      "owner Stage 2-6 / #36": [
+        "tests/create-issue/test_issue_overlap_*.py (9 files)",
+        "tests/create-issue/test_materialize_child_issues_*.py (6 files)",
+        "tests/create-issue/test_parent_child_section_patch.py",
+        ".claude/skills/create-issue/tests/test_check_issue_overlap_*.py (3 files)",
+        ".claude/skills/create-issue/tests/test_plan_child_materialization.py"
+      ],
+      "owner unassigned (not in Issue #35 In Scope; no script they cover is migrated)": [
+        ".claude/skills/create-issue/tests/test_body_authoring_actual_vs_fixture_runtime_ac_separation.py",
+        ".claude/skills/create-issue/tests/test_deletion_vc_guidance_exit_semantics.py",
+        ".claude/skills/create-issue/tests/test_verify_vc_single_command_guardrail_docs.py",
+        ".claude/skills/create-issue/scripts/tests/test_{gfm_table_detection,heading_policy,lp010_ac_extraction_regression,mrc_contract_parser,prose_boundary_policy*,validate_api_*,validate_japanese_content}.py"
+      ]
+    },
+    "fixtures_not_migrated": ".claude/skills/create-issue/tests/fixtures/implementation_issue_*.md (5 files) and tests/fixtures/create-issue/* are referenced by no in-scope test; the second set is #36 child-materialization data."
+  },
+  "intentional_diffs": [
+    "1. repo identity: `_require_trusted_repo` (exact match against repo_identity via the fixed on-disk path) runs in the public `run_transaction` / `reconcile_transaction` (and therefore `main`, and `run_transaction_with_authoritative_readback`) BEFORE any `gh` call. Source only checked that --repo was `<owner>/<name>`. A wrong, legacy, malformed or missing repo and an unusable identity config/module are `repo-identity` failures with zero gh calls.",
+    "2. approved operations: label / native parent (sub-issue) / blocked-by / blocking are unapproved live operations. `_gate_approved_operations` rejects (`unapproved-operation`, zero gh calls) any effective label (explicit `--label`, `--issue-kind implementation` auto labels, and `--label-profile triage_only`, which ALWAYS adds `triage-required`), `--parent-issue`, `--blocked-by`/`--dependency`, `--blocking`, in both create and reconcile. A body-derived parent is rejected right after local body parsing and before the first gh call (`approved_operations_only`). Source applied all of them after the create.",
+    "3. structure: the source bodies are kept as `_run_transaction_engine` / `_reconcile_transaction_engine` (label/parent/dependency handlers retained, not reachable from any CLI/library entrypoint; AST test pins the only two callers). The public names are the gated wrappers with the same signature.",
+    "4. create failure classification: the `gh issue create` step is wrapped. Source let the TransactionError escape (a traceback from `main`, no JSON receipt). Now timeout / empty or unparsable URL / a non-zero exit with a visible issue become `issue-create-outcome-unknown` after an authoritative title readback (candidate number reported); only a definite non-zero exit with a clean readback stays `issue-create`, and neither asserts no-mutation.",
+    "5. `main` converts an escaped TransactionError into a JSON failure receipt (exit 1) instead of a traceback; dispatch moved to `_dispatch`.",
+    "6. SKILL.md / issue-creator.md: approval-boundary sections added (the source text describes label/parent/dependency usage and raw gh recovery; that is documentation, not approval). `--issue-kind` absent + MRC kind in the body is the label-free route.",
+    "7. tests: engine substitution in the two source txn test files; conftest reduced to an import shim; live canary test deferred."
+  ],
+  "known_source_defects": [
+    {
+      "id": "triage-only-is-not-label-free",
+      "where": "_resolve_labels",
+      "detail": "label_profile=triage_only always adds `triage-required`; it cannot prove the AC3 label-free path. Pinned by test_ac3_triage_only_is_not_label_free and rejected by the gate.",
+      "owner": "squne121/agent-platform#35 (resolved by gating; label approval is a human decision)"
+    },
+    {
+      "id": "create-step-exception-escapes",
+      "where": "run_transaction -> _issue_create",
+      "detail": "a timeout or CLI failure at the create step escaped as an exception outside the transaction's try block (no JSON receipt, outcome unknown).",
+      "owner": "squne121/agent-platform#35 (fixed, intentional_diffs 4/5)"
+    }
+  ],
+  "agent_skill_parity": {
+    "issue_creator_source_frontmatter": {
+      "name": "issue-creator",
+      "description": "GitHub Issue の **新規起票** のみを担当する SubAgent。`create-issue` skill のみを preload する。issue-refinement-loop / post-merge-cleanup / impl-review-loop / main session など、follow-up Issue や新規 Issue の起票を委譲したい呼び出し元から使う。ネスト委譲禁止。既存 Issue の修正は `issue-editor` を使う。",
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "disallowedTools": [
+        "Agent",
+        "Edit",
+        "MultiEdit",
+        "Write",
+        "Skill"
+      ],
+      "model": "sonnet",
+      "effort": "medium",
+      "permissionMode": "acceptEdits",
+      "skills": [
+        "create-issue"
+      ]
+    },
+    "frontmatter_byte_identical_to_source": true,
+    "permission_mode_note": "`permissionMode: acceptEdits` auto-accepts file-edit tools only; the agent disallows Edit/MultiEdit/Write, so it is not a permission bypass.",
+    "skills_note": "`skills: [create-issue]` is a context preload, not a tool-level allowlist; nested Skill/Agent invocation is blocked because `Skill` is absent from `tools` and both `Skill` and `Agent` are in `disallowedTools`.",
+    "procedural_contract_note": "the raw `gh` mutation ban is a procedural contract; no Bash-tool-level enforcement is claimed. The SKILL text that describes raw gh label/sub-issue/blocking recovery is NOT an approval (approval-boundary sections added).",
+    "role_split": "issue-creator (new Issues) / issue-editor (existing Issue body) keep identical tools/disallowedTools/permissionMode/model/effort; only skills differ.",
+    "runtime_smoke": "NOT executed (test_issue_creator_editor_runtime_smoke.py stays deferred in the Stage 2-4 manifest; its runner is not migrated)."
+  },
+  "stage_updates": {
+    "docs/dev/stage2-4-edit-txn-manifest.json": "released the 4 test_issue_creator_issue_editor_split deferrals (they read issue-creator.md): expected_ran 3 -> 7, ran_total 340 -> 344, deferred_total 43 -> 39. The remaining 39 deferrals (native relationships #46, hygiene C9 #44, runtime smoke) are untouched. This is the 'parent manifest' of the #35 Allowed Paths; no other Stage 2-4 file or limit was widened.",
+    "docs/dev/stage1b4-semantic-review-manifest.json": "NOT edited (outside the #35 Allowed Paths): its dangling_refs note 'issue-creator: Not migrated yet' is now historical; the drift is disclosed here and in the PR.",
+    ".github/workflows/ci.yml": "added the stage2-5-create-txn lane"
+  },
+  "import_subprocess_closure": {
+    "create_issue_txn.py imports": "stdlib only (argparse, hashlib, importlib.util, json, re, subprocess, sys, time, dataclasses, pathlib, typing)",
+    "subprocess targets": [
+      "`--gh` binary (the fake in every test; real gh only via the user)",
+      "sys.executable validate_issue_body.py (migrated, Stage 1b-1)"
+    ],
+    "repo_identity": "loaded from scripts/agent-guards/repo_identity.py by fixed path on every call; no slug constant in create_issue_txn.py (pinned by test_ac1_the_script_holds_no_slug_constant_of_its_own)",
+    "closure_checks": "scripts/ci/check_import_closure.py and scripts/ci/check_no_functional_slug.py pass"
+  },
+  "dependency_ownership": {
+    "reused_not_reimplemented": [
+      "scripts/agent-guards/repo_identity.py",
+      "config/repository_identity.v1.json",
+      ".claude/skills/create-issue/scripts/validate_issue_body.py",
+      ".claude/skills/create-issue/scripts/{mrc_contract_parser,path_classification,prose_boundary_policy}.py"
+    ],
+    "Stage 2-6 / #36 (not migrated, not pre-empted)": [
+      "check_issue_overlap.py",
+      "plan_child_materialization.py",
+      "materialize_child_issues.py",
+      "mutation_route_matrix.py"
+    ],
+    "Stage 2-7 / #37 (requirement judgement; terminal wiring)": [
+      "milestone_rollup",
+      "retrospective_candidate_handoff",
+      "apply_triage_label_transition"
+    ],
+    "I-4 / Stage 3 (not pre-empted)": [
+      "impl-review-loop",
+      "run_contract_review_once",
+      "ensure_contract_snapshot",
+      "claude_live runtime smoke"
+    ]
+  },
+  "negative_controls": {
+    "repo_identity_write_zero": "tests/stage2/test_stage2_5_create_txn.py -k ac1: 9 wrong/legacy/malformed repos x {create, reconcile} via a real subprocess -> gh log empty; 7 unusable-config shapes; third-slug config swap; shadow module; non-string repo.",
+    "unapproved_operations": "-k ac3: label / triage_only / implementation kind / parent / blocked-by / dependency / blocking / body-derived parent / reconcile of each -> `unapproved-operation` with an empty gh log; the AST test pins the engine's only callers.",
+    "create_failures": "-k ac2: lag, permanent lag, dup-after-create race, ambiguous dedupe, list fail / non-JSON, create fail / applied-then-fail / empty URL / garbage URL / real timeout -> never success/dedupe; outcome-unknown reports the readback candidate.",
+    "fake_gh_fail_closed": "-k ac4: an `issue edit` against the fake exits 97 and is recorded as unexpected."
+  },
+  "fixture_live_evidence_boundary": {
+    "fixture_only": "Every GitHub interaction is the stateful fake `gh` (tests/stage2/fixtures/fake_gh_create.py), run as a real executable via --gh or gh_bin=, plus in-process fakes in the source tests. The retained label/parent/dependency handlers run only against those fakes.",
+    "live_github_evidence": "none. No live read, auth or mutation was made by any test; no live success is claimed for label / parent / dependency. Zero tests are skipped, xfailed or deselected except the one reasoned deferred id.",
+    "real_components_in_e2e": "real create_issue_txn.py, validate_issue_body.py, repo_identity.py, in a scratch copy of the repo (own identity config)"
+  },
+  "dangling_references": {
+    ".claude/skills/create-issue/scripts/check_issue_overlap.py": "owner_stage Stage 2-6 / #36; rerun_condition: #36 migrates it. SKILL step 3.6 is not runnable until then.",
+    ".claude/skills/create-issue/scripts/plan_child_materialization.py": "owner_stage Stage 2-6 / #36; SKILL step 4a not runnable until then.",
+    ".claude/skills/create-issue/scripts/materialize_child_issues.py": "owner_stage Stage 2-6 / #36; SKILL step 4b not runnable until then.",
+    ".claude/skills/create-issue/scripts/verify-anchors.sh": "owner_stage unassigned (SKILL step 1 anchor preflight; not in #35 scope). Not runnable; the step is a documentation-level preflight and create_issue_txn.py does not call it.",
+    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "owner_stage unassigned (docs guardrail check + its 16 tests; not in #35 scope).",
+    ".claude/skills/ssot-discovery/SKILL.md": "owner_stage unassigned (separate Skill).",
+    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "owner_stage unassigned (referenced as reading material by SKILL/body-authoring; no migrated script reads them).",
+    ".claude/agents/some-agent.md": "example path inside body-authoring.md prose, not a real reference.",
+    "stage1b4 'issue-creator' dangling note": "historical; resolved by this Stage (see stage_updates)."
+  },
+  "human_judgment_required": [
+    "Label approval: implementation Issues created WITHOUT an explicit `--issue-kind implementation` flag are label-free (kind comes from the body MRC). Creating them WITH the standard labels (phase/implementation, agent/implementer, enhancement) or any triage_only/triage-required flow needs a human-approved label mutation and a dedicated Issue; until then those inputs are rejected before any gh call.",
+    "native parent / blocked-by / blocking mutation approval (existing follow-up squne121/agent-platform#46)."
+  ],
+  "rollback": "Revert the PR. It is additive (new files under create-issue/, issue-creator.md, tests/stage2 fixtures + test, this manifest, one CI lane) plus edits to docs/dev/stage2-4-edit-txn-manifest.json (restoring the 4 deferrals and expected_ran 3). The legacy repo is untouched."
+}

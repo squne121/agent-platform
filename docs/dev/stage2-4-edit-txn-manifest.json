@@ -56,7 +56,7 @@
     ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 43,
     ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": 106,
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
-    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 3,
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 0,
     "tests/stage2/test_stage2_4_edit_txn.py": 185
   },
@@ -290,30 +290,6 @@
       "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
     },
     {
-      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_issue_creator_frontmatter_tools_exact_set",
-      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
-    },
-    {
-      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_issue_creator_skills_exact_set",
-      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
-    },
-    {
-      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_both_agents_document_controlled_executor_procedural_contract",
-      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
-    },
-    {
-      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_both_agents_document_nested_invocation_distinction",
-      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
-    },
-    {
       "id": ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py::test_canonical_skill_read_smoke",
       "owner_stage": "runtime smoke lane (needs scripts/agent-ops/run_worktree_agent_runtime_smoke.py + a linked real-checkout worktree + a real `claude --agent` launch)",
       "reason": "the only test is a real-runtime lane that pytest.skip()s unless RUNTIME_SMOKE_CANDIDATE_WORKTREE points at a linked worktree, and its runner is not migrated. Not executed and not counted as passed.",
@@ -512,8 +488,8 @@
       "tests/stage2/test_stage2_4_edit_txn.py": 185
     },
     "collected_total": 383,
-    "ran_total": 340,
-    "deferred_total": 43,
+    "ran_total": 344,
+    "deferred_total": 39,
     "skipped": 0,
     "note": "source counts match the Issue text (test_edit_issue_txn 69, preexisting_readiness 118, issue_content_update_txn 3); the source files are collected as moved (only the repo literal differs)."
   },
@@ -627,9 +603,9 @@
     },
     {
       "item": "issue-creator Agent",
-      "owner_stage": "Stage 2-5 / Issue #35",
-      "reason": "out of Issue #34 scope; the 4 issue_creator_issue_editor_split tests that read issue-creator.md are deferred until it lands",
-      "rerun_condition": "Issue #35 migrates .claude/agents/issue-creator.md"
+      "owner_stage": "Stage 2-5 / Issue #35 (landed)",
+      "reason": "issue-creator.md landed in Stage 2-5; the 4 issue_creator_issue_editor_split tests that read it were released from deferred and now run (7 collected / 7 ran)",
+      "rerun_condition": "none (released); the lane is also re-run by docs/dev/stage2-5-create-txn-manifest.json"
     },
     {
       "item": "issue-author Agent",
@@ -652,6 +628,7 @@
   "stage_updates": {
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": "outside the Issue #34 Allowed Paths, disclosed: `_STAGE2_DANGLING_REFS` ({issue-editor.md}) -> empty set. The test itself fails with `landed: drop it from the allowlist` once the file exists, so this one-line change is forced by migrating issue-editor.md. The Stage 1b-4 manifest dangling_refs entry is reworded accordingly (docs/dev/stage1b4-semantic-review-manifest.json).",
     "docs/dev/stage1a-core-manifest.json": "removed the deferred_imports `edit_issue_txn` and deferred_script_refs `edit_issue_txn.py` entries (now real files); import closure re-verified",
-    "docs/dev/stage2-1b-exec-manifest.json": "removed the 2 deferred env-parity tests that imported edit_issue_txn (expected_ran 15 -> 17 for that file; lane 122 collected / 122 ran / 0 deferred) and the dangling_refs entry"
+    "docs/dev/stage2-1b-exec-manifest.json": "removed the 2 deferred env-parity tests that imported edit_issue_txn (expected_ran 15 -> 17 for that file; lane 122 collected / 122 ran / 0 deferred) and the dangling_refs entry",
+    "docs/dev/stage2-4-edit-txn-manifest.json (Stage 2-5 / #35)": "released the 4 test_issue_creator_issue_editor_split deferrals (test_issue_creator_frontmatter_tools_exact_set, test_issue_creator_skills_exact_set, test_both_agents_document_controlled_executor_procedural_contract, test_both_agents_document_nested_invocation_distinction) after .claude/agents/issue-creator.md landed: expected_ran 3 -> 7 for that file, ran_total 340 -> 344, deferred_total 43 -> 39. Edited under the Issue #35 Allowed Paths entry 'parent manifest' (the manifest that holds exactly these 4 deferrals); nothing else in the lane was touched."
   }
 }
