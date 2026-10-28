@@ -609,13 +609,12 @@ def test_manifest_runs_every_moved_file_with_zero_deferred_and_matches_scope():
 
 
 def test_manifest_does_not_adopt_stage_34_or_stage3_assets():
-    """#34 (edit_issue_txn / issue-editor) and Stage 3 assets are named, owned and absent."""
+    """Stage 3 assets stay named, owned and absent. The #34 assets (edit_issue_txn, backup-and-parse-issue,
+    test_edit_issue_txn) landed with Stage 2-4 (docs/dev/stage2-4-edit-txn-manifest.json); this slice's
+    manifest still records that it did not adopt them."""
     m = _manifest()
     for rel in (
-        ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
-        ".claude/skills/edit-issue/scripts/backup-and-parse-issue.py",
         ".claude/agents/issue-author.md",
-        ".claude/skills/edit-issue/tests/test_edit_issue_txn.py",
         ".claude/skills/edit-issue/tests/live_canary_parent_readback.sh",
     ):
         assert not (ROOT / rel).exists(), f"{rel} must not be migrated by this slice"
@@ -649,7 +648,8 @@ def test_document_excerpt_is_derived_not_invented():
     assert ex["path"] == "docs/dev/agent-skill-boundaries.md"
     assert ex["required_sections"] == []
     assert ex["created"] is False
-    assert not (ROOT / ex["path"]).exists()
+    # Stage 2-4 (#34) later created this file as a limited excerpt (INPUT/RESULT schema + OUTPUT_BUDGET_V1).
+    assert (ROOT / ex["path"]).exists()
     anchor = re.compile(r"agent-skill-boundaries\.md#")
     for f in (GUARD, HYGIENE, COMPILER, *MOVED_TESTS):
         assert not anchor.search(f.read_text(encoding="utf-8")), f

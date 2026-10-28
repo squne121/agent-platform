@@ -1,0 +1,657 @@
+{
+  "schema": "STAGE2_4_EDIT_TXN_MANIFEST_V1",
+  "issue": "squne121/agent-platform#34",
+  "parents": [
+    "squne121/agent-platform#29",
+    "squne121/agent-platform#5"
+  ],
+  "successors": [
+    "squne121/agent-platform#36",
+    "squne121/agent-platform#37"
+  ],
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "access": "read-only (git show); the legacy repo is never written"
+  },
+  "required_files": [
+    ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
+    ".claude/skills/edit-issue/scripts/backup-and-parse-issue.py",
+    ".claude/skills/edit-issue/scripts/guard-issue-body.py",
+    ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py",
+    ".claude/skills/edit-issue/SKILL.md",
+    ".claude/agents/issue-editor.md",
+    "docs/dev/agent-skill-boundaries.md",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/scripts/vc_baseline_shape_compiler.py",
+    ".claude/skills/review-issue/scripts/check_issue_contract.py",
+    ".claude/skills/issue-refinement-loop/scripts/run_refinement_preflight.py",
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "scripts/agent-guards/controlled_skill_mutation_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json"
+  ],
+  "required_fixtures": [
+    "tests/stage2/fixtures/valid_implementation_body.md",
+    "tests/stage2/fixtures/fake_gh_txn.py"
+  ],
+  "test_files": [
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn.py",
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py",
+    ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py",
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py",
+    ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py",
+    "tests/stage2/test_stage2_4_edit_txn.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 69,
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": 118,
+    ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
+    ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 1,
+    "tests/stage2/test_stage2_4_edit_txn.py": 185
+  },
+  "expected_ran": {
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 43,
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": 106,
+    ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 3,
+    ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 0,
+    "tests/stage2/test_stage2_4_edit_txn.py": 185
+  },
+  "deferred_tests": [
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_1844_parent_candidate_runs_real_local_validators_before_executor",
+      "owner_stage": "Stage 2-4 follow-up: hygiene C9 vs parent-kind bodies (squne121/agent-platform#44)",
+      "reason": "AC8 conflict, not native: the test feeds a parent-kind candidate with no `## Allowed Paths` / Runtime Verification Applicability section through the REAL hygiene script, which exits 2 (`C9 autofix not safe: ## Allowed Paths section is missing`). The source txn tolerated exit 2 (`returncode in (0, 1, 2)`) and let readiness decide; Issue #34 AC8 forbids routing exit 2 into a success path, so the txn now returns failed_no_mutation. The behaviour is pinned by tests/stage2 test_ac8_e2e_parent_kind_body_hitting_c9_exit_2_is_rejected.",
+      "rerun_condition": "issue_contract_hygiene_autofix.py stops returning exit 2 for readiness-compliant parent-kind bodies (follow-up Issue); then drop this id and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_preflight_failure_blocks_all_mutation",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_mutation_failure_blocks_content_update",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_parent_set_and_remove_readback[set-1860-1860]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_parent_set_and_remove_readback[remove-None-None]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_blocked_by_add_remove_full_pagination_exact_set",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_blocking_add_remove_full_pagination_exact_set",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_final_readback_all_fields_match_required_for_ok",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_identical_desired_state_is_idempotent_no_op",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_partial_native_mutation_returns_failed_after_mutation",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_capability_preflight_missing_blocks_as_environment_not_write_permission_proof",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_destructive_remove_blocked_by_expected_before_drift_fails_no_mutation",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_graph_invariant_violations_rejected_before_mutation[relationships0]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_graph_invariant_violations_rejected_before_mutation[relationships1]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_graph_invariant_violations_rejected_before_mutation[relationships2]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_body_parent_rebind_updates_native_parent_1679_fixture",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_body_guard_failure_never_invokes_relationship_executor",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_readiness_failure_never_invokes_relationship_executor",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_exception_after_native_apply_never_reports_failed_no_mutation",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_apply_then_body_failure_reports_failed_after_mutation",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_final_combined_readback_rejects_parent_drift",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_final_combined_readback_rejects_blocked_by_drift",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_raw_duplicate_relationship_input_is_rejected",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_raw_unsorted_relationship_input_is_rejected",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_child_timeout_triggers_independent_readback",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_native_only_apply_is_not_reported_as_no_change",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[parent_set-needs_fix_forwarding]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[parent_set-candidate_static_readiness]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[parent_remove-needs_fix_forwarding]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[parent_remove-candidate_static_readiness]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[add_blocked_by-needs_fix_forwarding]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[add_blocked_by-candidate_static_readiness]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[remove_blocked_by-needs_fix_forwarding]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[remove_blocked_by-candidate_static_readiness]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[add_blocking-needs_fix_forwarding]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[add_blocking-candidate_static_readiness]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[remove_blocking-needs_fix_forwarding]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py::test_preexisting_readiness_title_or_relationship_rejected[remove_blocking-candidate_static_readiness]",
+      "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
+      "reason": "exercises the source native_relationships / issue_relationship.update handlers or a native input shape; native relationship mutation is NOT approved for agent-platform, so the Stage 2-4 entrypoint rejects any native_relationships input before gh read/auth/mutation (AC3). Replaced by the AC3 negatives in tests/stage2/test_stage2_4_edit_txn.py.",
+      "rerun_condition": "a human approves native parent/blockedBy/blocking mutation for agent-platform AND a dedicated Issue lifts the native_relationships rejection in edit_issue_txn.py; then drop these ids and re-run unchanged"
+    },
+    {
+      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_issue_creator_frontmatter_tools_exact_set",
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
+    },
+    {
+      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_issue_creator_skills_exact_set",
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
+    },
+    {
+      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_both_agents_document_controlled_executor_procedural_contract",
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
+    },
+    {
+      "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_both_agents_document_nested_invocation_distinction",
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
+    },
+    {
+      "id": ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py::test_canonical_skill_read_smoke",
+      "owner_stage": "runtime smoke lane (needs scripts/agent-ops/run_worktree_agent_runtime_smoke.py + a linked real-checkout worktree + a real `claude --agent` launch)",
+      "reason": "the only test is a real-runtime lane that pytest.skip()s unless RUNTIME_SMOKE_CANDIDATE_WORKTREE points at a linked worktree, and its runner is not migrated. Not executed and not counted as passed.",
+      "rerun_condition": "the runtime-smoke runner is migrated and RUNTIME_SMOKE_CANDIDATE_WORKTREE names a linked worktree; run with a real Claude Code launch under explicit approval"
+    }
+  ],
+  "deferred_files": [
+    {
+      "id": ".claude/agents/tests/test_issue_editor_runtime_smoke.py",
+      "owner_stage": "runtime smoke lane (needs scripts/agent-ops/run_worktree_agent_runtime_smoke.py + a linked real-checkout worktree + a real `claude --agent` launch)",
+      "reason": "cannot be collected: it loads scripts/claude-gpt/auto_mode_canary.py at import time and drives scripts/agent-ops/run_worktree_agent_runtime_smoke.py, neither of which is migrated; its single test is also a skip-without-runtime lane.",
+      "rerun_condition": "the runtime-smoke runner is migrated and RUNTIME_SMOKE_CANDIDATE_WORKTREE names a linked worktree; run with a real Claude Code launch under explicit approval",
+      "collected": false
+    }
+  ],
+  "source_parity": {
+    ".claude/skills/edit-issue/scripts/edit_issue_txn.py": {
+      "source_sha256": "d883a71e659bc902a77d55566d9dafd382ae52ca7258456a2fc3fdc714416096",
+      "moved_sha256": "663fa462bf2ec3303b605fa380a2ffb2ef8252e8dcb030f2075b47a519fd9263",
+      "verbatim": false,
+      "intentional_diff": "Stage 2-4 hardening of the source transaction: (1) repo identity: `_require_trusted_repo` (repo_identity.is_trusted_repo, exact match) runs in `_validate_input_payload`, i.e. before any `gh` call including `auth status` / `issue view`; an unusable identity config/module is `repo_identity_unavailable`. Source only checked that repo was a non-empty string. (2) `native_relationships` (any non-null value, noop shape included) is rejected as `native_relationships_unapproved` before any gh read/auth/mutation; source validated the shape and executed it. The source native handlers are retained but unreachable from the entrypoint. (3) hygiene result is classified by `_hygiene_rejection`: exit 0 (repaired) and exit 1 (no repair) pass; exit 2 (#33: unsafe repair / check_error / compiler_load_failed), timeout (124), any other exit code, or non-empty stdout are `failed_no_mutation` before readiness and the executor; source accepted `returncode in (0, 1, 2)`. (4) `issue_number` rejects bool (`True` passed the `isinstance(int)` check as issue 1).",
+      "source_ast_sha256": "0cd484231108b0c29e6732e817d50efa671331ec3f41cc9dffbbb39b7b1f95d5",
+      "moved_ast_sha256": "b8a4f975e504892a4709035dc8ea50cc44ba7a68885ca3359c9662292ab2d3c6"
+    },
+    ".claude/skills/edit-issue/scripts/backup-and-parse-issue.py": {
+      "source_sha256": "cc68c66575ed321e9f0e80bf36927e1c08d8e5d4cb86accb505646878d47cd41",
+      "moved_sha256": "1ed3d741a30a9d0154f0869c9e5b4ccbc620508098b41e550ccd308fcc8260b3",
+      "verbatim": false,
+      "intentional_diff": "Stage 2-4 hardening: the origin-derived repo must equal the trusted slug (repo_identity) before the first `gh issue view` (source trusted whatever `git remote get-url origin` returned); the issue-number allowlist is ASCII `[0-9]+` (source `\\d` also accepted non-ASCII digits such as fullwidth, which int() normalised to another issue number).",
+      "source_ast_sha256": "1119f7939696d6703bdbc69239524791430d033bf5b4a1fa11438d8fe1dd3485",
+      "moved_ast_sha256": "8667152f7d2e23911afd0b71528902f9ffd4d5505392018c829ad2a00f4fde64"
+    },
+    ".claude/skills/edit-issue/SKILL.md": {
+      "source_sha256": "9b42b7a02a8aae590817d7ab35367e8d13e4d1c42c9ae1aeb4fcbe9d0d08f78e",
+      "moved_sha256": "f7fe70b1a1d6a72464fee992c134723bd497d63afc184330563f2dedeb3a0bc7",
+      "verbatim": false,
+      "intentional_diff": "Docs only: example `repo` is the trusted slug instead of the legacy repo; the native_relationships section is marked unapproved in agent-platform Stage 2-4."
+    },
+    ".claude/agents/issue-editor.md": {
+      "source_sha256": "f39d93511c2ce6d8631374a4e5054c4f8d4a91b264abbf7834b999cd731973ff",
+      "moved_sha256": "ecbd4a32d830b7aef0712943c4477e482f07c156d8c9d440f18b4ef057960118",
+      "verbatim": false,
+      "intentional_diff": "Docs only: the source claim `title_update.required == true is v1 scope out` contradicted the source transaction and the 2026-10-25 limited approval, so it now states the executable contract; native_relationships is marked unapproved. Frontmatter is byte-identical to the source."
+    },
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": {
+      "source_sha256": "9ee6f1d12a12138dac6dbfdea8f34a888070d7a9f76a451393deeefe4c4e17d3",
+      "moved_sha256": "9ad7c937377af569743dc30e5b669e4cb2eff8cd41303901008cac679aa07d19",
+      "verbatim": false,
+      "intentional_diff": "Fixture values only: every legacy-repo literal (input `repo`, comment URL, `_fetch_issue` arguments and the argv asserted against them) -> `squne121/agent-platform` (the identity check makes the legacy slug an invalid input and the no-functional-slug gate forbids the literal in tests). No assertion removed or weakened; tests that exercise native_relationships execution are deselected via deferred_tests, not edited.",
+      "source_ast_sha256": "00e4cf2ee4713894b96d015f7f9538940403bf427214561dbb8d9cf626a276cc",
+      "moved_ast_sha256": "32060798950387c0e8970a9af0dba82b9d2ce9d6fe889c03166e889be19c10cd"
+    },
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": {
+      "source_sha256": "d2b7e4ecebb67ff960923ac18ae992a1ac86e8ed671dc054f6a8dd51328152d4",
+      "moved_sha256": "a999fe27c4100e00f29ecad417e6015df1bcb8fe782600f936274ba2e0dc078b",
+      "verbatim": false,
+      "intentional_diff": "Same single fixture-value change as test_edit_issue_txn.py (repo literal). No assertion changed.",
+      "source_ast_sha256": "2fb6c1ddcaf6bdd60dcfb66ac888281391d1502faec210147142710f811e6129",
+      "moved_ast_sha256": "eff07dc44873ca9f128693d5c1d549cb269bf5c7866b1de8c42adb80a876dce6"
+    },
+    ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": {
+      "source_sha256": "9040068e9c633b9846c4881336ff1dee420d9d909c984cd3d243e83fb32712ab",
+      "moved_sha256": "e25966171b0b731c8f4e654a9f162e40d06a357a2ff040a75c920ccc8d9a9be0",
+      "verbatim": false,
+      "intentional_diff": "Same single fixture-value change (repo literal). No assertion changed.",
+      "source_ast_sha256": "4f8688891d770272c5990704aaa4a3f0a31e9d9d24dc21e41fcbbed24418ce92",
+      "moved_ast_sha256": "9f67128e717d282d10db3e7f517efc7508e408c5ce61c77932bfa6ff1b032ce1"
+    },
+    ".claude/agents/tests/test_issue_creator_issue_editor_split.py": {
+      "source_sha256": "882e572f2b6328405202e7ab8eb5c5bad2c66858ae2cec07d7bf1c2bfdb35544",
+      "moved_sha256": "a0ba8a8065d0fa4d410df15bb54ff58da954285e9b5cc5b11769819a13ffaec2",
+      "verbatim": false,
+      "intentional_diff": "`ruff format` only (the repo lints/formats .claude/agents/tests; AST is identical to source, see source_ast_sha256 == moved_ast_sha256). 4 tests that read the unmigrated issue-creator.md are deferred (issue-creator.md: Stage 2-5 / Issue #35).",
+      "source_ast_sha256": "bdcf9a8a00ff88e4da5de95dd66b1c15948fd2c086068fd7f5c10cd86318f460",
+      "moved_ast_sha256": "bdcf9a8a00ff88e4da5de95dd66b1c15948fd2c086068fd7f5c10cd86318f460"
+    },
+    ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": {
+      "source_sha256": "6b8b9a8c202c73eb193928a66927a81acaf225e8acea8df89ad7173b549e2fef",
+      "moved_sha256": "6b8b9a8c202c73eb193928a66927a81acaf225e8acea8df89ad7173b549e2fef",
+      "verbatim": true
+    },
+    ".claude/agents/tests/test_issue_editor_runtime_smoke.py": {
+      "source_sha256": "16ff5a82544465dd26112362c0c675687eeb032b7615797f9e433d4175b78299",
+      "moved_sha256": null,
+      "verbatim": null,
+      "intentional_diff": "Verbatim copy NOT included in the lane: it cannot be collected (module-level load of unmigrated scripts/claude-gpt/auto_mode_canary.py). See deferred_files."
+    }
+  },
+  "source_inventory": {
+    "source_tests_in_scope": {
+      ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 69,
+      ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": 118,
+      ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
+      ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
+      ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 1
+    },
+    "per_function_cases": {
+      ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": {
+        "test_1844_parent_candidate_runs_real_local_validators_before_executor": 1,
+        "test_body_guard_failure_never_invokes_relationship_executor": 1,
+        "test_body_parent_rebind_updates_native_parent_1679_fixture": 1,
+        "test_body_unchanged_comment_publish_skips_body_update": 1,
+        "test_body_update_success_comment_or_readback_failure_maps_failed_after_mutation": 1,
+        "test_capability_preflight_missing_blocks_as_environment_not_write_permission_proof": 1,
+        "test_child_output_leak_bounded_json_path": 1,
+        "test_child_timeout_maps_to_single_bounded_json": 1,
+        "test_child_timeout_triggers_independent_readback": 1,
+        "test_comment_publish_success_propagates_comment_id_url_body_sha": 1,
+        "test_controlled_executor_invoked_with_json_and_parsed": 1,
+        "test_dependency_policy_separates_txn_helper_from_end_to_end_raw_removal": 1,
+        "test_destructive_remove_blocked_by_expected_before_drift_fails_no_mutation": 1,
+        "test_exception_after_native_apply_never_reports_failed_no_mutation": 1,
+        "test_executor_inputs_under_issue_metadata_namespace": 1,
+        "test_fetch_issue_argv_single_snapshot_includes_state": 1,
+        "test_final_combined_readback_rejects_blocked_by_drift": 1,
+        "test_final_combined_readback_rejects_parent_drift": 1,
+        "test_final_readback_all_fields_match_required_for_ok": 1,
+        "test_graph_invariant_violations_rejected_before_mutation": 3,
+        "test_identical_desired_state_is_idempotent_no_op": 1,
+        "test_input_unknown_keys_still_rejected": 1,
+        "test_invalid_rewrite_lane_rejected": 1,
+        "test_issue_edit_txn_input_schema_presence_correlation": 9,
+        "test_missing_body_file_never_invokes_relationship_executor": 1,
+        "test_native_apply_then_body_failure_reports_failed_after_mutation": 1,
+        "test_native_blocked_by_add_remove_full_pagination_exact_set": 1,
+        "test_native_blocking_add_remove_full_pagination_exact_set": 1,
+        "test_native_mutation_failure_blocks_content_update": 1,
+        "test_native_only_apply_is_not_reported_as_no_change": 1,
+        "test_native_parent_set_and_remove_readback": 2,
+        "test_needs_fix_forwarding_does_not_mutate_without_resolution_evidence": 1,
+        "test_no_mutation_before_guard_readiness_or_stale_precondition": 3,
+        "test_no_raw_issue_mutation_or_shell_escape_in_production_path": 1,
+        "test_partial_native_mutation_returns_failed_after_mutation": 1,
+        "test_preflight_failure_blocks_all_mutation": 1,
+        "test_prose_mentions_do_not_set_native_relationships": 1,
+        "test_raw_duplicate_relationship_input_is_rejected": 1,
+        "test_raw_unsorted_relationship_input_is_rejected": 1,
+        "test_readiness_failure_never_invokes_relationship_executor": 1,
+        "test_rewrite_lane_fail_closed_repair_explicit_without_constraints_accepted": 1,
+        "test_rewrite_lane_omitted_legacy_payload_still_accepted": 1,
+        "test_rewrite_lane_semantic_with_producer_shaped_constraints_accepted": 1,
+        "test_safe_repo_file_rejects_repo_prefix_collision": 1,
+        "test_safe_repo_file_rejects_symlink_component_for_input_new_body_comment": 1,
+        "test_schema_contracts_are_closed": 1,
+        "test_semantic_rewrite_constraints_not_object_rejected": 1,
+        "test_semantic_rewrite_constraints_with_fail_closed_repair_lane_rejected": 1,
+        "test_semantic_rewrite_constraints_without_semantic_rewrite_lane_rejected": 1,
+        "test_semantic_rewrite_constraints_wrong_schema_version_mismatched_rejected": 1,
+        "test_semantic_rewrite_constraints_wrong_schema_version_missing_rejected": 1,
+        "test_semantic_rewrite_lane_without_constraints_rejected": 1,
+        "test_skill_and_issue_editor_no_raw_existing_issue_mutation_contract": 1,
+        "test_stdout_leak_real_child_stdout_stderr_not_mocked": 1,
+        "test_title_update_routes_through_content_executor": 1,
+        "test_total_count_mismatch_rejects_exact_set": 1
+      },
+      ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": {
+        "test_preexisting_readiness_checker_output_fail_closed": 16,
+        "test_preexisting_readiness_human_judgment_fail_closed": 4,
+        "test_preexisting_readiness_needs_fix_closed_unchanged_body_current_behavior": 1,
+        "test_preexisting_readiness_note_boundary_commonmark_fence_semantics": 22,
+        "test_preexisting_readiness_note_boundary_ssot_unavailable_fail_closed": 2,
+        "test_preexisting_readiness_note_only_allowed": 4,
+        "test_preexisting_readiness_note_surface_includes_hygiene_autofix": 2,
+        "test_preexisting_readiness_note_surface_only": 14,
+        "test_preexisting_readiness_open_issue_unchanged": 2,
+        "test_preexisting_readiness_real_checker_integration": 2,
+        "test_preexisting_readiness_relationship_noop_predicate": 9,
+        "test_preexisting_readiness_result_schema_unchanged": 2,
+        "test_preexisting_readiness_sha_and_readback_preserved": 2,
+        "test_preexisting_readiness_single_snapshot_fetch_issue": 4,
+        "test_preexisting_readiness_state_readback_failure_fail_closed": 6,
+        "test_preexisting_readiness_state_reuses_snapshot_no_extra_readback": 2,
+        "test_preexisting_readiness_title_or_relationship_rejected": 14,
+        "test_preexisting_readiness_worsened_rejected": 10
+      },
+      ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": {
+        "test_comment_failure_after_content_update_is_failed_after_mutation": 1,
+        "test_post_hygiene_candidate_equal_to_current_returns_no_change": 1,
+        "test_title_only_preserves_noncanonical_current_body_byte_for_byte": 1
+      },
+      ".claude/agents/tests/test_issue_creator_issue_editor_split.py": {
+        "test_both_agents_document_controlled_executor_procedural_contract": 1,
+        "test_both_agents_document_nested_invocation_distinction": 1,
+        "test_issue_creator_frontmatter_tools_exact_set": 1,
+        "test_issue_creator_skills_exact_set": 1,
+        "test_issue_editor_frontmatter_tools_exact_set": 1,
+        "test_issue_editor_retains_fail_closed_rewrite_and_context_bundle_contracts": 1,
+        "test_issue_editor_skills_exact_set": 1
+      },
+      ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": {
+        "test_canonical_skill_read_smoke": 1
+      }
+    },
+    "source_collected_total": 198,
+    "new_tests": {
+      "tests/stage2/test_stage2_4_edit_txn.py": 185
+    },
+    "collected_total": 383,
+    "ran_total": 340,
+    "deferred_total": 43,
+    "skipped": 0,
+    "note": "source counts match the Issue text (test_edit_issue_txn 69, preexisting_readiness 118, issue_content_update_txn 3); the source files are collected as moved (only the repo literal differs)."
+  },
+  "canonical_schema_excerpt": {
+    "source_file": "docs/dev/agent-skill-boundaries.md",
+    "source_total_lines": 3223,
+    "excerpt_total_lines": 371,
+    "approval": "Issue #34 limited approval 2026-10-27 JST (recorded on #34 / #29 / #5)",
+    "sections": {
+      "OUTPUT_BUDGET_V1": {
+        "source_lines": "1307-1361",
+        "sha256": "c90e1912fae3a71140dd77429c3da1951fef43fa35e6853a2f46b4e69cb412d2"
+      },
+      "ISSUE_EDIT_TXN_INPUT_V1": {
+        "source_lines": "2159-2324",
+        "sha256": "d6275ce1ea39211877b3654dd34297081ca33a980c3ed5f2c311242e52e05e95"
+      },
+      "ISSUE_EDIT_TXN_RESULT_V1": {
+        "source_lines": "2325-2454",
+        "sha256": "587f2f5a9e077e2edd2308f1d826107c0ab8e374980c6e0fdd9547ec5a630e09"
+      }
+    },
+    "included": [
+      "## OUTPUT_BUDGET_V1 (whole section, source 1307-1361)",
+      "## edit-issue 向け transaction helper の契約定義（Issue #1287）: section intro + ### ISSUE_EDIT_TXN_INPUT_V1 + ### ISSUE_EDIT_TXN_RESULT_V1 (source 2154-2454), incl. their prose bullets (surrounding context)"
+    ],
+    "excluded": "every other section of the 3,223-line source document (execution-planning boundary, SubAgent execution ledger, hook ledger, Parallel Agent Runtime Safety, ... )",
+    "intentional_diffs": [
+      "Added a provenance/blockquote header (title + source tag/SHA + approval + scope note) before the first excerpted heading. The two YAML schemas and all excerpted prose are byte-identical to source lines 1307-1361 and 2154-2454.",
+      "No schema key, enum or constraint was edited (including `native_relationships`, which stays in the schema; the header notes that this entrypoint rejects it)."
+    ],
+    "verified_by": [
+      "yaml.safe_load + jsonschema Draft 2020-12 check_schema on both blocks",
+      "INPUT: properties == txn.TOP_LEVEL_KEYS, every required key, enums, closed objects, rewrite_lane/semantic_rewrite_constraints presence correlation, valid + invalid instances",
+      "RESULT: required keys present in every real result status; known source drift pinned exactly (see known_source_defects)",
+      "source tests test_schema_contracts_are_closed / test_issue_edit_txn_input_schema_presence_correlation[*] / test_preexisting_readiness_result_schema_unchanged[*] read this file and pass"
+    ]
+  },
+  "agent_skill_parity": {
+    "issue_editor_source_frontmatter": {
+      "name": "issue-editor",
+      "description": "既存 GitHub Issue の **本文修正** のみを担当する SubAgent。`edit-issue` skill のみを preload する。issue-refinement-loop の Step 4 Rewrite / review-issue の needs-fix 適用など、既存 Issue 本文の書き換えを委譲したい呼び出し元から使う。ネスト委譲禁止。新規起票は `issue-creator` を使う。",
+      "tools": [
+        "Bash",
+        "Read"
+      ],
+      "disallowedTools": [
+        "Agent",
+        "Edit",
+        "MultiEdit",
+        "Write",
+        "Skill"
+      ],
+      "model": "sonnet",
+      "effort": "medium",
+      "permissionMode": "acceptEdits",
+      "skills": [
+        "edit-issue"
+      ]
+    },
+    "edit_issue_skill_source_frontmatter_sha256": "78a4cbe5a5951ce8c4931aca7e81dbb390bbb55141a7dcaa619ac21bac2cbcbc",
+    "permission_mode_note": "`permissionMode: acceptEdits` auto-accepts file-edit tools only; the agent disallows Edit/MultiEdit/Write, so it is not a permission bypass. `skills: [edit-issue]` is a context preload, not tool-level permission; nested Skill/Agent invocation is blocked because `Skill` is absent from `tools` and both `Skill` and `Agent` are in `disallowedTools`.",
+    "procedural_contract_note": "The raw `gh` mutation ban is a procedural contract; no Bash-tool-level technical enforcement is claimed.",
+    "output_budget": "issue-editor.md references OUTPUT_BUDGET_V1; the source edit-issue/SKILL.md has no such reference (kept as in source). The budget section states it applies to all .claude/agents/*.md and .claude/skills/*/SKILL.md.",
+    "runtime_smoke": "NOT executed (deferred, see deferred_tests / deferred_files). The `claude` CLI exists locally but the smoke runner and auto_mode_canary are not migrated; no PASS is claimed.",
+    "agent_parity_fixture": "tests/fixtures/agent-parity/ok-claude-issue-editor.md is NOT migrated: its only consumer is tests/test_agent_portability_contract.py, which is outside Issue #34 (no consumer = dead fixture)."
+  },
+  "negative_controls": {
+    "repo_identity_write_zero": "tests/stage2/test_stage2_4_edit_txn.py -k ac1: wrong/legacy/malformed/non-string repo and unusable identity config/module -> zero child commands in-process and zero gh invocations in the real subprocess; backup-and-parse-issue.py with an untrusted origin -> zero gh calls.",
+    "hygiene_exit_2": "-k ac8: exit 2 / 124 / other codes / stdout leakage -> failed_no_mutation before readiness and the executor; real hygiene exit 2 (compiler or checker missing) -> failed_no_mutation with zero GitHub writes; exit 0 and exit 1 proceed.",
+    "native_relationships": "-k ac3: every native_relationships shape (noop included) -> rejected before any gh read/auth/mutation; source handlers unreachable."
+  },
+  "known_source_defects": [
+    {
+      "id": "result-schema-drift",
+      "where": "docs/dev/agent-skill-boundaries.md ISSUE_EDIT_TXN_RESULT_V1 vs edit_issue_txn.py output",
+      "detail": "the source producer emits a `content_update` block and a `mutation_outcome_unknown` status that the source canonical RESULT schema (additionalProperties: false, 5-value status enum) does not list; every real ok/failed result therefore fails strict validation. The excerpt is kept verbatim (no schema invention); the drift is pinned exactly by test_ac7_known_source_drift_between_result_schema_and_producer_is_pinned_exactly.",
+      "owner": "squne121/agent-platform#45 (schema reconciliation needs a human-approved schema change)"
+    },
+    {
+      "id": "input-schema-vs-validator-leniency",
+      "where": "ISSUE_EDIT_TXN_INPUT_V1.required vs _validate_input_payload",
+      "detail": "the schema requires comment_mode and title_update; the executable validator defaults them (skip / not required). Pinned by test_ac7_each_schema_required_key_is_enforced.",
+      "owner": "squne121/agent-platform#45"
+    }
+  ],
+  "hard_dependencies": {
+    "reused_not_reimplemented": [
+      "scripts/agent-guards/controlled_skill_mutation_exec.py",
+      "scripts/agent-guards/controlled_skill_mutation_policy.py",
+      "scripts/agent-guards/repo_identity.py",
+      ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+      ".claude/skills/edit-issue/scripts/guard-issue-body.py",
+      ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py",
+      ".claude/skills/issue-contract-review/scripts/vc_baseline_shape_compiler.py"
+    ],
+    "preflight_consumer": ".claude/skills/issue-refinement-loop/scripts/run_refinement_preflight.py (UNCHANGED; reaches edit_issue_txn.py via EDIT_ISSUE_TXN_SCRIPT_REL; wiring proven by -k ac5 with a real subprocess)"
+  },
+  "deferred_scope": [
+    {
+      "item": "native_relationships live execution (issue_relationship.update)",
+      "owner_stage": "native-relationship approval (unassigned)",
+      "reason": "not an approved operation",
+      "rerun_condition": "human approval + dedicated Issue"
+    },
+    {
+      "item": "edit-issue live canary scripts (live_canary_*.sh, test_live_canary_full_relationship_cycle.py)",
+      "owner_stage": "live canary lane (unassigned)",
+      "reason": "require live GitHub mutation, forbidden here",
+      "rerun_condition": "explicit live-mutation approval"
+    },
+    {
+      "item": "issue-creator Agent",
+      "owner_stage": "Stage 2-5 / Issue #35",
+      "reason": "out of Issue #34 scope; the 4 issue_creator_issue_editor_split tests that read issue-creator.md are deferred until it lands",
+      "rerun_condition": "Issue #35 migrates .claude/agents/issue-creator.md"
+    },
+    {
+      "item": "issue-author Agent",
+      "owner_stage": "Stage 3 / I-4",
+      "reason": "out of Issue #34 scope",
+      "rerun_condition": "agent migrated"
+    },
+    {
+      "item": "terminal wiring of the preflight consumer",
+      "owner_stage": "#37",
+      "reason": "not pre-empted",
+      "rerun_condition": "#37"
+    }
+  ],
+  "evidence_boundary": {
+    "fixture_only": "Every GitHub interaction is a fake `gh` (in-process recorder, or tests/stage2/fixtures/fake_gh_txn.py as a real executable on PATH in a scratch copy of the repo whose executor trusted-path list points at the fake dir).",
+    "live_github_evidence": "none. No live read, auth or mutation was made by the tests. (Issue #34's own body was completed by the maintainer-approved Issue-contract補完, outside the tests.)",
+    "real_components_in_e2e": "real edit_issue_txn.py, guard-issue-body.py, issue_contract_hygiene_autofix.py, contract_readiness_check.py, controlled_skill_mutation_exec.py, run_refinement_preflight.py"
+  },
+  "stage_updates": {
+    ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": "outside the Issue #34 Allowed Paths, disclosed: `_STAGE2_DANGLING_REFS` ({issue-editor.md}) -> empty set. The test itself fails with `landed: drop it from the allowlist` once the file exists, so this one-line change is forced by migrating issue-editor.md. The Stage 1b-4 manifest dangling_refs entry is reworded accordingly (docs/dev/stage1b4-semantic-review-manifest.json).",
+    "docs/dev/stage1a-core-manifest.json": "removed the deferred_imports `edit_issue_txn` and deferred_script_refs `edit_issue_txn.py` entries (now real files); import closure re-verified",
+    "docs/dev/stage2-1b-exec-manifest.json": "removed the 2 deferred env-parity tests that imported edit_issue_txn (expected_ran 15 -> 17 for that file; lane 122 collected / 122 ran / 0 deferred) and the dangling_refs entry"
+  }
+}

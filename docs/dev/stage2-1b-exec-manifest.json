@@ -28,24 +28,11 @@
     "tests/stage2/test_stage2_1b_exec_closure.py": 102
   },
   "expected_ran": {
-    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 15,
+    "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 17,
     "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
     "tests/stage2/test_stage2_1b_exec_closure.py": 102
   },
-  "deferred_tests": [
-    {
-      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py::test_edit_issue_txn_sanitize_key_list_matches_controlled_executor",
-      "owner_stage": "stage_2 (#34, Stage 2-4)",
-      "reason": "imports edit_issue_txn, which is migrated with the edit-issue Skill in Stage 2-4",
-      "rerun_condition": "#34 migrates edit_issue_txn; remove this entry and the stage1a deferred_imports entry together"
-    },
-    {
-      "id": "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py::test_edit_issue_txn_fetch_issue_uses_sanitized_env",
-      "owner_stage": "stage_2 (#34, Stage 2-4)",
-      "reason": "imports edit_issue_txn, which is migrated with the edit-issue Skill in Stage 2-4",
-      "rerun_condition": "#34 migrates edit_issue_txn; remove this entry and the stage1a deferred_imports entry together"
-    }
-  ],
+  "deferred_tests": [],
   "live_operations": {
     "approved": [
       "issue_body.update",
@@ -92,7 +79,6 @@
     "run_contract_review_once.py": "I-4",
     "contract_review_result_parser.py": "I-4",
     "materialize_issue_scope_snapshot.py": "stage 2 follow-up (deferred, lane refused)",
-    "edit_issue_txn.py": "Stage 2-4 (#34), imported only by 2 deferred env-parity tests",
     "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the test_verdict lane, which is refused before execution)"
   },
   "split": {
