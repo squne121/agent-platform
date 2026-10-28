@@ -124,7 +124,7 @@
   "dangling_refs": {
     "scripts/agent-ops/run_worktree_agent_runtime_smoke.py": "Stage 3: live claude/herdr runner; only its two pure extractors are migrated (claude_stream_extractors.py). When the runner lands, re-export them (output field naming session_ref vs the source's session-id field must be reconciled then).",
     "tests/fixtures/agent-config/agent_permission_baseline.json": "owner: whichever stage migrates the central agent-permission baseline (covers every Agent incl. Stage 2/3 ones); not needed by the semantic lane",
-    "issue-creator": "Stage 2 follow-up (GitHub mutation Agent); referenced as text only, never executed. The semantic reviewer's range is unchanged. (issue-editor.md landed in Stage 2-4 / #34: its allowlist entry in test_reviewer_agent_references_resolve_to_migrated_files was removed, as that test requires once the file lands.)"
+    "issue-creator": "Not migrated yet; owned by Stage 2-5 / Issue #35 (GitHub mutation Agent); referenced as text only, never executed. The semantic reviewer's range is unchanged. (issue-editor.md landed in Stage 2-4 / #34: its allowlist entry in test_reviewer_agent_references_resolve_to_migrated_files was removed, as that test requires once the file lands.)"
   },
   "part": "Stage 1b-4 (Closes #15; Parent #5): semantic review consumer (pin -> record -> join), issue-design-reviewer Agent, schema and evaluator tests, on top of Stage 1b-3 (docs/dev/stage1b3a-producer-transport-manifest.json, stage1b3b-pipeline-tests-manifest.json)."
 }

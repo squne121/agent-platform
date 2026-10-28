@@ -1678,7 +1678,8 @@ def test_ac6_every_deferred_id_is_a_native_creator_runtime_or_hygiene_conflict()
     m = _manifest()
     for entry in m["deferred_tests"]:
         if "issue_creator_issue_editor_split" in entry["id"]:
-            assert entry["owner_stage"].startswith("Stage 3")
+            assert entry["owner_stage"].startswith("Stage 2-5 / Issue #35")
+            assert "#35" in entry["rerun_condition"]
         elif "runtime_smoke" in entry["id"]:
             assert "runtime smoke" in entry["owner_stage"]
         elif entry["owner_stage"].startswith("Stage 2-4 follow-up: hygiene C9"):
@@ -1794,19 +1795,69 @@ def test_ac6_ci_has_a_dedicated_lane_for_this_manifest() -> None:
     assert "stage2-4-edit-txn:" in ci
 
 
-def test_ac6_scope_stays_inside_allowed_paths() -> None:
-    """No file outside Issue #34's Allowed Paths is claimed by the manifest."""
+# Issue #34 Allowed Paths (exact) + the 2026-10-28 PR #47-only exception (two exact files).
+# Parent manifests are the two that carried stale `edit_issue_txn.py` deferrals.
+_ALLOWED_GLOBS = (
+    ".claude/skills/edit-issue/",
+    ".claude/agents/tests/",
+    "tests/fixtures/agent-parity/",
+    "tests/stage2/",
+)
+_ALLOWED_EXACT = frozenset(
+    {
+        ".claude/agents/issue-editor.md",
+        "docs/dev/stage2-4-edit-txn-manifest.json",
+        "docs/dev/agent-skill-boundaries.md",
+        ".github/workflows/ci.yml",
+        "docs/dev/stage1a-core-manifest.json",
+        "docs/dev/stage2-1b-exec-manifest.json",
+        # PR #47-only approval (2026-10-28 JST): exactly these two files
+        ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py",
+        "docs/dev/stage1b4-semantic-review-manifest.json",
+    }
+)
+
+
+def _paths_outside_allowed(paths: list[str]) -> list[str]:
+    return [p for p in paths if p not in _ALLOWED_EXACT and not p.startswith(_ALLOWED_GLOBS)]
+
+
+def test_ac6_manifest_referenced_paths_stay_inside_allowed_paths() -> None:
+    """Scope of this test: only the paths the manifest *references* (test_files / required_fixtures).
+
+    It does NOT verify the PR's changed files; that audit is done against the
+    fresh `gh pr diff --name-only` list and recorded in the PR body.
+    """
     m = _manifest()
-    allowed = (
-        ".claude/skills/edit-issue/",
-        ".claude/agents/",
-        "docs/dev/",
-        "tests/stage2/",
-        "scripts/agent-guards/",
-        "config/",
-        ".claude/skills/issue-contract-review/",
-        ".claude/skills/review-issue/",
-        ".claude/skills/issue-refinement-loop/",
+    assert _paths_outside_allowed([*m["test_files"], *m["required_fixtures"]]) == []
+
+
+def test_ac6_allowed_paths_matcher_rejects_unapproved_paths() -> None:
+    """Negative control: unapproved / broader-prefix paths are detected."""
+    unapproved = [
+        ".claude/skills/issue-refinement-loop/SKILL.md",
+        ".claude/skills/issue-refinement-loop/tests/test_other.py",
+        ".claude/skills/review-issue/SKILL.md",
+        ".claude/agents/issue-creator.md",
+        ".claude/agents/issue-design-reviewer.md",
+        "docs/dev/stage1b3a-producer-transport-manifest.json",
+        "docs/dev/other.md",
+        "scripts/agent-guards/repo_identity.py",
+        "config/repository_identity.v1.json",
+        "pyproject.toml",
+        "AGENTS.md",
+    ]
+    assert _paths_outside_allowed(unapproved) == unapproved
+    assert _paths_outside_allowed([*unapproved, "tests/stage2/test_x.py"]) == unapproved
+
+
+def test_ac6_pr47_exception_is_exactly_two_files() -> None:
+    assert (
+        _paths_outside_allowed(
+            [
+                ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py",
+                "docs/dev/stage1b4-semantic-review-manifest.json",
+            ]
+        )
+        == []
     )
-    for rel in [*m["test_files"], *m["required_fixtures"]]:
-        assert rel.startswith(allowed), rel

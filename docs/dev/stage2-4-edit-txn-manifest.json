@@ -50,7 +50,7 @@
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 1,
-    "tests/stage2/test_stage2_4_edit_txn.py": 183
+    "tests/stage2/test_stage2_4_edit_txn.py": 185
   },
   "expected_ran": {
     ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 43,
@@ -58,7 +58,7 @@
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 3,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 0,
-    "tests/stage2/test_stage2_4_edit_txn.py": 183
+    "tests/stage2/test_stage2_4_edit_txn.py": 185
   },
   "deferred_tests": [
     {
@@ -291,27 +291,27 @@
     },
     {
       "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_issue_creator_frontmatter_tools_exact_set",
-      "owner_stage": "Stage 3 / I-4 (issue-creator|issue-author Agent migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated (create route is out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "issue-creator.md is migrated; remove this entry"
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
     },
     {
       "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_issue_creator_skills_exact_set",
-      "owner_stage": "Stage 3 / I-4 (issue-creator|issue-author Agent migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated (create route is out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "issue-creator.md is migrated; remove this entry"
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
     },
     {
       "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_both_agents_document_controlled_executor_procedural_contract",
-      "owner_stage": "Stage 3 / I-4 (issue-creator|issue-author Agent migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated (create route is out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "issue-creator.md is migrated; remove this entry"
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
     },
     {
       "id": ".claude/agents/tests/test_issue_creator_issue_editor_split.py::test_both_agents_document_nested_invocation_distinction",
-      "owner_stage": "Stage 3 / I-4 (issue-creator|issue-author Agent migration)",
-      "reason": ".claude/agents/issue-creator.md is not migrated (create route is out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
-      "rerun_condition": "issue-creator.md is migrated; remove this entry"
+      "owner_stage": "Stage 2-5 / Issue #35 (issue-creator.md migration)",
+      "reason": ".claude/agents/issue-creator.md is not migrated yet (its migration is owned by Stage 2-5 / Issue #35, out of Issue #34 scope); the test reads it unconditionally. The issue-editor half of the same assertions is covered by the AC4 static tests.",
+      "rerun_condition": "Issue #35 (Stage 2-5) migrates .claude/agents/issue-creator.md; rerun this test in that PR and remove this entry"
     },
     {
       "id": ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py::test_canonical_skill_read_smoke",
@@ -386,7 +386,7 @@
       "source_sha256": "882e572f2b6328405202e7ab8eb5c5bad2c66858ae2cec07d7bf1c2bfdb35544",
       "moved_sha256": "a0ba8a8065d0fa4d410df15bb54ff58da954285e9b5cc5b11769819a13ffaec2",
       "verbatim": false,
-      "intentional_diff": "`ruff format` only (the repo lints/formats .claude/agents/tests; AST is identical to source, see source_ast_sha256 == moved_ast_sha256). 4 tests that read the unmigrated issue-creator.md are deferred (issue-author/creator Agent: Stage 3).",
+      "intentional_diff": "`ruff format` only (the repo lints/formats .claude/agents/tests; AST is identical to source, see source_ast_sha256 == moved_ast_sha256). 4 tests that read the unmigrated issue-creator.md are deferred (issue-creator.md: Stage 2-5 / Issue #35).",
       "source_ast_sha256": "bdcf9a8a00ff88e4da5de95dd66b1c15948fd2c086068fd7f5c10cd86318f460",
       "moved_ast_sha256": "bdcf9a8a00ff88e4da5de95dd66b1c15948fd2c086068fd7f5c10cd86318f460"
     },
@@ -509,10 +509,10 @@
     },
     "source_collected_total": 198,
     "new_tests": {
-      "tests/stage2/test_stage2_4_edit_txn.py": 183
+      "tests/stage2/test_stage2_4_edit_txn.py": 185
     },
-    "collected_total": 381,
-    "ran_total": 338,
+    "collected_total": 383,
+    "ran_total": 340,
     "deferred_total": 43,
     "skipped": 0,
     "note": "source counts match the Issue text (test_edit_issue_txn 69, preexisting_readiness 118, issue_content_update_txn 3); the source files are collected as moved (only the repo literal differs)."
@@ -626,7 +626,13 @@
       "rerun_condition": "explicit live-mutation approval"
     },
     {
-      "item": "issue-creator / issue-author Agent",
+      "item": "issue-creator Agent",
+      "owner_stage": "Stage 2-5 / Issue #35",
+      "reason": "out of Issue #34 scope; the 4 issue_creator_issue_editor_split tests that read issue-creator.md are deferred until it lands",
+      "rerun_condition": "Issue #35 migrates .claude/agents/issue-creator.md"
+    },
+    {
+      "item": "issue-author Agent",
       "owner_stage": "Stage 3 / I-4",
       "reason": "out of Issue #34 scope",
       "rerun_condition": "agent migrated"
