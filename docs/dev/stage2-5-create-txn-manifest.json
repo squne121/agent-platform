@@ -45,7 +45,7 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
     "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 101
+    "tests/stage2/test_stage2_5_create_txn.py": 102
   },
   "expected_ran": {
     ".claude/skills/create-issue/tests/test_create_issue_txn.py": 138,
@@ -53,7 +53,7 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
     "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 101
+    "tests/stage2/test_stage2_5_create_txn.py": 102
   },
   "deferred_tests": [
     {
@@ -75,13 +75,13 @@
   "source_parity": {
     ".claude/skills/create-issue/scripts/create_issue_txn.py": {
       "source_sha256": "02215e8b1f6735fe12dbafefede8eba09d41fa361b4e13d826c0afed43789bb1",
-      "moved_sha256": "2bc30d6bde0cd91e5a56189c6cadc243293823d907009e4879db8e771bdaab06",
+      "moved_sha256": "dd2412569a076db0704ad411dde83fa6c509c1614507d09cd9629d7c64f26abd",
       "verbatim": false,
       "source_lines": 3087,
       "moved_lines": 3392,
       "intentional_diff": "Stage 2-5 hardening of the source transaction (see intentional_diffs 1-5).",
       "source_ast_sha256": "b82cb7167a66289bfac578d326d53d4883126be1da0c30d38bbace860c902d01",
-      "moved_ast_sha256": "68312a690276ca11773300e96e87e2cf03aeeed3c43f81dd7298b9b410948359"
+      "moved_ast_sha256": "fcb44c2d384417b5c515593343881358aae66f9b575ed5187158d013ed5894ad"
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
@@ -177,10 +177,10 @@
     "source_in_scope_total": 164,
     "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
     "new_tests": {
-      "tests/stage2/test_stage2_5_create_txn.py": 101
+      "tests/stage2/test_stage2_5_create_txn.py": 102
     },
-    "collected_total": 272,
-    "ran_total": 271,
+    "collected_total": 273,
+    "ran_total": 272,
     "deferred_total": 1,
     "skipped": 0,
     "not_migrated_source_tests": {
