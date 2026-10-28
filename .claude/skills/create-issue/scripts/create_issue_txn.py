@@ -3056,7 +3056,7 @@ def run_transaction_with_authoritative_readback(
             result,
             status="partial_failure",
             failure_stage="node-id-readback",
-            failure_message="authoritative node_id readback failed after the write",
+            failure_message="authoritative node_id readback failed; the issue is not verified",
             pending_steps=[*result.pending_steps, "node-id-readback"],
             body_sha256=body_sha256,
         )

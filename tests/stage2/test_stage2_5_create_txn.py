@@ -434,6 +434,36 @@ def test_ac2_node_id_readback_failure_is_not_a_verified_success(inproc: Project)
     assert res.node_id is None and res.issue_number is not None
 
 
+def test_ac2_node_id_readback_failure_on_a_dedupe_hit_is_not_a_verified_success(
+    inproc: Project,
+) -> None:
+    inproc.set_state(
+        graphql_broken=True,
+        issues=[
+            {
+                "number": 10,
+                "title": TITLE,
+                "body": "",
+                "state": "OPEN",
+                "url": f"https://github.com/{TRUSTED}/issues/10",
+            }
+        ],
+    )
+    res = txn.run_transaction_with_authoritative_readback(
+        repo=TRUSTED,
+        title=TITLE,
+        body="",
+        body_file=inproc.body_file(),
+        labels=[],
+        parent_issue_number=0,
+        dependency_issue_numbers=[],
+        gh_bin=str(inproc.gh),
+        sleep_fn=lambda _s: None,
+    )
+    assert res.status == "partial_failure" and res.failure_stage == "node-id-readback"
+    assert res.issue_number == 10 and res.dedupe_number == 10 and res.node_id is None
+
+
 @pytest.mark.parametrize("mode", ["applied_then_hang", "garbage_url", "empty_url"])
 def test_ac2_unknown_outcome_stays_unknown_when_the_readback_lags(
     inproc: Project, monkeypatch: pytest.MonkeyPatch, mode: str
