@@ -397,7 +397,7 @@ uv run --locked python3 .claude/skills/create-issue/scripts/materialize_child_is
 5. **dedupe 経路でも body 由来 parent を使用**: dedupe（同一タイトルの既存 issue が見つかった場合）でも、
    body 由来 parent に基づく sub-issue 登録（idempotent）と parent read-back / reconcile が実行される。
 
-**sub-issue 登録手順（手動実行が必要な場合）**:
+**sub-issue 登録手順（手動実行が必要な場合）**（**【未承認 / 実行しない】**）:
 
 ```bash
 # 1. child issue の整数 databaseId を GraphQL で取得
@@ -426,6 +426,8 @@ gh api repos/{owner}/{repo}/issues/{parent_number}/sub_issues --method POST -F s
 - sub-issue として「登録済みかを確認する方法（read-back 確認）」は `issue-contract-review` が正本
 
 ## Blocker / Blocked-by 設定手順
+
+> **【未承認 / agent-platform では実行しない】** 以下の raw `gh` / `create_issue_txn.py` の label・parent・dependency 操作は承認されていない（冒頭の承認境界を参照）。
 
 ### blocker 検出基準
 
@@ -465,6 +467,8 @@ query {
 `state/blocked` ラベルを付与し、blocker が解除されるまでキューに入れないことを推奨する。
 
 ### 前提Issue（hard predecessor）を起票する場合: `--blocking`
+
+> **【未承認 / agent-platform では実行しない】** 以下の raw `gh` / `create_issue_txn.py` の label・parent・dependency 操作は承認されていない（冒頭の承認境界を参照）。
 
 新規 Issue を、既存 Issue の **前提Issue（hard predecessor）** として起票したい場合（＝新規 Issue が既存
 Issue を **ブロックする** 方向にしたい場合）は `--blocking` を使う。`--blocked-by`/`--dependency` と混同して
@@ -538,6 +542,8 @@ hard-successor（`--blocking` で配線すべき自動 caller）の inventory �
 comment の "Recovery hint:" 以降に stage 固有の補正コマンドと idempotency 情報が記載されている。
 
 ### label-readback 失敗後の reconcile 手順
+
+> **【未承認 / agent-platform では実行しない】** 以下の raw `gh` / `create_issue_txn.py` の label・parent・dependency 操作は承認されていない（冒頭の承認境界を参照）。
 
 `label-readback` ステージで `partial_failure` が返された場合、**以下の手順で復旧する**:
 
