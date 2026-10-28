@@ -1818,8 +1818,21 @@ _ALLOWED_EXACT = frozenset(
 )
 
 
+_PR47_EXCEPTION = frozenset(
+    {
+        ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py",
+        "docs/dev/stage1b4-semantic-review-manifest.json",
+    }
+)
+
+
 def _paths_outside_allowed(paths: list[str]) -> list[str]:
-    return [p for p in paths if p not in _ALLOWED_EXACT and not p.startswith(_ALLOWED_GLOBS)]
+    def ok(p: str) -> bool:
+        if ".." in p.split("/") or p.startswith("/"):
+            return False
+        return p in _ALLOWED_EXACT or p.startswith(_ALLOWED_GLOBS)
+
+    return [p for p in paths if not ok(p)]
 
 
 def test_ac6_manifest_referenced_paths_stay_inside_allowed_paths() -> None:
@@ -1846,18 +1859,30 @@ def test_ac6_allowed_paths_matcher_rejects_unapproved_paths() -> None:
         "config/repository_identity.v1.json",
         "pyproject.toml",
         "AGENTS.md",
+        ".github/workflows/other.yml",
+        ".claude/hooks/x.py",
+        "tests/other/x.py",
+        "tests/fixtures/other/x",
+        "tests/stage20/x.py",
+        ".claude/skills/edit-issue-evil/x",
+        "tests/stage2/../../AGENTS.md",
+        "/etc/passwd",
     ]
     assert _paths_outside_allowed(unapproved) == unapproved
     assert _paths_outside_allowed([*unapproved, "tests/stage2/test_x.py"]) == unapproved
 
 
 def test_ac6_pr47_exception_is_exactly_two_files() -> None:
-    assert (
-        _paths_outside_allowed(
-            [
-                ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py",
-                "docs/dev/stage1b4-semantic-review-manifest.json",
-            ]
-        )
-        == []
-    )
+    assert len(_PR47_EXCEPTION) == 2
+    assert _PR47_EXCEPTION <= _ALLOWED_EXACT
+    assert _paths_outside_allowed(sorted(_PR47_EXCEPTION)) == []
+    # the exception grants nothing beyond those two files (siblings stay rejected)
+    assert _paths_outside_allowed(
+        [
+            ".claude/skills/issue-refinement-loop/tests/test_other.py",
+            "docs/dev/stage1b3a-producer-transport-manifest.json",
+        ]
+    ) == [
+        ".claude/skills/issue-refinement-loop/tests/test_other.py",
+        "docs/dev/stage1b3a-producer-transport-manifest.json",
+    ]
