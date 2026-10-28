@@ -223,14 +223,14 @@ jobs:
           version: "0.11.29"
       - run: uv sync --locked
       - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
-      - name: manifest-pinned collect counts, 0 skipped / xfailed, nothing deselected (fake gh only, no real GitHub read or write)
+      - name: manifest-pinned collect counts, 0 skipped / xfailed, only the listed deferred test deselected (fake gh only, no real GitHub read or write)
         shell: bash
         run: |
           set -eo pipefail
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-5-create-txn-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed)" runner.out; then exit 1; fi
-          if grep -Eiq "(^|[^0-9])[1-9][0-9]* deselected" runner.out; then exit 1; fi
-          grep -Eq "(^|[^0-9])0 deferred with reasons, 96 ran, 0 skipped" runner.out
+          grep -Eq "(^|[^0-9])1 deselected" runner.out
+          grep -Eq "(^|[^0-9])1 deferred with reasons, 260 ran, 0 skipped" runner.out
   lint:
     runs-on: ubuntu-latest
     steps:

@@ -32,19 +32,46 @@
     "tests/stage2/fixtures/valid_implementation_body.md"
   ],
   "test_files": [
+    ".claude/skills/create-issue/tests/test_create_issue_txn.py",
+    ".claude/skills/create-issue/tests/test_create_issue_txn_blocking.py",
+    ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py",
+    "tests/create-issue/test_create_issue_txn_validator_parity.py",
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py",
     "tests/stage2/test_stage2_5_create_txn.py"
   ],
   "expected_collect": {
+    ".claude/skills/create-issue/tests/test_create_issue_txn.py": 138,
+    ".claude/skills/create-issue/tests/test_create_issue_txn_blocking.py": 16,
+    ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
+    "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 89
+    "tests/stage2/test_stage2_5_create_txn.py": 90
   },
   "expected_ran": {
+    ".claude/skills/create-issue/tests/test_create_issue_txn.py": 138,
+    ".claude/skills/create-issue/tests/test_create_issue_txn_blocking.py": 15,
+    ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
+    "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 89
+    "tests/stage2/test_stage2_5_create_txn.py": 90
   },
-  "deferred_tests": [],
-  "deferred_files": [],
+  "deferred_tests": [
+    {
+      "id": ".claude/skills/create-issue/tests/test_create_issue_txn_blocking.py::test_live_canary_cleanup_discovers_and_removes_leftover_relationship_after_partial_failure",
+      "owner_stage": "live canary lane (unassigned; needs an explicit live-mutation approval)",
+      "reason": "the test sources .claude/skills/create-issue/tests/live_canary_blocking_direction.sh, a LIVE canary that creates disposable issues and registers/removes blocking relationships. Carrying that script would put a runnable label/relationship live-mutation tool into the repo, and relationship mutation is not approved for agent-platform. The remaining 15 tests in the file run.",
+      "rerun_condition": "a human approves live relationship canaries for agent-platform AND a dedicated Issue migrates live_canary_blocking_direction.sh; then drop this id and re-run unchanged"
+    }
+  ],
+  "deferred_files": [
+    {
+      "id": ".claude/skills/create-issue/tests/live_canary_blocking_direction.sh",
+      "owner_stage": "live canary lane (unassigned)",
+      "reason": "live GitHub mutation script (see deferred_tests); not migrated",
+      "rerun_condition": "explicit live-mutation approval + dedicated Issue",
+      "collected": false
+    }
+  ],
   "source_parity": {
     ".claude/skills/create-issue/scripts/create_issue_txn.py": {
       "source_sha256": "02215e8b1f6735fe12dbafefede8eba09d41fa361b4e13d826c0afed43789bb1",
@@ -72,6 +99,26 @@
       "moved_lines": 66,
       "intentional_diff": "Added the '承認境界（agent-platform / Stage 2-5）' section before the output contract; frontmatter and every other line are byte-identical to the source."
     },
+    ".claude/skills/create-issue/tests/test_create_issue_txn.py": {
+      "source_sha256": "a2c31ce60d1694272ab2150843c5895d516f1878ab6cd8098b870b0bc889ec46",
+      "moved_sha256": "76fb8ab729c2d6622e6155d704e9934b655f8edb6b42a3aa35e124509c32cb16",
+      "verbatim": false,
+      "source_lines": 2866,
+      "moved_lines": 2866,
+      "intentional_diff": "mechanical: `txn.run_transaction(` -> `txn._run_transaction_engine(` and `txn.reconcile_transaction(` -> `txn._reconcile_transaction_engine(` (the retained source handlers are driven through the engine with in-process fakes; the public entrypoints are gated).",
+      "source_ast_sha256": "8954ed70817911b3f1352fded2cc5be8c1b8bdaf4cc7d1f0cbec5fe83d097a1b",
+      "moved_ast_sha256": "e1440f831940fe229486340b17d452356abff16c866a5dd6555a267162a599e4"
+    },
+    ".claude/skills/create-issue/tests/test_create_issue_txn_blocking.py": {
+      "source_sha256": "1c6d7d5b53baab9618a9d15481ed76e4040e428d7ffe745e03a2a25e20644b81",
+      "moved_sha256": "604af73b605873e4a8a6df6e5db2e83173dd1cfeaf7570a52ffac3595b0b104d",
+      "verbatim": false,
+      "source_lines": 829,
+      "moved_lines": 829,
+      "intentional_diff": "same mechanical engine substitution as test_create_issue_txn.py.",
+      "source_ast_sha256": "a72c30d96698451f20f4fe2aabb57edfa7a6a0acb7ece9faee789cd2b16a6306",
+      "moved_ast_sha256": "f0783c6da5a33459c99c2fac4f5e898982d47798d1a6ce7c98b623a45fddab85"
+    },
     ".claude/skills/create-issue/references/body-authoring.md": {
       "source_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
       "moved_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
@@ -85,6 +132,38 @@
       "verbatim": true,
       "source_lines": 47,
       "moved_lines": 47
+    },
+    ".claude/skills/create-issue/tests/__init__.py": {
+      "source_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "moved_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "verbatim": true,
+      "source_lines": 0,
+      "moved_lines": 0
+    },
+    ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": {
+      "source_sha256": "d4d814a3bbf9fbe91a475c7f0ddf73f4c6ca8664ad38c46c4ea9edfb3151194e",
+      "moved_sha256": "d4d814a3bbf9fbe91a475c7f0ddf73f4c6ca8664ad38c46c4ea9edfb3151194e",
+      "verbatim": true,
+      "source_lines": 285,
+      "moved_lines": 285
+    },
+    "tests/create-issue/test_create_issue_txn_validator_parity.py": {
+      "source_sha256": "b4868523dc37a3fb2f11cf753325d204e8317d8154cb20d53cf65b6195abe810",
+      "moved_sha256": "6ee2b750b8578acd37390c65dc37ef8be006a21e36bf38fe6b666428daec0ba9",
+      "verbatim": false,
+      "source_lines": 112,
+      "moved_lines": 114,
+      "intentional_diff": "ruff-clean only (tests/ is not in the Ruff exclusion list and pyproject.toml is outside the #35 Allowed Paths): import sort, `ruff format`, and `check=False` on the one subprocess.run; no assertion changed.",
+      "source_ast_sha256": "2ae062a84b9516bdc47c3398f8b6c70e4bd22aa530a649db22cb24de24d820f1",
+      "moved_ast_sha256": "dc35d6206f8251909a96a258e9a5777a456005cd1bb0b7b56fae34cc64717d6f"
+    },
+    "tests/create-issue/conftest.py": {
+      "source_sha256": "1b8a20cfd1df2d8110dea55a683e502db2f7fbc0f30a84c2134df338d4d1bbe8",
+      "moved_sha256": "a37766df70a25b18619e999d7abe0848f0a40dec317df5991f4de5d4f807e638",
+      "verbatim": false,
+      "source_lines": 87,
+      "moved_lines": 15,
+      "intentional_diff": "reduced to the sys.path import shim; the child-materialization plan fixtures (loop-protocol plan slug, parent_body fixtures) belong to Stage 2-6 / #36."
     }
   },
   "source_inventory": {
@@ -98,11 +177,11 @@
     "source_in_scope_total": 164,
     "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
     "new_tests": {
-      "tests/stage2/test_stage2_5_create_txn.py": 89
+      "tests/stage2/test_stage2_5_create_txn.py": 90
     },
-    "collected_total": 96,
-    "ran_total": 96,
-    "deferred_total": 0,
+    "collected_total": 261,
+    "ran_total": 260,
+    "deferred_total": 1,
     "skipped": 0,
     "not_migrated_source_tests": {
       "owner Stage 2-6 / #36": [
