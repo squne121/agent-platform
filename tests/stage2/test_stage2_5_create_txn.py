@@ -388,15 +388,134 @@ def test_ac2_search_index_lag_is_bounded_and_never_a_second_create(inproc: Proje
     assert inproc.state["list_calls"] == 4
 
 
-def test_ac2_permanent_lag_is_inconclusive_with_a_bounded_poll_and_one_create(
-    inproc: Project,
-) -> None:
+def test_ac2_permanent_lag_is_not_a_verified_success(inproc: Project) -> None:
     inproc.set_state(list_mode="lag", lag_calls=10_000)
     res = _call(inproc)
-    assert res.status == "success" and "race-detection-inconclusive" in res.completed_steps
+    assert res.status == "partial_failure" and res.failure_stage == "race-detection-inconclusive"
+    assert res.issue_number == 501 and "readback-confirmation" in res.pending_steps
     st = inproc.state
     assert st["create_calls"] == 1 and st["list_calls"] == 1 + txn._DEFAULT_MAX_ATTEMPTS
     assert ("issue", "comment") in inproc.verbs  # the observability comment on the NEW issue only
+
+
+def test_ac2_permanent_lag_cli_exit_code_is_2(proj: Project) -> None:
+    proj.set_state(list_mode="lag", lag_calls=10_000)
+    rc, res = proj.create()
+    assert rc == 2 and res["status"] == "partial_failure"
+
+
+def test_ac2_node_id_readback_failure_is_not_a_verified_success(inproc: Project) -> None:
+    inproc.set_state(issues=[], created=False)
+    res = txn.run_transaction_with_authoritative_readback(
+        repo=TRUSTED,
+        title=TITLE,
+        body="",
+        body_file=inproc.body_file(),
+        labels=[],
+        parent_issue_number=0,
+        dependency_issue_numbers=[],
+        gh_bin=str(inproc.gh),
+        sleep_fn=lambda _s: None,
+    )
+    assert res.status == "success"  # control: the readback works when the fake answers
+    inproc.set_state(graphql_broken=True)
+    res = txn.run_transaction_with_authoritative_readback(
+        repo=TRUSTED,
+        title=TITLE + " 2",
+        body="",
+        body_file=inproc.body_file(),
+        labels=[],
+        parent_issue_number=0,
+        dependency_issue_numbers=[],
+        gh_bin=str(inproc.gh),
+        sleep_fn=lambda _s: None,
+    )
+    assert res.status == "partial_failure" and res.failure_stage == "node-id-readback"
+    assert res.node_id is None and res.issue_number is not None
+
+
+@pytest.mark.parametrize("mode", ["applied_then_hang", "garbage_url", "empty_url"])
+def test_ac2_unknown_outcome_stays_unknown_when_the_readback_lags(
+    inproc: Project, monkeypatch: pytest.MonkeyPatch, mode: str
+) -> None:
+    monkeypatch.setitem(txn.run_command.__kwdefaults__, "timeout", 1.0)
+    inproc.set_state(create_mode=mode, list_mode="lag", lag_calls=10_000)
+    res = _call(inproc)
+    assert res.failure_stage == "issue-create-outcome-unknown" and res.issue_number is None
+    assert "no open issue" in res.failure_message
+
+
+def test_ac2_applied_then_failed_with_an_unavailable_readback_is_outcome_unknown(
+    inproc: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inproc.set_state(create_mode="applied_then_fail")
+    real = txn._find_open_issues_by_title
+    seen = {"n": 0}
+
+    def flaky(repo, title, gh_bin):
+        seen["n"] += 1
+        if seen["n"] >= 2:  # the first call is the pre-create dedupe search
+            raise txn.TransactionError("dedupe-search", "readback boom")
+        return real(repo, title, gh_bin)
+
+    monkeypatch.setattr(txn, "_find_open_issues_by_title", flaky)
+    res = _call(inproc)
+    assert res.failure_stage == "issue-create-outcome-unknown"
+    assert "readback unavailable" in res.failure_message
+
+
+def test_ac2_skip_internal_dedupe_never_attributes_an_unrelated_same_title_issue(
+    inproc: Project,
+) -> None:
+    inproc.set_state(
+        create_mode="fail",
+        issues=[
+            {
+                "number": 10,
+                "title": TITLE,
+                "body": "",
+                "state": "OPEN",
+                "url": f"https://github.com/{TRUSTED}/issues/10",
+            }
+        ],
+    )
+    res = _call(inproc, skip_internal_title_dedupe=True)
+    assert res.failure_stage == "issue-create-outcome-unknown"
+    assert res.issue_number is None and "[10]" in res.failure_message
+
+
+@pytest.mark.parametrize(
+    "variant",
+    ["shorthand", "crlf", "heading_only", "mrc_only"],
+)
+def test_ac3_body_parent_syntax_variants_are_all_rejected_before_gh(
+    proj: Project, variant: str
+) -> None:
+    base = VALID_BODY
+    if variant == "shorthand":
+        body = (
+            base.replace("parent_issue: none", "parent_issue: none")
+            .replace("## Parent Issue\n\nnone", "## Parent Issue\n\n#29")
+            .replace("parent_issue: none", 'parent_issue: "#29"')
+        )
+    elif variant == "crlf":
+        body = (
+            base.replace("parent_issue: none", 'parent_issue: "#29"')
+            .replace("## Parent Issue\n\nnone", "## Parent Issue\n\n#29")
+            .replace("\n", "\r\n")
+        )
+    elif variant == "heading_only":
+        body = base.replace("parent_issue: none\n", "").replace(
+            "## Parent Issue\n\nnone", "## Parent Issue\n\n#29"
+        )
+    else:
+        body = base.replace("parent_issue: none", 'parent_issue: "#29"').replace(
+            "## Parent Issue\n\nnone", "## Parent Issue\n\n#29"
+        )
+    _rc, res = proj.create(body=proj.body_file(body, f"{variant}.md"))
+    assert res["status"] == "failure"
+    assert res["failure_stage"] in {"unapproved-operation", "issue-body-validate"}, res
+    proj.assert_gh_zero()
 
 
 def test_ac2_race_duplicate_after_create_is_a_failure_not_success(inproc: Project) -> None:

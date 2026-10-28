@@ -2475,7 +2475,9 @@ def _run_transaction_engine(
         issue_url = _issue_create(repo, title, body, body_file, gh_bin)
         issue_number = _issue_number_from_url(issue_url)
     except TransactionError as exc:
-        return _create_failure_result(repo, title, exc, gh_bin)
+        return _create_failure_result(
+            repo, title, exc, gh_bin, attribute_candidate=not skip_internal_title_dedupe
+        )
     completed.append("create")
     matching_issue_numbers: list[int] = []
 
@@ -2826,7 +2828,7 @@ def _gate_approved_operations(
 
 
 def _create_failure_result(
-    repo: str, title: str, exc: TransactionError, gh_bin: str
+    repo: str, title: str, exc: TransactionError, gh_bin: str, *, attribute_candidate: bool = True
 ) -> TransactionResult:
     """Classify a failure of the `gh issue create` step without claiming 'no mutation'.
 
@@ -2872,7 +2874,11 @@ def _create_failure_result(
         readback = "title readback found no open issue (search index may lag)"
     return TransactionResult(
         status="failure",
-        issue_number=candidates[0] if candidates and len(candidates) == 1 else None,
+        # With skip_internal_title_dedupe the title match may be an unrelated same-title issue,
+        # so it is reported in the message only, never attributed as this create's issue_number.
+        issue_number=(
+            candidates[0] if attribute_candidate and candidates and len(candidates) == 1 else None
+        ),
         issue_url=None,
         completed_steps=[],
         failure_stage="issue-create-outcome-unknown",
@@ -2881,6 +2887,26 @@ def _create_failure_result(
             "Do not assume no mutation; verify before retrying."
         ),
     )
+
+
+def _inconclusive_readback_is_not_success(result: TransactionResult) -> TransactionResult:
+    """A create whose post-create readback never became conclusive is not a verified success.
+
+    The issue exists (issue_number/url kept), but the fresh title readback never confirmed it
+    within the bounded poll, so it is reported as `partial_failure` (exit 2), not `success`.
+    """
+    if result.status == "success" and "race-detection-inconclusive" in result.completed_steps:
+        return _dataclass_replace(
+            result,
+            status="partial_failure",
+            failure_stage="race-detection-inconclusive",
+            failure_message=(
+                "issue created but the post-create readback stayed inconclusive "
+                "(search index lag); verify the issue and its title uniqueness manually"
+            ),
+            pending_steps=[*result.pending_steps, "readback-confirmation"],
+        )
+    return result
 
 
 def run_transaction(
@@ -2911,7 +2937,7 @@ def run_transaction(
     )
     if rejected is not None:
         return rejected
-    return _run_transaction_engine(
+    result = _run_transaction_engine(
         repo=repo,
         title=title,
         body=body,
@@ -2927,6 +2953,7 @@ def run_transaction(
         skip_internal_title_dedupe=skip_internal_title_dedupe,
         approved_operations_only=True,
     )
+    return _inconclusive_readback_is_not_success(result)
 
 
 def reconcile_transaction(
@@ -3023,6 +3050,16 @@ def run_transaction_with_authoritative_readback(
         except OSError:
             effective_body = body
     body_sha256 = hashlib.sha256(effective_body.encode("utf-8")).hexdigest()
+    if node_id is None and result.status in {"success", "dedupe"}:
+        # No fresh authoritative readback of the issue: not a verified success.
+        return _dataclass_replace(
+            result,
+            status="partial_failure",
+            failure_stage="node-id-readback",
+            failure_message="authoritative node_id readback failed after the write",
+            pending_steps=[*result.pending_steps, "node-id-readback"],
+            body_sha256=body_sha256,
+        )
     return _dataclass_replace(result, node_id=node_id, body_sha256=body_sha256)
 
 

@@ -48,6 +48,14 @@ def unexpected() -> None:
 
 repo = state["repo"]
 
+if "--repo" in argv and flag("--repo") != repo:
+    sys.stderr.write(f"fake gh: --repo mismatch: {flag('--repo')}\n")
+    state.setdefault("unexpected", []).append(argv)
+    save()
+    sys.exit(97)
+if argv[:2] == ["api", "graphql"] and any("mutation" in a for a in argv):
+    unexpected()
+
 if argv[:2] == ["issue", "list"]:
     state["list_calls"] = state.get("list_calls", 0) + 1
     mode = state.get("list_mode", "ok")
@@ -124,6 +132,10 @@ if argv[:1] == ["api"] and "--method" in argv and flag("--method") == "GET":
     out({"number": hit[0]["number"], "title": hit[0]["title"], "body": hit[0]["body"]})
 
 if argv[:2] == ["api", "graphql"]:
+    if state.get("graphql_broken"):
+        save()
+        sys.stderr.write("graphql boom\n")
+        sys.exit(1)
     number = int(next(a.split("=", 1)[1] for a in argv if a.startswith("number=")))
     hit = [i for i in state["issues"] if i["number"] == number]
     if not hit:

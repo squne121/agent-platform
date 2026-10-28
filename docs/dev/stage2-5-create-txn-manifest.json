@@ -37,31 +37,31 @@
   ],
   "expected_collect": {
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 89
+    "tests/stage2/test_stage2_5_create_txn.py": 100
   },
   "expected_ran": {
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 89
+    "tests/stage2/test_stage2_5_create_txn.py": 100
   },
   "deferred_tests": [],
   "deferred_files": [],
   "source_parity": {
     ".claude/skills/create-issue/scripts/create_issue_txn.py": {
       "source_sha256": "02215e8b1f6735fe12dbafefede8eba09d41fa361b4e13d826c0afed43789bb1",
-      "moved_sha256": "a9a5b39eea43c4c70a31f8ebfa2e4b3a732399ee824740a42120ef76fea0c95d",
+      "moved_sha256": "2bc30d6bde0cd91e5a56189c6cadc243293823d907009e4879db8e771bdaab06",
       "verbatim": false,
       "source_lines": 3087,
-      "moved_lines": 3355,
+      "moved_lines": 3392,
       "intentional_diff": "Stage 2-5 hardening of the source transaction (see intentional_diffs 1-5).",
       "source_ast_sha256": "b82cb7167a66289bfac578d326d53d4883126be1da0c30d38bbace860c902d01",
-      "moved_ast_sha256": "145f220ed030de0eb5c13d35f644443ebcdef56965bdad633ebb399ac643c887"
+      "moved_ast_sha256": "68312a690276ca11773300e96e87e2cf03aeeed3c43f81dd7298b9b410948359"
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
-      "moved_sha256": "beda806043aaa654ce16da606020d6fabae724f885f81d321d62b5ab155eb880",
+      "moved_sha256": "e918a1f4e21fcc4fc20dffceaeeb55a3817b38a5a0f6dfa35174b58a63dc5fba",
       "verbatim": false,
       "source_lines": 574,
-      "moved_lines": 585,
+      "moved_lines": 591,
       "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it."
     },
     ".claude/agents/issue-creator.md": {
@@ -98,10 +98,10 @@
     "source_in_scope_total": 164,
     "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
     "new_tests": {
-      "tests/stage2/test_stage2_5_create_txn.py": 89
+      "tests/stage2/test_stage2_5_create_txn.py": 100
     },
-    "collected_total": 96,
-    "ran_total": 96,
+    "collected_total": 107,
+    "ran_total": 107,
     "deferred_total": 0,
     "skipped": 0,
     "not_migrated_source_tests": {
@@ -167,6 +167,7 @@
       ]
     },
     "frontmatter_byte_identical_to_source": true,
+    "frontmatter_provenance": "the recorded frontmatter was read from the source tag blob at authoring time (git show) and re-compared byte-for-byte; CI cannot read the legacy repo, so the AC5 test compares against this recorded copy.",
     "permission_mode_note": "`permissionMode: acceptEdits` auto-accepts file-edit tools only; the agent disallows Edit/MultiEdit/Write, so it is not a permission bypass.",
     "skills_note": "`skills: [create-issue]` is a context preload, not a tool-level allowlist; nested Skill/Agent invocation is blocked because `Skill` is absent from `tools` and both `Skill` and `Agent` are in `disallowedTools`.",
     "procedural_contract_note": "the raw `gh` mutation ban is a procedural contract; no Bash-tool-level enforcement is claimed. The SKILL text that describes raw gh label/sub-issue/blocking recovery is NOT an approval (approval-boundary sections added).",
