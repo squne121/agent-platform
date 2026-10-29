@@ -37,24 +37,24 @@
   ],
   "expected_collect": {
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 101
+    "tests/stage2/test_stage2_5_create_txn.py": 122
   },
   "expected_ran": {
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 101
+    "tests/stage2/test_stage2_5_create_txn.py": 122
   },
   "deferred_tests": [],
   "deferred_files": [],
   "source_parity": {
     ".claude/skills/create-issue/scripts/create_issue_txn.py": {
       "source_sha256": "02215e8b1f6735fe12dbafefede8eba09d41fa361b4e13d826c0afed43789bb1",
-      "moved_sha256": "dd2412569a076db0704ad411dde83fa6c509c1614507d09cd9629d7c64f26abd",
+      "moved_sha256": "d9200a703d93a81f72b4e313f41baa42d92cf9a10ac532a8ebab4b2aa54ebdc8",
       "verbatim": false,
       "source_lines": 3087,
-      "moved_lines": 3392,
-      "intentional_diff": "Stage 2-5 hardening of the source transaction (see intentional_diffs 1-5).",
+      "moved_lines": 3498,
+      "intentional_diff": "Stage 2-5 hardening of the source transaction (see intentional_diffs 1-5, 8).",
       "source_ast_sha256": "b82cb7167a66289bfac578d326d53d4883126be1da0c30d38bbace860c902d01",
-      "moved_ast_sha256": "fcb44c2d384417b5c515593343881358aae66f9b575ed5187158d013ed5894ad"
+      "moved_ast_sha256": "3579a49c59b174c6d5f446c9c4e59da0253b896a54377f049f56d4f82da9129c"
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
@@ -98,10 +98,10 @@
     "source_in_scope_total": 164,
     "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
     "new_tests": {
-      "tests/stage2/test_stage2_5_create_txn.py": 101
+      "tests/stage2/test_stage2_5_create_txn.py": 122
     },
-    "collected_total": 108,
-    "ran_total": 108,
+    "collected_total": 129,
+    "ran_total": 129,
     "deferred_total": 0,
     "skipped": 0,
     "not_migrated_source_tests": {
@@ -128,7 +128,8 @@
     "4. create failure classification: the `gh issue create` step is wrapped. Source let the TransactionError escape (a traceback from `main`, no JSON receipt). Now timeout / empty or unparsable URL / a non-zero exit with a visible issue become `issue-create-outcome-unknown` after an authoritative title readback (candidate number reported); only a definite non-zero exit with a clean readback stays `issue-create`, and neither asserts no-mutation.",
     "5. `main` converts an escaped TransactionError into a JSON failure receipt (exit 1) instead of a traceback; dispatch moved to `_dispatch`.",
     "6. SKILL.md / issue-creator.md: approval-boundary sections added (the source text describes label/parent/dependency usage and raw gh recovery; that is documentation, not approval). `--issue-kind` absent + MRC kind in the body is the label-free route.",
-    "7. tests: engine substitution in the two source txn test files; conftest reduced to an import shim; live canary test deferred."
+    "7. tests: engine substitution in the two source txn test files; conftest reduced to an import shim; live canary test deferred.",
+    "8. created-issue body readback (#35 AC2 false-green fix): after `gh issue create` the engine does a fresh read-only `gh api --method GET /repos/<repo>/issues/<n>` and requires number / title / body / html_url to match the request, with the body compared against the text snapshotted before the create (line endings and trailing whitespace normalised only). A mismatch, a missing field, invalid JSON, a GET failure or a timeout after a bounded retry (0.5s, 1.0s) is a `body-readback` partial_failure that keeps issue_number/issue_url and lists `body-readback` in pending_steps; success adds `body-readback` to completed_steps/verified_steps. `run_transaction_with_authoritative_readback().body_sha256` is set only when that readback verified the remote body (None otherwise). The dedupe path stays title-only and claims no body equality."
   ],
   "known_source_defects": [
     {

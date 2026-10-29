@@ -601,6 +601,92 @@ def _issue_number_from_url(issue_url: str) -> int:
     return int(match.group(1))
 
 
+# Retry delays for the created-issue body readback (body-readback stage).
+# Absorbs GitHub read-after-write lag after `gh issue create` returns; bounded, no open-ended wait.
+# Total worst-case wall time = sum(_BODY_READBACK_RETRY_DELAYS) <= 2 seconds.
+_BODY_READBACK_RETRY_DELAYS: tuple[float, ...] = (0.5, 1.0)
+
+
+def _normalize_readback_title(text: str) -> str:
+    return text.replace("\n", " ").replace("\r", " ").strip()
+
+
+def _normalize_readback_body(text: str) -> str:
+    """Line-ending and trailing-whitespace normalisation only; content is never rewritten."""
+    return text.replace("\r\n", "\n").replace("\r", "\n").rstrip()
+
+
+def _readback_created_issue(
+    repo: str,
+    issue_number: int,
+    issue_url: str,
+    title: str,
+    expected_body: str,
+    gh_bin: str,
+    *,
+    sleep_fn: Callable[[float], None] = time.sleep,
+) -> None:
+    """Fresh read-only GET of the just-created issue; raise ``body-readback`` unless it matches.
+
+    ``expected_body`` is the body text snapshotted once BEFORE the create (never re-read from
+    ``body_file`` here), so the comparison baseline cannot move between create and readback.
+    number / title / body / html_url must all be present and equal; a missing field, a non-JSON
+    answer, a GET failure or a timeout is a failure, never a skip. Only a bounded retry absorbs
+    read-after-write lag. No GitHub mutation is performed.
+    """
+    expected_title = _normalize_readback_title(title)
+    expected_norm = _normalize_readback_body(expected_body)
+    attempts = len(_BODY_READBACK_RETRY_DELAYS) + 1
+    last_reason = "no attempt"
+    for attempt in range(attempts):
+        if attempt > 0:
+            sleep_fn(_BODY_READBACK_RETRY_DELAYS[attempt - 1])
+        try:
+            data = _run_gh_json(
+                [
+                    gh_bin,
+                    "api",
+                    "--method",
+                    "GET",
+                    "-H",
+                    "Accept: application/vnd.github+json",
+                    "-H",
+                    "X-GitHub-Api-Version: 2022-11-28",
+                    f"/repos/{repo}/issues/{issue_number}",
+                ],
+                stage="body-readback",
+            )
+        except TransactionError as exc:
+            last_reason = f"{exc.message}: {exc.output}"
+            continue
+        if not isinstance(data, dict) or not all(k in data for k in ("number", "title", "body", "html_url")):
+            last_reason = "readback is missing number/title/body/html_url"
+            continue
+        if data["number"] != issue_number or str(data["html_url"]).strip() != issue_url.strip():
+            last_reason = f"readback identity mismatch: number={data['number']!r} url={data['html_url']!r}"
+            continue
+        if not isinstance(data["title"], str) or _normalize_readback_title(data["title"]) != expected_title:
+            last_reason = "remote title does not match the requested title"
+            continue
+        remote_body = data["body"]
+        if remote_body is None:
+            remote_body = ""
+        if not isinstance(remote_body, str) or _normalize_readback_body(remote_body) != expected_norm:
+            last_reason = (
+                f"remote body does not match the requested body "
+                f"(remote_len={len(remote_body) if isinstance(remote_body, str) else 'n/a'}, "
+                f"expected_len={len(expected_norm)})"
+            )
+            continue
+        return
+    raise TransactionError(
+        stage="body-readback",
+        message=f"created issue #{issue_number} could not be verified against the requested title/body "
+        f"after {attempts} attempts",
+        output=last_reason,
+    )
+
+
 def _issue_apply_labels(repo: str, issue_number: int, labels: list[str], gh_bin: str) -> None:
     if not labels:
         return
@@ -2561,6 +2647,19 @@ def _run_transaction_engine(
             run_command(_obs_args)  # best-effort; ignore failure
             completed.append("race-detection-inconclusive")
 
+        # Fresh remote title/body readback (Issue #35 AC2). The baseline is the body text
+        # snapshotted before the create; the issue already exists here, so a mismatch is a
+        # partial_failure (never failed_no_mutation) that keeps issue_number/issue_url.
+        try:
+            _readback_created_issue(
+                repo, issue_number, issue_url, title, _body_text_for_parent, gh_bin, sleep_fn=sleep_fn
+            )
+        except TransactionError:
+            pending_steps.append("body-readback")
+            raise
+        completed.append("body-readback")
+        verified_steps.append("body-readback")
+
         _issue_apply_labels(repo, issue_number, labels, gh_bin)
         completed.append("label")
         # Blocker C: update (not re-declare) applied_steps, which was initialized before the try block.
@@ -3014,7 +3113,8 @@ def run_transaction_with_authoritative_readback(
     skip_internal_title_dedupe: bool = False,
 ) -> TransactionResult:
     """Wrap run_transaction() with an authoritative post-create GraphQL readback
-    of node_id, plus a body_sha256 computed from the effective body text.
+    of node_id, plus a body_sha256 that is set only when run_transaction() verified the stored
+    remote body (``body-readback``); it is None otherwise, never a hash of unverified input.
 
     Salvaged from Issue #2259/PR #2286 AC7 (`node_id`/`body_sha256` readback,
     originally implemented for the bridge dispatch path) and adapted to the
@@ -3049,7 +3149,13 @@ def run_transaction_with_authoritative_readback(
             effective_body = Path(body_file).read_text(encoding="utf-8")
         except OSError:
             effective_body = body
-    body_sha256 = hashlib.sha256(effective_body.encode("utf-8")).hexdigest()
+    # body_sha256 is only an evidence of the REMOTE body when the transaction itself verified it:
+    # "body-readback" in verified_steps means the stored body matched the pre-create snapshot
+    # (line endings / trailing whitespace normalised). Otherwise (dedupe hit, early failure) the
+    # local text was never compared with the remote body, so no hash is claimed (None).
+    body_sha256: str | None = None
+    if "body-readback" in result.verified_steps:
+        body_sha256 = hashlib.sha256(effective_body.encode("utf-8")).hexdigest()
     if node_id is None and result.status in {"success", "dedupe"}:
         # No fresh authoritative readback of the issue: not a verified success.
         return _dataclass_replace(

@@ -9,6 +9,9 @@ and is recorded under state["unexpected"], so an unapproved operation fails clos
 
 Fault injection (state keys): list_mode ok|fail|non_json|lag|dup_after_create, lag_calls N,
 create_mode ok|fail|applied_then_fail|applied_then_hang|empty_url|garbage_url.
+Body-readback faults: stored_body (the body GitHub "saved" instead of the one sent, set at create),
+get_mode ok|fail|non_json|hang, get_override {field: value | "__DELETE__"} applied to the GET answer for
+the first get_override_calls GETs (all of them when unset). `get_calls` counts the GETs.
 """
 
 import json
@@ -93,6 +96,7 @@ if argv[:2] == ["issue", "create"]:
         if "--body-file" in argv
         else flag("--body")
     )
+    body = state.get("stored_body", body)
     number = state["next_number"]
     url = f"https://github.com/{repo}/issues/{number}"
     state["next_number"] = number + 1
@@ -129,7 +133,34 @@ if argv[:1] == ["api"] and "--method" in argv and flag("--method") == "GET":
     hit = [i for i in state["issues"] if path.endswith(f"/issues/{i['number']}")]
     if not hit:
         unexpected()
-    out({"number": hit[0]["number"], "title": hit[0]["title"], "body": hit[0]["body"]})
+    state["get_calls"] = state.get("get_calls", 0) + 1
+    mode = state.get("get_mode", "ok")
+    if mode == "fail":
+        save()
+        sys.stderr.write("get boom\n")
+        sys.exit(1)
+    if mode == "non_json":
+        save()
+        sys.stdout.write("<html>not json</html>")
+        sys.exit(0)
+    if mode == "hang":
+        save()
+        time.sleep(30)
+        sys.exit(1)
+    answer = {
+        "number": hit[0]["number"],
+        "title": hit[0]["title"],
+        "body": hit[0]["body"],
+        "html_url": hit[0]["url"],
+    }
+    limit = state.get("get_override_calls")
+    if state.get("get_override") and (limit is None or state["get_calls"] <= limit):
+        for key, value in state["get_override"].items():
+            if value == "__DELETE__":
+                answer.pop(key, None)
+            else:
+                answer[key] = value
+    out(answer)
 
 if argv[:2] == ["api", "graphql"]:
     if state.get("graphql_broken"):
