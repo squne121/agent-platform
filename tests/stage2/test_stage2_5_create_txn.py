@@ -324,9 +324,11 @@ def test_ac2_valid_create_writes_once_and_the_new_issue_is_read_back(proj: Proje
     assert res["issue_url"] == issue["url"] == f"https://github.com/{TRUSTED}/issues/501"
     assert issue["title"] == TITLE and issue["body"] == VALID_BODY
     assert res["completed_steps"][0] == "create" and "label" in res["completed_steps"]
-    # fresh readback: after the create the title search must see exactly the created issue
+    # fresh readback: after the create the title search must see exactly the created issue, then the
+    # issue itself (number/title/body/url) is read back with a read-only GET (the last gh call)
     assert proj.verbs.index(("issue", "create")) < len(proj.verbs) - 1
-    assert proj.verbs[-1] == ("issue", "list")
+    assert proj.verbs[-2:] == [("issue", "list"), ("api", "--method")]
+    assert "body-readback" in res["completed_steps"] and "body-readback" in res["verified_steps"]
     assert res["applied_steps"] == [] and res["pending_steps"] == []
     proj.assert_only_approved_gh()
 
@@ -915,6 +917,170 @@ def test_ac4_fake_gh_fails_closed_on_any_unapproved_surface(proj: Project) -> No
         check=False,
     )
     assert cp.returncode == 97 and proj.state["unexpected"]
+
+
+# --------------------------------------------------------------------------- AC2 remote body readback
+
+
+def _gh_get_calls(p: Project) -> list[list[str]]:
+    return [c for c in p.gh_calls if c[0] == "api" and "--method" in c and "/issues/" in c[-1]]
+
+
+def _assert_created_but_unverified(res, p: Project) -> None:
+    """The issue exists, so the outcome is a partial_failure that keeps its identity (never no-mutation)."""
+    assert res.status == "partial_failure", res
+    assert res.failure_stage == "body-readback", res
+    assert res.issue_number == 501 and res.issue_url == f"https://github.com/{TRUSTED}/issues/501"
+    assert "body-readback" in res.pending_steps and "body-readback" not in res.verified_steps
+    assert res.status not in {"success", "dedupe", "failed_no_mutation"}
+    assert p.state["create_calls"] == 1
+
+
+def test_ac2_remote_body_differs_from_the_requested_body_is_not_success(inproc: Project) -> None:
+    # GitHub "saved" another body: create exits 0, URL/number/title are all correct (the false-green).
+    inproc.set_state(stored_body="## Acceptance Criteria\n\n- [ ] AC1: GitHub rewrote this\n")
+    _assert_created_but_unverified(_call(inproc), inproc)
+
+
+def test_ac2_remote_body_dropped_is_not_success(inproc: Project) -> None:
+    inproc.set_state(stored_body="")
+    _assert_created_but_unverified(_call(inproc), inproc)
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"title": "別のタイトル"},
+        {"number": 999},
+        {"html_url": "https://github.com/squne121/agent-platform/issues/999"},
+        {"body": "__DELETE__"},
+        {"title": "__DELETE__"},
+        {"html_url": "__DELETE__"},
+        {"number": "__DELETE__"},
+        {"body": "<truncated>"},
+        {"body": 12345},
+    ],
+    ids=lambda o: json.dumps(o, ensure_ascii=False),
+)
+def test_ac2_readback_identity_title_or_field_problems_are_not_success(
+    inproc: Project, override: dict
+) -> None:
+    inproc.set_state(get_override=override)
+    _assert_created_but_unverified(_call(inproc), inproc)
+
+
+@pytest.mark.parametrize("mode", ["fail", "non_json", "hang"])
+def test_ac2_readback_api_error_invalid_json_or_timeout_is_not_success(
+    inproc: Project, monkeypatch: pytest.MonkeyPatch, mode: str
+) -> None:
+    monkeypatch.setitem(txn.run_command.__kwdefaults__, "timeout", 1.0)
+    inproc.set_state(get_mode=mode)
+    res = _call(inproc)
+    _assert_created_but_unverified(res, inproc)
+    assert res.node_id is None and res.body_sha256 is None
+
+
+def test_ac2_transient_readback_mismatch_then_match_succeeds_within_the_bounded_retry(
+    inproc: Project,
+) -> None:
+    inproc.set_state(get_override={"body": "stale"}, get_override_calls=2)
+    sleeps: list[float] = []
+    res = _call(inproc, sleep_fn=sleeps.append)
+    assert res.status == "success", res
+    assert len(_gh_get_calls(inproc)) == 3 and sleeps == list(txn._BODY_READBACK_RETRY_DELAYS)
+
+
+def test_ac2_persistent_readback_mismatch_fails_after_a_bounded_number_of_gets(
+    inproc: Project,
+) -> None:
+    inproc.set_state(get_override={"body": "stale"})
+    sleeps: list[float] = []
+    res = _call(inproc, sleep_fn=sleeps.append)
+    _assert_created_but_unverified(res, inproc)
+    assert len(_gh_get_calls(inproc)) == len(txn._BODY_READBACK_RETRY_DELAYS) + 1
+    assert sum(sleeps) <= 2.0
+
+
+def test_ac2_readback_normalises_only_line_endings_and_trailing_whitespace(inproc: Project) -> None:
+    inproc.set_state(stored_body=VALID_BODY.replace("\n", "\r\n").rstrip() + "\r\n\r\n")
+    assert _call(inproc).status == "success"
+
+
+def test_ac2_the_comparison_baseline_is_the_pre_create_snapshot_not_a_reread_of_body_file(
+    inproc: Project,
+) -> None:
+    body_file = Path(inproc.body_file())
+    real = txn._issue_create
+
+    def create_then_edit_the_file(*a, **k):
+        url = real(*a, **k)
+        body_file.write_text("edited after the create\n", encoding="utf-8")
+        return url
+
+    txn_create = txn._issue_create
+    txn._issue_create = create_then_edit_the_file
+    try:
+        res = _call(inproc, body_file=str(body_file))
+    finally:
+        txn._issue_create = txn_create
+    # the remote body equals the snapshot (what was validated and sent), so the edit cannot move
+    # the baseline in either direction
+    assert res.status == "success", res
+
+
+def test_ac2_readback_uses_only_read_only_gets_and_no_extra_mutation(inproc: Project) -> None:
+    inproc.set_state(get_override={"body": "stale"})
+    _call(inproc)
+    st = inproc.state
+    assert st["create_calls"] == 1 and len(st["issues"]) == 1 and "comments" in st
+    inproc.assert_only_approved_gh()
+    assert [c[c.index("--method") + 1] for c in _gh_get_calls(inproc)] == ["GET"] * st["get_calls"]
+
+
+def test_ac2_rerun_after_a_readback_failure_does_not_create_a_duplicate(proj: Project) -> None:
+    proj.set_state(get_override={"body": "stale"}, get_override_calls=3)
+    rc1, first = proj.create()
+    assert (
+        rc1 != 0
+        and first["status"] == "partial_failure"
+        and first["failure_stage"] == "body-readback"
+    )
+    rc2, second = proj.create()
+    assert (
+        rc2 == 0
+        and second["status"] == "dedupe"
+        and second["issue_number"] == first["issue_number"]
+    )
+    assert proj.state["create_calls"] == 1 and len(proj.state["issues"]) == 1
+
+
+def test_ac2_wrapper_body_sha256_is_remote_verified_evidence_only(inproc: Project) -> None:
+    import hashlib
+
+    kw = {
+        "repo": TRUSTED,
+        "title": TITLE,
+        "body": "",
+        "body_file": inproc.body_file(),
+        "labels": [],
+        "parent_issue_number": 0,
+        "dependency_issue_numbers": [],
+        "gh_bin": str(inproc.gh),
+        "sleep_fn": lambda _s: None,
+    }
+    ok = txn.run_transaction_with_authoritative_readback(**kw)
+    assert ok.status == "success"
+    assert ok.body_sha256 == hashlib.sha256(VALID_BODY.encode("utf-8")).hexdigest()
+    # dedupe hit: the remote body was not compared by this transaction -> no hash is claimed
+    dedupe = txn.run_transaction_with_authoritative_readback(**kw)
+    assert dedupe.status == "dedupe" and dedupe.body_sha256 is None
+    # remote body mismatch -> not success and no hash of unverified input
+    inproc.set_state(
+        issues=[], created=False, next_number=501, stored_body="other", get_calls=0, create_calls=0
+    )
+    bad = txn.run_transaction_with_authoritative_readback(**kw)
+    assert bad.status == "partial_failure" and bad.failure_stage == "body-readback"
+    assert bad.body_sha256 is None
 
 
 # --------------------------------------------------------------------------- AC5 Agent / Skill parity
