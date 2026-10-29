@@ -37,24 +37,24 @@
   ],
   "expected_collect": {
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 122
+    "tests/stage2/test_stage2_5_create_txn.py": 123
   },
   "expected_ran": {
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 122
+    "tests/stage2/test_stage2_5_create_txn.py": 123
   },
   "deferred_tests": [],
   "deferred_files": [],
   "source_parity": {
     ".claude/skills/create-issue/scripts/create_issue_txn.py": {
       "source_sha256": "02215e8b1f6735fe12dbafefede8eba09d41fa361b4e13d826c0afed43789bb1",
-      "moved_sha256": "d9200a703d93a81f72b4e313f41baa42d92cf9a10ac532a8ebab4b2aa54ebdc8",
+      "moved_sha256": "3024af4750664476eb958ca7ea2f4582b73e82858ec43abf7bde238ccab043ba",
       "verbatim": false,
       "source_lines": 3087,
-      "moved_lines": 3498,
+      "moved_lines": 3499,
       "intentional_diff": "Stage 2-5 hardening of the source transaction (see intentional_diffs 1-5, 8).",
       "source_ast_sha256": "b82cb7167a66289bfac578d326d53d4883126be1da0c30d38bbace860c902d01",
-      "moved_ast_sha256": "3579a49c59b174c6d5f446c9c4e59da0253b896a54377f049f56d4f82da9129c"
+      "moved_ast_sha256": "cb6eb7dbfe2ed0a1cf4b95064f237675d1e31580cd902227ce6d9a866b4e6f1b"
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
@@ -98,10 +98,10 @@
     "source_in_scope_total": 164,
     "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
     "new_tests": {
-      "tests/stage2/test_stage2_5_create_txn.py": 122
+      "tests/stage2/test_stage2_5_create_txn.py": 123
     },
-    "collected_total": 129,
-    "ran_total": 129,
+    "collected_total": 130,
+    "ran_total": 130,
     "deferred_total": 0,
     "skipped": 0,
     "not_migrated_source_tests": {

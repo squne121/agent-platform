@@ -3143,18 +3143,19 @@ def run_transaction_with_authoritative_readback(
         node_id, _ = _issue_graphql_ids(repo, result.issue_number, gh_bin)
     except TransactionError:
         node_id = None
-    effective_body = body
+    effective_body: str | None = body
     if body_file:
         try:
             effective_body = Path(body_file).read_text(encoding="utf-8")
         except OSError:
-            effective_body = body
+            # The text that was verified against the remote cannot be recovered: claim no hash.
+            effective_body = None
     # body_sha256 is only an evidence of the REMOTE body when the transaction itself verified it:
     # "body-readback" in verified_steps means the stored body matched the pre-create snapshot
     # (line endings / trailing whitespace normalised). Otherwise (dedupe hit, early failure) the
     # local text was never compared with the remote body, so no hash is claimed (None).
     body_sha256: str | None = None
-    if "body-readback" in result.verified_steps:
+    if "body-readback" in result.verified_steps and effective_body is not None:
         body_sha256 = hashlib.sha256(effective_body.encode("utf-8")).hexdigest()
     if node_id is None and result.status in {"success", "dedupe"}:
         # No fresh authoritative readback of the issue: not a verified success.

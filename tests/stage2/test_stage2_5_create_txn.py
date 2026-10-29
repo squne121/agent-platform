@@ -949,6 +949,7 @@ def test_ac2_remote_body_dropped_is_not_success(inproc: Project) -> None:
         {"number": "__DELETE__"},
         {"body": "<truncated>"},
         {"body": 12345},
+        {"body": None},
     ],
     ids=lambda o: json.dumps(o, ensure_ascii=False),
 )

@@ -180,7 +180,7 @@ jobs:
           set -eo pipefail
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-2-comment-lane-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
-          grep -Eq "(^|[^0-9])0 deferred with reasons, 129 ran, 0 skipped" runner.out
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 130 ran, 0 skipped" runner.out
   stage2-3-edit-guards:
     runs-on: ubuntu-latest
     steps:
@@ -230,7 +230,7 @@ jobs:
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-5-create-txn-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed)" runner.out; then exit 1; fi
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* deselected" runner.out; then exit 1; fi
-          grep -Eq "(^|[^0-9])0 deferred with reasons, 129 ran, 0 skipped" runner.out
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 130 ran, 0 skipped" runner.out
   lint:
     runs-on: ubuntu-latest
     steps:
