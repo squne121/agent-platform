@@ -45,7 +45,7 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
     "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 133
+    "tests/stage2/test_stage2_5_create_txn.py": 135
   },
   "expected_ran": {
     ".claude/skills/create-issue/tests/test_create_issue_txn.py": 138,
@@ -53,7 +53,7 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
     "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 133
+    "tests/stage2/test_stage2_5_create_txn.py": 135
   },
   "deferred_tests": [
     {
@@ -177,10 +177,10 @@
     "source_in_scope_total": 164,
     "pr_split": "Issue #35 Stop Condition (10k lines): PR-A (this manifest in mode A) = transaction + gate + new Stage 2-5 tests + Skill/Agent/references + fake gh + manifest + CI + #34 deferral release; PR-B (stacked on PR-A) = the bulk source test migration (test_create_issue_txn 138, _blocking 16, _validation_hook 5, _validator_parity 5) and the manifest/CI numbers that include them. PR-A is CI-green on its own; PR-B needs PR-A's engine functions (`_run_transaction_engine` / `_reconcile_transaction_engine`).",
     "new_tests": {
-      "tests/stage2/test_stage2_5_create_txn.py": 133
+      "tests/stage2/test_stage2_5_create_txn.py": 135
     },
-    "collected_total": 304,
-    "ran_total": 303,
+    "collected_total": 306,
+    "ran_total": 305,
     "deferred_total": 1,
     "skipped": 0,
     "not_migrated_source_tests": {

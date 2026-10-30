@@ -1159,6 +1159,19 @@ def test_ac2_body_sha256_is_the_raw_remote_body_hash_not_the_normalised_or_local
     assert res.body_sha256 == _sha(remote) != _sha(VALID_BODY)
 
 
+def test_ac2_late_step_failure_after_verified_readback_keeps_the_remote_body_hash(
+    inproc: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def boom(*_a, **_k):
+        raise txn.TransactionError(stage="label", message="injected post-readback failure")
+
+    monkeypatch.setattr(txn, "_issue_apply_labels", boom)
+    res = txn.run_transaction_with_authoritative_readback(**_wrapper_kw(inproc))
+    assert res.status == "partial_failure" and res.failure_stage == "label"
+    assert "body-readback" in res.verified_steps and res.issue_number == 501
+    assert res.body_sha256 == _sha(inproc.state["issues"][0]["body"])
+
+
 def test_ac2_remote_body_change_after_create_never_reports_success_or_a_hash(
     inproc: Project,
 ) -> None:
@@ -1180,7 +1193,10 @@ def _load_mutant(project: Project, old: str, new: str):
     spec = importlib.util.spec_from_file_location("create_issue_txn_mutant", path)
     mod = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = mod
-    spec.loader.exec_module(mod)
+    try:
+        spec.loader.exec_module(mod)
+    finally:
+        sys.modules.pop(spec.name, None)
     return mod
 
 
@@ -1213,6 +1229,20 @@ def _evidence_scenario(p: Project, mod) -> list[str]:
         mod._issue_graphql_ids = real
     if ok.status != "success" or ok.body_sha256 != _sha(VALID_BODY):
         violations.append("hash-does-not-follow-verified-body")
+    # (c) a step AFTER the verified readback fails -> partial_failure that still carries the hash
+    p.set_state(issues=[], created=False, next_number=501, get_calls=0, create_calls=0)
+
+    def boom(*_a, **_k):
+        raise mod.TransactionError(stage="label", message="injected post-readback failure")
+
+    real_labels = mod._issue_apply_labels
+    mod._issue_apply_labels = boom
+    try:
+        late = mod.run_transaction_with_authoritative_readback(**_wrapper_kw(p))
+    finally:
+        mod._issue_apply_labels = real_labels
+    if late.status != "partial_failure" or late.body_sha256 != _sha(VALID_BODY):
+        violations.append("late-failure-drops-verified-hash")
     return violations
 
 
@@ -1243,12 +1273,18 @@ def test_ac2_evidence_scenario_is_clean_on_the_real_source(inproc: Project) -> N
             'if True:\n        body_sha256 = result.verified_body_sha256 or hashlib.sha256(body.encode("utf-8")).hexdigest()',
             "remote-mismatch-accepted",
         ),
+        (
+            "failed_readbacks=failed_readbacks,\n            verified_body_sha256=verified_body_sha256,\n        )\n\n\ndef _require_trusted_repo",
+            "failed_readbacks=failed_readbacks,\n        )\n\n\ndef _require_trusted_repo",
+            "late-failure-drops-verified-hash",
+        ),
     ],
     ids=[
         "comparison-disabled",
         "hash-of-snapshot",
         "wrapper-rereads-body-file",
         "hash-claimed-without-verification",
+        "late-failure-drops-hash",
     ],
 )
 def test_ac2_mutants_of_body_comparison_and_hash_propagation_are_detected(
