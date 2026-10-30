@@ -16,7 +16,7 @@
     "reason": "the full migration (scripts + 280 source tests + closure test + manifest + dependency references) exceeds the 10k-line Stop Condition, so #36 lands as 6a (create-issue lane) then 6b (dependency lane), in dependency order; #36 closes only with 6b",
     "6a": "create-issue lane: materialize_child_issues, plan_child_materialization, check_issue_overlap, mutation_route_matrix + 233 source tests + closure test (landed)",
     "6b": "dependency lane: dependency_materializer + test_dependency_materialization (47) + follow-up/dependency-materialization references; extends this manifest",
-    "status": "6a merged-before-6b (dependency order); this manifest now covers 6a + 6b. #36 closes with 6b."
+    "status": "6b stacks on 6a (PR #51); this manifest covers 6a + 6b. #36 closes with 6b."
   },
   "source": {
     "repository": "squne121/loop-protocol",
@@ -107,7 +107,7 @@
     }
   ],
   "stage_updates": {
-    "docs/dev/stage2-5-create-txn-manifest.json": "its dangling_references / dependency_ownership entries for check_issue_overlap, plan_child_materialization, materialize_child_issues and mutation_route_matrix are resolved by this Stage (the file is left unchanged as the historical record)."
+    "docs/dev/stage2-5-create-txn-manifest.json": "its dangling_references / dependency_ownership entries for check_issue_overlap, plan_child_materialization, materialize_child_issues and mutation_route_matrix are resolved by this Stage (the file is otherwise unchanged as the historical record; only the moved_sha256/moved_lines of SKILL.md and tests/create-issue/conftest.py were refreshed)."
   },
   "import_subprocess_closure": {
     "materialize_child_issues.py": "stdlib + PyYAML (already a locked dependency); subprocess -> sys.executable create_issue_txn.py (migrated, Stage 2-5), sys.executable validate_issue_body.py (migrated, Stage 1b-1), and the `--gh` binary only for the parent view/edit pair; repo_identity.py via a fixed path",
@@ -127,9 +127,6 @@
       ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
       ".claude/skills/issue-refinement-loop/tests/_trusted_repo.py",
       "tests/stage2/fixtures/fake_gh_txn.py"
-    ],
-    "Stage 2-6b / #36 (next PR)": [
-      "(landed in this PR)"
     ],
     "Stage 2-7 / #37 (not pre-empted)": [
       "terminal path wiring",
