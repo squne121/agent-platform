@@ -882,6 +882,16 @@ def test_ac3_authoritative_readback_wrapper_is_gated_too(inproc: Project) -> Non
     assert inproc.gh_calls == []
 
 
+def test_ac3_source_tests_drive_the_retained_handlers_through_the_engine_never_the_gate() -> None:
+    for rel in (
+        ".claude/skills/create-issue/tests/test_create_issue_txn.py",
+        ".claude/skills/create-issue/tests/test_create_issue_txn_blocking.py",
+    ):
+        text = (ROOT / rel).read_text(encoding="utf-8")
+        assert "txn.run_transaction(" not in text and "txn.reconcile_transaction(" not in text, rel
+        assert "_run_transaction_engine(" in text or "_reconcile_transaction_engine(" in text, rel
+
+
 # --------------------------------------------------------------------------- AC4 real subprocess
 
 
