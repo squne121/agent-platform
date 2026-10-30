@@ -14,8 +14,9 @@
   ],
   "pr_split": {
     "reason": "the full migration (scripts + 280 source tests + closure test + manifest + dependency references) exceeds the 10k-line Stop Condition, so #36 lands as 6a (create-issue lane) then 6b (dependency lane), in dependency order; #36 closes only with 6b",
-    "6a": "create-issue lane: materialize_child_issues, plan_child_materialization, check_issue_overlap, mutation_route_matrix + 233 source tests + closure test",
-    "6b": "dependency lane: dependency_materializer + test_dependency_materialization (47) + follow-up/dependency-materialization references; extends this manifest"
+    "6a": "create-issue lane: materialize_child_issues, plan_child_materialization, check_issue_overlap, mutation_route_matrix + 233 source tests + closure test (landed)",
+    "6b": "dependency lane: dependency_materializer + test_dependency_materialization (47) + follow-up/dependency-materialization references; extends this manifest",
+    "status": "6a merged-before-6b (dependency order); this manifest now covers 6a + 6b. #36 closes with 6b."
   },
   "source": {
     "repository": "squne121/loop-protocol",
@@ -75,7 +76,9 @@
     "4. The two fake-gh integration tests in test_materialize_child_issues_no_raw_gh.py now use the Stage 2-5 stateful fake gh (tests/stage2/fixtures/fake_gh_create.py). The source's hand-written fake predated the txn's body readback and the approved-operation gate. Positive path: empty --issue-kind (kind from the body MRC, label-free), no parent, no dependency. The CLI path asserts the gate refuses the implementation-kind/parent create with zero `issue create`/`issue edit` calls.",
     "5. tests/create-issue/* are Ruff-clean (format, import order, `check=False`, removesuffix); `.claude/skills/**` stays excluded by pyproject (not changed).",
     "6. .claude/skills/create-issue/SKILL.md: the Stage 2-5 'unmigrated' note is replaced by the 2-6a status; the procedure text is unchanged.",
-    "7. New: tests/stage2/test_stage2_6_materialization.py (AC1/AC3/AC4 closure and negative controls), this manifest, CI lane stage2-6-materialization."
+    "7. dependency_materializer: `_require_trusted_repo` (repo_identity.py, fixed path, fail-closed) runs at the top of `materialize_dependencies` (and therefore the `materialize` / `gate` CLI and the termination gate) BEFORE the capability preflight, the live snapshot read and the edit transaction. A wrong repo returns status `blocked`, failure_class `semantic-human-judgment-required` (persistent block, no new failure class), error code `repo_untrusted`; zero gh calls. Source forwarded any repo to gh reads first.",
+    "8. test_dependency_materialization: the legacy slug is replaced by `TRUSTED_REPO` (existing `_trusted_repo.py` helper); the test bodies are otherwise unchanged (47/47).",
+    "9. New: tests/stage2/test_stage2_6_materialization.py (6a), tests/stage2/test_stage2_6b_dependency.py (6b), this manifest, CI lane stage2-6-materialization. follow-up-materialization.md / dependency-materialization.md are migrated verbatim."
   ],
   "known_source_defects": [
     {
@@ -95,6 +98,12 @@
       "where": "apply_parent_checklist_patch",
       "detail": "the `## Child Issues` checklist patch is a direct `gh issue edit --body-file` guarded by the parent body_sha256 precondition, exactly-one-match and a section-scoped readback; it does not go through edit_issue_txn (which needs a readiness forwarding payload). Gated here by the trusted-repo check and only reachable after a fully clean create.",
       "owner": "human decision (see human_judgment_required)"
+    },
+    {
+      "id": "dependency-delta-always-refused-by-edit-txn",
+      "where": "materialize_dependencies -> edit_issue_txn",
+      "detail": "the migrated edit_issue_txn rejects any `native_relationships` input (`native_relationships_unapproved`, Stage 2-4), so a non-empty add/remove delta can never be applied; the materializer reports failed/blocked and never `ok` for it. Only the no-delta case (live set already equals the desired set) returns ok, with zero writes.",
+      "owner": "squne121/agent-platform#46 (native relationship approval) - not decided here"
     }
   ],
   "stage_updates": {
@@ -104,7 +113,8 @@
     "materialize_child_issues.py": "stdlib + PyYAML (already a locked dependency); subprocess -> sys.executable create_issue_txn.py (migrated, Stage 2-5), sys.executable validate_issue_body.py (migrated, Stage 1b-1), and the `--gh` binary only for the parent view/edit pair; repo_identity.py via a fixed path",
     "plan_child_materialization.py": "stdlib only; subprocess -> `--gh` binary, read-only issue view/list",
     "check_issue_overlap.py": "stdlib + scripts/agent-ops/allowed_paths_policy.py (migrated, Stage 1a); subprocess -> `gh`, read-only",
-    "mutation_route_matrix.py": "stdlib only; pure classification, no subprocess"
+    "mutation_route_matrix.py": "stdlib only; pure classification, no subprocess",
+    "dependency_materializer.py": "stdlib only; edit_issue_txn.py is imported lazily for its read helpers (_relationship_capability_preflight / _fetch_native_relationships / _fetch_issue / NATIVE_RELATIONSHIPS_KEYS) and run as a subprocess (sys.executable edit_txn.SCRIPT_PATH --input-file) for the single write path; no `gh` literal in the module; repo_identity.py via a fixed path"
   },
   "dependency_ownership": {
     "reused_not_reimplemented": [
@@ -113,13 +123,13 @@
       ".claude/skills/create-issue/scripts/create_issue_txn.py",
       ".claude/skills/create-issue/scripts/validate_issue_body.py",
       "scripts/agent-ops/allowed_paths_policy.py",
-      "tests/stage2/fixtures/fake_gh_create.py"
+      "tests/stage2/fixtures/fake_gh_create.py",
+      ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
+      ".claude/skills/issue-refinement-loop/tests/_trusted_repo.py",
+      "tests/stage2/fixtures/fake_gh_txn.py"
     ],
     "Stage 2-6b / #36 (next PR)": [
-      "dependency_materializer.py",
-      "test_dependency_materialization.py",
-      "follow-up-materialization.md",
-      "dependency-materialization.md"
+      "(landed in this PR)"
     ],
     "Stage 2-7 / #37 (not pre-empted)": [
       "terminal path wiring",
@@ -137,31 +147,38 @@
     "ac3_wrong_repo": "-k ac3: 7 wrong/legacy/malformed repos x {CLI via real subprocess, direct parent patch} -> gh log empty; in-process materialize with an untrusted repo touches no runner.",
     "ac3_unapproved_relationships": "-k ac3: implementation child + parent + depends_on through the real txn subprocess -> `not approved`, zero create/edit/mutation calls, parent untouched.",
     "ac3_partial_duplicate_stale_readback": "-k ac3: partial_failure / dedupe / failure / non-JSON / empty / success-without-number txn results -> never ok, parent never viewed or edited; stale parent sha -> no edit; unchanged readback -> not updated; clean create -> patched with readback (positive control).",
-    "ac4_manifest": "-k ac4: manifest counts/hashes/zero-skip contract; the runner rejects a manifest with a wrong collect count (negative control)."
+    "ac4_manifest": "-k ac4: manifest counts/hashes/zero-skip contract; the runner rejects a manifest with a wrong collect count (negative control).",
+    "ac2_delegation": "tests/stage2/test_stage2_6b_dependency.py -k ac2: AST - exactly one subprocess call, targeting edit_txn.SCRIPT_PATH, and no `gh` literal (a direct-gh mutant is flagged); a non-empty delta through the REAL edit_issue_txn subprocess is refused (`native_relationships_unapproved`, edit_txn_status failed_no_mutation) with an empty gh log.",
+    "ac3_dependency": "-k ac3: 6 wrong repos x {in-process, CLI materialize} and the gate CLI -> zero gh calls / block_persistent; executor ok with drifted readback ([] / [4] / [3,4]) -> readback-mismatch, never ok; partial executor failure -> never ok; body-only Blocked By flagged; confirming readback -> ok (positive control)."
   },
   "fixture_live_evidence_boundary": {
-    "fixture_only": "Every GitHub interaction is the stateful fake `gh` (tests/stage2/fixtures/fake_gh_create.py) run as a real executable, or an in-process recording runner. The plan_child_materialization / check_issue_overlap tests use their own in-process doubles.",
+    "fixture_only": "Every GitHub interaction is the stateful fake `gh` (tests/stage2/fixtures/fake_gh_create.py) run as a real executable, or an in-process recording runner. The plan_child_materialization / check_issue_overlap tests use their own in-process doubles. The dependency lane additionally uses the fail-closed logging fixture tests/stage2/fixtures/fake_gh_txn.py on PATH and an injected-seam harness; the edit_issue_txn delegate runs for real in a scratch repo copy.",
     "live_github_evidence": "none. No live read, auth or mutation was made by any test; no live success is claimed for label / native parent / dependency / relationship paths.",
     "real_components_in_e2e": "real materialize_child_issues.py, create_issue_txn.py, validate_issue_body.py and repo_identity.py in real subprocesses"
   },
   "dangling_references": {
-    ".claude/skills/issue-refinement-loop/scripts/dependency_materializer.py": "owner_stage Stage 2-6b / #36 (next PR); rerun_condition: 6b lands",
     ".claude/skills/create-issue/scripts/validate_japanese_content.py": "owner_stage unassigned (see deferred_files)",
-    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "owner_stage unassigned (unchanged from Stage 2-5)"
+    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "owner_stage unassigned (unchanged from Stage 2-5)",
+    ".claude/skills/issue-refinement-loop/SKILL.md and references/termination-policy.md": "owner_stage Stage 2-7 / #37 (terminal-path wiring); the migrated references describe a Step 5 gate whose caller is not wired yet. issue-refinement-loop as a whole is NOT claimed terminal-ready."
   },
   "human_judgment_required": [
     "Native parent / dependency / label approval (#46): until approved, materialize_child_issues cannot create a child that carries a parent link, a dependency or an auto-assigned label; that is the intended fail-closed state, not a defect to bypass.",
     "Parent checklist patch route: keep the guarded direct `gh issue edit --body-file` (current, source behaviour) or require delegation to edit_issue_txn (needs a readiness forwarding payload design).",
-    "Whether the research-kind render validation defect should be fixed in this lane."
+    "Whether the research-kind render validation defect should be fixed in this lane.",
+    "Native predecessor (dependency) materialization remains unapproved (#46): the lane is wired to edit_issue_txn but every non-empty delta is refused there. Approval and any contract change belong to #46, not this lane."
   ],
-  "rollback": "Revert the PR. It is additive (4 scripts, tests, fixtures, closure test, manifest, one CI lane) plus one SKILL.md note line. The legacy repo is untouched.",
+  "rollback": "Revert the PR(s). Additive: scripts, tests, references, closure tests, manifest, one CI lane (+ one SKILL.md note line in 6a). The legacy repo is untouched.",
   "required_files": [
     ".claude/skills/create-issue/scripts/materialize_child_issues.py",
     ".claude/skills/create-issue/scripts/plan_child_materialization.py",
     ".claude/skills/create-issue/scripts/check_issue_overlap.py",
     ".claude/skills/create-issue/scripts/mutation_route_matrix.py",
+    ".claude/skills/issue-refinement-loop/scripts/dependency_materializer.py",
+    ".claude/skills/issue-refinement-loop/references/follow-up-materialization.md",
+    ".claude/skills/issue-refinement-loop/references/dependency-materialization.md",
     ".claude/skills/create-issue/scripts/create_issue_txn.py",
     ".claude/skills/create-issue/scripts/validate_issue_body.py",
+    ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
     "scripts/agent-guards/repo_identity.py",
     "config/repository_identity.v1.json",
     "scripts/agent-ops/allowed_paths_policy.py"
@@ -170,13 +187,15 @@
     "tests/fixtures/create-issue/allowed-paths.txt",
     "tests/fixtures/create-issue/parent_body_with_child_issues.md",
     "tests/create-issue/conftest.py",
-    "tests/stage2/fixtures/fake_gh_create.py"
+    "tests/stage2/fixtures/fake_gh_create.py",
+    "tests/stage2/fixtures/fake_gh_txn.py"
   ],
   "test_files": [
     ".claude/skills/create-issue/tests/test_check_issue_overlap_advisory_shell_continuation.py",
     ".claude/skills/create-issue/tests/test_check_issue_overlap_no_path_marker.py",
     ".claude/skills/create-issue/tests/test_check_issue_overlap_successor_dependency.py",
     ".claude/skills/create-issue/tests/test_plan_child_materialization.py",
+    ".claude/skills/issue-refinement-loop/tests/test_dependency_materialization.py",
     "tests/create-issue/test_issue_overlap_child_plan.py",
     "tests/create-issue/test_issue_overlap_cli.py",
     "tests/create-issue/test_issue_overlap_cli_determinism.py",
@@ -193,13 +212,15 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py",
     "tests/create-issue/test_materialize_child_issues_schema.py",
     "tests/create-issue/test_parent_child_section_patch.py",
-    "tests/stage2/test_stage2_6_materialization.py"
+    "tests/stage2/test_stage2_6_materialization.py",
+    "tests/stage2/test_stage2_6b_dependency.py"
   ],
   "expected_collect": {
     ".claude/skills/create-issue/tests/test_check_issue_overlap_advisory_shell_continuation.py": 3,
     ".claude/skills/create-issue/tests/test_check_issue_overlap_no_path_marker.py": 8,
     ".claude/skills/create-issue/tests/test_check_issue_overlap_successor_dependency.py": 4,
     ".claude/skills/create-issue/tests/test_plan_child_materialization.py": 100,
+    ".claude/skills/issue-refinement-loop/tests/test_dependency_materialization.py": 47,
     "tests/create-issue/test_issue_overlap_child_plan.py": 6,
     "tests/create-issue/test_issue_overlap_cli.py": 4,
     "tests/create-issue/test_issue_overlap_cli_determinism.py": 5,
@@ -216,13 +237,15 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py": 8,
     "tests/create-issue/test_materialize_child_issues_schema.py": 23,
     "tests/create-issue/test_parent_child_section_patch.py": 7,
-    "tests/stage2/test_stage2_6_materialization.py": 34
+    "tests/stage2/test_stage2_6_materialization.py": 34,
+    "tests/stage2/test_stage2_6b_dependency.py": 23
   },
   "expected_ran": {
     ".claude/skills/create-issue/tests/test_check_issue_overlap_advisory_shell_continuation.py": 3,
     ".claude/skills/create-issue/tests/test_check_issue_overlap_no_path_marker.py": 8,
     ".claude/skills/create-issue/tests/test_check_issue_overlap_successor_dependency.py": 4,
     ".claude/skills/create-issue/tests/test_plan_child_materialization.py": 100,
+    ".claude/skills/issue-refinement-loop/tests/test_dependency_materialization.py": 47,
     "tests/create-issue/test_issue_overlap_child_plan.py": 6,
     "tests/create-issue/test_issue_overlap_cli.py": 4,
     "tests/create-issue/test_issue_overlap_cli_determinism.py": 5,
@@ -239,7 +262,8 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py": 8,
     "tests/create-issue/test_materialize_child_issues_schema.py": 23,
     "tests/create-issue/test_parent_child_section_patch.py": 7,
-    "tests/stage2/test_stage2_6_materialization.py": 34
+    "tests/stage2/test_stage2_6_materialization.py": 34,
+    "tests/stage2/test_stage2_6b_dependency.py": 23
   },
   "source_parity": {
     ".claude/skills/create-issue/scripts/materialize_child_issues.py": {
@@ -282,6 +306,30 @@
       "moved_ast_sha256": "b066dd10e7199a2a3f9426513b1c144a3f522e59e6056be12e340c8fbf29ec14",
       "ast_identical": true
     },
+    ".claude/skills/issue-refinement-loop/scripts/dependency_materializer.py": {
+      "moved_sha256": "2ba9bfafae4b7cf08c63b118add14f8a317650577132314e486a385ebd29c85b",
+      "moved_lines": 945,
+      "source_sha256": "df15f582bc5da59313aa0b65637d97d75a2f0931a3d62c27a7981cfd9afa15db",
+      "source_lines": 899,
+      "verbatim": false,
+      "source_ast_sha256": "3c213be699c4c529ee560cf613659d1c2fbde596e7f9f77a84cd754f45b878cb",
+      "moved_ast_sha256": "3fa4dbd2889253688dc3f1583d3745df2d1fa5b87f3090f19fca35677257d5d4",
+      "ast_identical": false
+    },
+    ".claude/skills/issue-refinement-loop/references/follow-up-materialization.md": {
+      "moved_sha256": "c762e4a5efa5c60b3fc431496ccdb3723fd875c388e6da1a0a72672d23bfc399",
+      "moved_lines": 66,
+      "source_sha256": "c762e4a5efa5c60b3fc431496ccdb3723fd875c388e6da1a0a72672d23bfc399",
+      "source_lines": 66,
+      "verbatim": true
+    },
+    ".claude/skills/issue-refinement-loop/references/dependency-materialization.md": {
+      "moved_sha256": "17d26db252a03d00b87976146aae209eba6d1fc8207a6bcb80726912b3a22b64",
+      "moved_lines": 163,
+      "source_sha256": "17d26db252a03d00b87976146aae209eba6d1fc8207a6bcb80726912b3a22b64",
+      "source_lines": 163,
+      "verbatim": true
+    },
     ".claude/skills/create-issue/tests/test_check_issue_overlap_advisory_shell_continuation.py": {
       "moved_sha256": "7edc4bd69dc40999781a1fd67add3477dee0c42233db8a140718e56a91cca716",
       "moved_lines": 103,
@@ -320,6 +368,16 @@
       "verbatim": false,
       "source_ast_sha256": "b105598f5d79e9bc183ed0e9110858d1cb29f939d41e100a06706c88025f235f",
       "moved_ast_sha256": "90ada295fe1f71bcd67fe07254b956d5544c0eddd278ba6074ce7890f8d8d916",
+      "ast_identical": false
+    },
+    ".claude/skills/issue-refinement-loop/tests/test_dependency_materialization.py": {
+      "moved_sha256": "8fd49af4f882c54837207146b751dcd6b0711a4e36fac99a2a61a40266d2143a",
+      "moved_lines": 784,
+      "source_sha256": "e4139ef75c503171db0fe3dc9d69864bfc9b6f0c61ea9662b6177299f8591ee5",
+      "source_lines": 783,
+      "verbatim": false,
+      "source_ast_sha256": "8284a034e008ecd783d84c79df482c70b0b4385e3e7fa9b33ea2645bb99a749f",
+      "moved_ast_sha256": "c78c1b418eef112e46f24e9acb3732420d7e78ad9c5adcad48fc8a2187f1b3bb",
       "ast_identical": false
     },
     "tests/create-issue/test_issue_overlap_child_plan.py": {
@@ -535,9 +593,10 @@
       ".claude/skills/create-issue/tests/test_check_issue_overlap_advisory_shell_continuation.py": 3,
       ".claude/skills/create-issue/tests/test_check_issue_overlap_no_path_marker.py": 8,
       ".claude/skills/create-issue/tests/test_check_issue_overlap_successor_dependency.py": 4,
-      ".claude/skills/create-issue/tests/test_plan_child_materialization.py": 100
+      ".claude/skills/create-issue/tests/test_plan_child_materialization.py": 100,
+      ".claude/skills/issue-refinement-loop/tests/test_dependency_materialization.py": 47
     },
-    "source_in_scope_total": 233,
-    "note": "collected with `pytest --co` on the tag tree; test_dependency_materialization (47) belongs to Stage 2-6b"
+    "source_in_scope_total": 280,
+    "note": "collected with `pytest --co` on the tag tree (6a 233 + 6b test_dependency_materialization 47)"
   }
 }
