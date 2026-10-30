@@ -633,7 +633,7 @@ def _extract_child_issues_section(body: str) -> tuple[int, int]:
     """Return (start_line, end_line) of the ``## Child Issues`` section body (0-based, end
     exclusive). High 3: the heading is matched with an exact regex (so ``## Child Issues
     Archive`` does not match) and the section must appear exactly once."""
-    lines = body.splitlines()
+    lines = body.split("\n")
     starts = [i for i, ln in enumerate(lines) if _CHILD_ISSUES_HEADING_RE.match(ln)]
     _require(len(starts) == 1, f"parent body must contain exactly one '## Child Issues' section (found {len(starts)})")
     start = starts[0] + 1
@@ -680,6 +680,12 @@ def apply_parent_checklist_patch(
     body = view.stdout
     body = body[:-1] if body.endswith("\n") else body
 
+    for upd in updates:
+        for key in ("old_line", "new_line"):
+            line = upd.get(key)
+            if not isinstance(line, str) or _CTRL_RE.search(line) or re.search(r"[\r\n\x85\u2028\u2029]", line):
+                return ParentPatchResult(updated=False, error=f"{key} must be a single line without control characters")
+
     normalized = expected_body_sha256.split("sha256:")[-1]
     actual = _sha256(body)
     if actual != normalized:
@@ -688,11 +694,14 @@ def apply_parent_checklist_patch(
             error=f"parent body_sha256 mismatch: expected {normalized[:12]} got {actual[:12]}",
         )
 
+    if re.search(r"[\r\x0b\x0c\x1c-\x1e\x85\u2028\u2029]", body):
+        # splitlines()/join would silently rewrite these line breaks in untouched sections.
+        return ParentPatchResult(updated=False, error="parent body has non-LF line breaks; refusing to patch")
     try:
         start, end = _extract_child_issues_section(body)
     except PlanValidationError as exc:
         return ParentPatchResult(updated=False, error=str(exc))
-    lines = body.splitlines()
+    lines = body.split("\n")
     new_lines = list(lines)
     for upd in updates:
         old_line = upd["old_line"]
@@ -726,7 +735,9 @@ def apply_parent_checklist_patch(
         rb_start, rb_end = _extract_child_issues_section(rb_body)
     except PlanValidationError:
         return ParentPatchResult(updated=False, error="parent read-back: Child Issues section missing")
-    rb_section = "\n".join(rb_body.splitlines()[rb_start:rb_end])
+    if rb_body != new_body:
+        return ParentPatchResult(updated=False, error="parent read-back body differs from the patched body")
+    rb_section = "\n".join(rb_body.split("\n")[rb_start:rb_end])
     for upd in updates:
         if upd["new_line"] not in rb_section or upd["old_line"] in rb_section:
             return ParentPatchResult(updated=False, error="parent read-back did not confirm patch")
@@ -763,7 +774,11 @@ def _parse_created_issue(stdout: str) -> Optional[dict]:
         num = obj.get("issue_number") or obj.get("number")
         url = obj.get("issue_url") or obj.get("url")
         if num:
-            return {"issue_number": int(num), "issue_url": url, "status": obj.get("status")}
+            try:
+                number = int(num)
+            except (TypeError, ValueError):
+                return None
+            return {"issue_number": number, "issue_url": url, "status": obj.get("status")}
     return None
 
 
@@ -865,6 +880,25 @@ def materialize(plan: dict[str, Any], runners: Optional[Runners] = None, gh_bin:
             continue
         if not parsed:
             errors.append({"child_id": child_id, "error": "could not parse created issue from txn output"})
+            continue
+        if parsed.get("status") != "success":
+            # rc 0 with status dedupe (an existing issue matched the title) or any other
+            # non-success status is NOT a creation: record the issue, never report it created.
+            affected_issues.append(
+                {
+                    "child_id": child_id,
+                    "issue_number": parsed["issue_number"],
+                    "issue_url": parsed["issue_url"],
+                    "txn_status": parsed.get("status"),
+                }
+            )
+            errors.append(
+                {
+                    "child_id": child_id,
+                    "error": f"create_issue_txn status {parsed.get('status')!r} is not a creation "
+                    f"(issue #{parsed['issue_number']} not reported as created)",
+                }
+            )
             continue
         created_issues.append(
             {

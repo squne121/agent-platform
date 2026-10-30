@@ -16,7 +16,7 @@
     "reason": "the full migration (scripts + 280 source tests + closure test + manifest + dependency references) exceeds the 10k-line Stop Condition, so #36 lands as 6a (create-issue lane) then 6b (dependency lane), in dependency order; #36 closes only with 6b",
     "6a": "create-issue lane: materialize_child_issues, plan_child_materialization, check_issue_overlap, mutation_route_matrix + 233 source tests + closure test (landed)",
     "6b": "dependency lane: dependency_materializer + test_dependency_materialization (47) + follow-up/dependency-materialization references; extends this manifest",
-    "status": "6b stacks on 6a (PR #51); this manifest covers 6a + 6b. #36 closes with 6b."
+    "status": "6a merged-before-6b (dependency order); this manifest now covers 6a + 6b. #36 closes with 6b."
   },
   "source": {
     "repository": "squne121/loop-protocol",
@@ -78,7 +78,8 @@
     "6. .claude/skills/create-issue/SKILL.md: the Stage 2-5 'unmigrated' note is replaced by the 2-6a status; the procedure text is unchanged.",
     "7. dependency_materializer: `_require_trusted_repo` (repo_identity.py, fixed path, fail-closed) runs at the top of `materialize_dependencies` (and therefore the `materialize` / `gate` CLI and the termination gate) BEFORE the capability preflight, the live snapshot read and the edit transaction. A wrong repo returns status `blocked`, failure_class `semantic-human-judgment-required` (persistent block, no new failure class), error code `repo_untrusted`; zero gh calls. Source forwarded any repo to gh reads first.",
     "8. test_dependency_materialization: the legacy slug is replaced by `TRUSTED_REPO` (existing `_trusted_repo.py` helper); the test bodies are otherwise unchanged (47/47).",
-    "9. New: tests/stage2/test_stage2_6_materialization.py (6a), tests/stage2/test_stage2_6b_dependency.py (6b), this manifest, CI lane stage2-6-materialization. follow-up-materialization.md / dependency-materialization.md are migrated verbatim."
+    "9. New: tests/stage2/test_stage2_6_materialization.py (6a), tests/stage2/test_stage2_6b_dependency.py (6b), this manifest, CI lane stage2-6-materialization. follow-up-materialization.md / dependency-materialization.md are migrated verbatim.",
+    "10. Hardening found by independent review (materialize_child_issues): (a) a txn result with rc 0 but status other than `success` (e.g. `dedupe`) is recorded in affected_issues + errors, never as created, and blocks the parent patch; (b) a non-numeric txn issue_number is an error, not an exception; (c) apply_parent_checklist_patch rejects old_line/new_line containing line breaks/control characters, refuses parent bodies with non-LF line breaks, splits on LF only (lossless join), and requires the read-back body to equal the patched body exactly (not only the Child Issues section)."
   ],
   "known_source_defects": [
     {
@@ -107,7 +108,7 @@
     }
   ],
   "stage_updates": {
-    "docs/dev/stage2-5-create-txn-manifest.json": "its dangling_references / dependency_ownership entries for check_issue_overlap, plan_child_materialization, materialize_child_issues and mutation_route_matrix are resolved by this Stage (the file is otherwise unchanged as the historical record; only the moved_sha256/moved_lines of SKILL.md and tests/create-issue/conftest.py were refreshed)."
+    "docs/dev/stage2-5-create-txn-manifest.json": "its dangling_references / dependency_ownership entries for check_issue_overlap, plan_child_materialization, materialize_child_issues and mutation_route_matrix are resolved by this Stage (the file is left unchanged as the historical record)."
   },
   "import_subprocess_closure": {
     "materialize_child_issues.py": "stdlib + PyYAML (already a locked dependency); subprocess -> sys.executable create_issue_txn.py (migrated, Stage 2-5), sys.executable validate_issue_body.py (migrated, Stage 1b-1), and the `--gh` binary only for the parent view/edit pair; repo_identity.py via a fixed path",
@@ -127,6 +128,9 @@
       ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
       ".claude/skills/issue-refinement-loop/tests/_trusted_repo.py",
       "tests/stage2/fixtures/fake_gh_txn.py"
+    ],
+    "Stage 2-6b / #36 (next PR)": [
+      "(landed in this PR)"
     ],
     "Stage 2-7 / #37 (not pre-empted)": [
       "terminal path wiring",
@@ -234,7 +238,7 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py": 8,
     "tests/create-issue/test_materialize_child_issues_schema.py": 23,
     "tests/create-issue/test_parent_child_section_patch.py": 7,
-    "tests/stage2/test_stage2_6_materialization.py": 34,
+    "tests/stage2/test_stage2_6_materialization.py": 46,
     "tests/stage2/test_stage2_6b_dependency.py": 23
   },
   "expected_ran": {
@@ -259,18 +263,18 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py": 8,
     "tests/create-issue/test_materialize_child_issues_schema.py": 23,
     "tests/create-issue/test_parent_child_section_patch.py": 7,
-    "tests/stage2/test_stage2_6_materialization.py": 34,
+    "tests/stage2/test_stage2_6_materialization.py": 46,
     "tests/stage2/test_stage2_6b_dependency.py": 23
   },
   "source_parity": {
     ".claude/skills/create-issue/scripts/materialize_child_issues.py": {
-      "moved_sha256": "39a0dc1e2824ffb90535fb5575757078e2a422962822778b72872b3ecf0bc4da",
-      "moved_lines": 947,
+      "moved_sha256": "794cb73b183e5f9e7b16494da8cdbbce43977debb0c778948668e53a683fb85d",
+      "moved_lines": 981,
       "source_sha256": "7274ee695157718e7d5c7e053e6ab9827bdb1104d0d420bf4e5a984c07410c7f",
       "source_lines": 908,
       "verbatim": false,
       "source_ast_sha256": "b72c9d383fef7b4ce036f274c6f94284c5d0ce953f952dd98257959e0f6b21a8",
-      "moved_ast_sha256": "dbd2127ed2f0597f894fd00c7868c5082909c050030ed2bc19a41145f17f6dca",
+      "moved_ast_sha256": "02733367601f879377d1fafd69d3ea8eea07ac3709bf121635db38bb37e877f3",
       "ast_identical": false
     },
     ".claude/skills/create-issue/scripts/plan_child_materialization.py": {

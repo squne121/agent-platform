@@ -309,6 +309,110 @@ def test_ac3_readback_mismatch_is_not_success() -> None:
     assert res.updated is False and "read-back" in (res.error or "")
 
 
+def _patch(body: str, *, upd=None, gh=None, sha=None):
+    seen: list[list[str]] = []
+    state = {"body": body}
+
+    def default_gh(args):
+        seen.append(args)
+        if args[:2] == ["issue", "view"]:
+            return m.RunResult(0, state["body"] + "\n")
+        if args[:2] == ["issue", "edit"]:
+            state["body"] = Path(args[args.index("--body-file") + 1]).read_text(encoding="utf-8")
+        return m.RunResult(0, "")
+
+    res = m.apply_parent_checklist_patch(
+        repo=TRUSTED,
+        parent_issue=254,
+        updates=upd or [{"old_line": "- [ ] a", "new_line": "- [x] a"}],
+        expected_body_sha256=sha or "sha256:" + hashlib.sha256(body.encode()).hexdigest(),
+        runners=m.Runners(gh=gh or default_gh),
+    )
+    return res, seen, state
+
+
+def test_ac3_txn_dedupe_with_rc0_is_not_a_creation() -> None:
+    runners, gh_calls = _recording_runners(
+        '{"status":"dedupe","issue_number":55,"issue_url":"u"}', 0
+    )
+    res = m.materialize(_plan_with_parent_update(), runners)
+    assert res["status"] != "ok" and res["created_issues"] == []
+    assert res["affected_issues"][0]["issue_number"] == 55
+    assert res["updated_parent"] is False and gh_calls == []
+
+
+def test_ac3_non_numeric_txn_issue_number_is_an_error_not_a_crash() -> None:
+    runners, gh_calls = _recording_runners('{"status":"success","issue_number":"abc"}', 0)
+    res = m.materialize(_plan_with_parent_update(), runners)
+    assert res["status"] != "ok" and res["created_issues"] == [] and gh_calls == []
+
+
+@pytest.mark.parametrize(
+    "new_line", ["- [x] a\n## Injected\nevil", "- [x] a\r", "- [x] a\x0c", "- [x] a\u2028b"]
+)
+def test_ac3_multiline_or_control_replacement_is_rejected_before_any_gh_call(new_line: str) -> None:
+    res, seen, _ = _patch(
+        "## Child Issues\n\n- [ ] a\n", upd=[{"old_line": "- [ ] a", "new_line": new_line}]
+    )
+    assert res.updated is False
+    assert not any(a[:2] == ["issue", "edit"] for a in seen)
+
+
+def test_ac3_parent_body_with_non_lf_line_breaks_is_not_rewritten() -> None:
+    res, seen, _ = _patch("## Child Issues\n\n- [ ] a\r\n\n## Code\n```\nx\x0cy\n```\n")
+    assert res.updated is False and "non-LF" in (res.error or "")
+    assert [a[:2] for a in seen] == [["issue", "view"]]
+
+
+def test_ac3_readback_must_match_the_whole_patched_body() -> None:
+    body = "## Child Issues\n\n- [ ] a\n\n## Other\nkeep\n"
+    calls = {"n": 0}
+
+    def gh(args):
+        if args[:2] == ["issue", "view"]:
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return m.RunResult(0, body + "\n")
+            return m.RunResult(0, "## Child Issues\n\n- [x] a\n\n## Other\nTRUNCATED\n")
+        return m.RunResult(0, "")
+
+    res, _, _ = _patch(body, gh=gh)
+    assert res.updated is False and "differs" in (res.error or "")
+
+
+def test_ac3_duplicate_child_issues_sections_abort_before_edit() -> None:
+    res, seen, _ = _patch("## Child Issues\n- [ ] a\n\n## Child Issues\n- [ ] a\n")
+    assert res.updated is False
+    assert not any(a[:2] == ["issue", "edit"] for a in seen)
+
+
+def test_ac3_parent_edit_argv_is_exactly_the_body_file_update() -> None:
+    res, seen, _ = _patch("## Child Issues\n\n- [ ] a\n")
+    assert res.updated is True
+    (edit,) = [a for a in seen if a[:2] == ["issue", "edit"]]
+    assert edit[:5] == ["issue", "edit", "254", "--repo", TRUSTED]
+    assert edit[5] == "--body-file" and len(edit) == 7
+
+
+def test_ac3_escalation_status_never_patches_the_parent() -> None:
+    plan = _plan_with_parent_update()
+    plan["children"][0]["action"] = "human_escalation"
+    runners, gh_calls = _recording_runners("", 0)
+    res = m.materialize(plan, runners)
+    assert res["status"] == "human_escalation" and res["updated_parent"] is False
+    assert gh_calls == []
+
+
+def test_ac3_unusable_identity_config_is_a_rejection_not_a_skip(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(m, "_AGENT_GUARDS_ROOT", tmp_path)  # no repo_identity.py there
+    runners, gh_calls = _recording_runners("", 0)
+    with pytest.raises(m.PlanValidationError, match="repo_identity_unavailable"):
+        m.materialize(_plan(), runners)
+    assert gh_calls == []
+
+
 # --------------------------------------------------------------------------- AC4 manifest
 
 
