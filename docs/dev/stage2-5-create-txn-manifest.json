@@ -85,11 +85,11 @@
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
-      "moved_sha256": "e918a1f4e21fcc4fc20dffceaeeb55a3817b38a5a0f6dfa35174b58a63dc5fba",
+      "moved_sha256": "91cf4128e9ee35815d1a68d4d334e16afc9f3278be0d035c0a185a5aa6156c32",
       "verbatim": false,
       "source_lines": 574,
       "moved_lines": 591,
-      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it."
+      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it. Stage 2-6a (#36) then replaced the one-line \"unmigrated\" note (step 3.6/4a/4b availability) with the 2-6a status; moved_sha256/moved_lines updated accordingly."
     },
     ".claude/agents/issue-creator.md": {
       "source_sha256": "e348e9918dab4f397df093fb65c4175d90381ddd5ffa883d453e52e354c69af2",
@@ -159,11 +159,11 @@
     },
     "tests/create-issue/conftest.py": {
       "source_sha256": "1b8a20cfd1df2d8110dea55a683e502db2f7fbc0f30a84c2134df338d4d1bbe8",
-      "moved_sha256": "a37766df70a25b18619e999d7abe0848f0a40dec317df5991f4de5d4f807e638",
+      "moved_sha256": "dfda7f0475ff22c2704383660d694a3d7c3376ca476fea3c73b797b1cde4e104",
       "verbatim": false,
       "source_lines": 87,
-      "moved_lines": 15,
-      "intentional_diff": "reduced to the sys.path import shim; the child-materialization plan fixtures (loop-protocol plan slug, parent_body fixtures) belong to Stage 2-6 / #36."
+      "moved_lines": 96,
+      "intentional_diff": "Stage 2-6a (#36) replaced the Stage 2-5 import shim with the SOURCE conftest (child-plan fixtures restored, TRUSTED_REPO from repo_identity); moved_sha256/moved_lines updated accordingly."
     }
   },
   "source_inventory": {
