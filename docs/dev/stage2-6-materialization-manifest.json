@@ -75,7 +75,8 @@
     "4. The two fake-gh integration tests in test_materialize_child_issues_no_raw_gh.py now use the Stage 2-5 stateful fake gh (tests/stage2/fixtures/fake_gh_create.py). The source's hand-written fake predated the txn's body readback and the approved-operation gate. Positive path: empty --issue-kind (kind from the body MRC, label-free), no parent, no dependency. The CLI path asserts the gate refuses the implementation-kind/parent create with zero `issue create`/`issue edit` calls.",
     "5. tests/create-issue/* are Ruff-clean (format, import order, `check=False`, removesuffix); `.claude/skills/**` stays excluded by pyproject (not changed).",
     "6. .claude/skills/create-issue/SKILL.md: the Stage 2-5 'unmigrated' note is replaced by the 2-6a status; the procedure text is unchanged.",
-    "7. New: tests/stage2/test_stage2_6_materialization.py (AC1/AC3/AC4 closure and negative controls), this manifest, CI lane stage2-6-materialization."
+    "7. New: tests/stage2/test_stage2_6_materialization.py (AC1/AC3/AC4 closure and negative controls), this manifest, CI lane stage2-6-materialization.",
+    "8. Hardening found by independent review (materialize_child_issues): (a) a txn result with rc 0 but status other than `success` (e.g. `dedupe`) is recorded in affected_issues + errors, never as created, and blocks the parent patch; (b) a non-numeric txn issue_number is an error, not an exception; (c) apply_parent_checklist_patch rejects old_line/new_line containing line breaks/control characters, refuses parent bodies with non-LF line breaks, splits on LF only (lossless join), and requires the read-back body to equal the patched body exactly (not only the Child Issues section)."
   ],
   "known_source_defects": [
     {
@@ -216,7 +217,7 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py": 8,
     "tests/create-issue/test_materialize_child_issues_schema.py": 23,
     "tests/create-issue/test_parent_child_section_patch.py": 7,
-    "tests/stage2/test_stage2_6_materialization.py": 34
+    "tests/stage2/test_stage2_6_materialization.py": 46
   },
   "expected_ran": {
     ".claude/skills/create-issue/tests/test_check_issue_overlap_advisory_shell_continuation.py": 3,
@@ -239,17 +240,17 @@
     "tests/create-issue/test_materialize_child_issues_result_schema.py": 8,
     "tests/create-issue/test_materialize_child_issues_schema.py": 23,
     "tests/create-issue/test_parent_child_section_patch.py": 7,
-    "tests/stage2/test_stage2_6_materialization.py": 34
+    "tests/stage2/test_stage2_6_materialization.py": 46
   },
   "source_parity": {
     ".claude/skills/create-issue/scripts/materialize_child_issues.py": {
-      "moved_sha256": "39a0dc1e2824ffb90535fb5575757078e2a422962822778b72872b3ecf0bc4da",
-      "moved_lines": 947,
+      "moved_sha256": "794cb73b183e5f9e7b16494da8cdbbce43977debb0c778948668e53a683fb85d",
+      "moved_lines": 981,
       "source_sha256": "7274ee695157718e7d5c7e053e6ab9827bdb1104d0d420bf4e5a984c07410c7f",
       "source_lines": 908,
       "verbatim": false,
       "source_ast_sha256": "b72c9d383fef7b4ce036f274c6f94284c5d0ce953f952dd98257959e0f6b21a8",
-      "moved_ast_sha256": "dbd2127ed2f0597f894fd00c7868c5082909c050030ed2bc19a41145f17f6dca",
+      "moved_ast_sha256": "02733367601f879377d1fafd69d3ea8eea07ac3709bf121635db38bb37e877f3",
       "ast_identical": false
     },
     ".claude/skills/create-issue/scripts/plan_child_materialization.py": {
