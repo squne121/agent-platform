@@ -133,6 +133,10 @@ class TransactionResult:
     # that invoke run_transaction() directly (unchanged, backward compatible).
     node_id: str | None = None
     body_sha256: str | None = None
+    # sha256 (hex) of the remote body exactly as `_readback_created_issue` fetched and verified it
+    # (raw string from the GET, UTF-8). Set by the engine only after body-readback succeeded; the
+    # wrapper publishes it as body_sha256. Never derived from body_file or any later re-read.
+    verified_body_sha256: str | None = None
 
 
 def run_command(
@@ -625,8 +629,10 @@ def _readback_created_issue(
     gh_bin: str,
     *,
     sleep_fn: Callable[[float], None] = time.sleep,
-) -> None:
+) -> str:
     """Fresh read-only GET of the just-created issue; raise ``body-readback`` unless it matches.
+
+    Returns the sha256 hex of the verified remote body (raw string from the GET, null -> "").
 
     ``expected_body`` is the body text snapshotted once BEFORE the create (never re-read from
     ``body_file`` here), so the comparison baseline cannot move between create and readback.
@@ -678,7 +684,7 @@ def _readback_created_issue(
                 f"expected_len={len(expected_norm)})"
             )
             continue
-        return
+        return hashlib.sha256(remote_body.encode("utf-8")).hexdigest()
     raise TransactionError(
         stage="body-readback",
         message=f"created issue #{issue_number} could not be verified against the requested title/body "
@@ -1941,6 +1947,7 @@ def _report_partial_failure(
     verified_steps: list[str] | None = None,
     pending_steps: list[str] | None = None,
     failed_readbacks: list[dict] | None = None,
+    verified_body_sha256: str | None = None,
 ) -> TransactionResult:
     blocking_issue_numbers = blocking_issue_numbers or []
     failure_stage = failed_exc.stage
@@ -1993,6 +2000,7 @@ def _report_partial_failure(
         verified_steps=verified_steps if verified_steps is not None else [],
         pending_steps=pending_steps if pending_steps is not None else [],
         failed_readbacks=failed_readbacks if failed_readbacks is not None else [],
+        verified_body_sha256=verified_body_sha256,
     )
 
 
@@ -2573,6 +2581,7 @@ def _run_transaction_engine(
     applied_steps: list[str] = []
     verified_steps: list[str] = []
     pending_steps: list[str] = []
+    verified_body_sha256: str | None = None
     failed_readbacks: list[dict] = []
 
     # #1946 Owner P1-2: initialize each verification state OUTSIDE the try block so an
@@ -2651,7 +2660,7 @@ def _run_transaction_engine(
         # snapshotted before the create; the issue already exists here, so a mismatch is a
         # partial_failure (never failed_no_mutation) that keeps issue_number/issue_url.
         try:
-            _readback_created_issue(
+            verified_body_sha256 = _readback_created_issue(
                 repo, issue_number, issue_url, title, _body_text_for_parent, gh_bin, sleep_fn=sleep_fn
             )
         except TransactionError:
@@ -2792,6 +2801,7 @@ def _run_transaction_engine(
                 verified_steps=verified_steps,
                 pending_steps=pending_steps,
                 audit_comment_posted=audit_comment_posted,
+                verified_body_sha256=verified_body_sha256,
             )
 
         return TransactionResult(
@@ -2805,6 +2815,7 @@ def _run_transaction_engine(
             applied_steps=applied_steps,
             verified_steps=verified_steps,
             pending_steps=pending_steps,
+            verified_body_sha256=verified_body_sha256,
         )
 
     except TransactionError as exc:
@@ -2838,6 +2849,7 @@ def _run_transaction_engine(
             verified_steps=verified_steps,
             pending_steps=pending_steps,
             failed_readbacks=failed_readbacks,
+            verified_body_sha256=verified_body_sha256,
         )
 
 
@@ -3113,8 +3125,9 @@ def run_transaction_with_authoritative_readback(
     skip_internal_title_dedupe: bool = False,
 ) -> TransactionResult:
     """Wrap run_transaction() with an authoritative post-create GraphQL readback
-    of node_id, plus a body_sha256 that is set only when run_transaction() verified the stored
-    remote body (``body-readback``); it is None otherwise, never a hash of unverified input.
+    of node_id, plus a body_sha256 that is the hash of the remote body verified by run_transaction()
+    (``body-readback``, propagated via ``verified_body_sha256``); None otherwise, never a hash of
+    unverified or re-read local input.
 
     Salvaged from Issue #2259/PR #2286 AC7 (`node_id`/`body_sha256` readback,
     originally implemented for the bridge dispatch path) and adapted to the
@@ -3143,20 +3156,13 @@ def run_transaction_with_authoritative_readback(
         node_id, _ = _issue_graphql_ids(repo, result.issue_number, gh_bin)
     except TransactionError:
         node_id = None
-    effective_body: str | None = body
-    if body_file:
-        try:
-            effective_body = Path(body_file).read_text(encoding="utf-8")
-        except OSError:
-            # The text that was verified against the remote cannot be recovered: claim no hash.
-            effective_body = None
-    # body_sha256 is only an evidence of the REMOTE body when the transaction itself verified it:
-    # "body-readback" in verified_steps means the stored body matched the pre-create snapshot
-    # (line endings / trailing whitespace normalised). Otherwise (dedupe hit, early failure) the
-    # local text was never compared with the remote body, so no hash is claimed (None).
+    # body_sha256 is evidence of the REMOTE body that run_transaction() itself verified: it is
+    # propagated from the body-readback GET (raw remote string, UTF-8 sha256 hex) and never
+    # recomputed from body_file / body, so later edits or deletion of body_file cannot change it.
+    # Dedupe hits and early failures never verified a body, so no hash is claimed (None).
     body_sha256: str | None = None
-    if "body-readback" in result.verified_steps and effective_body is not None:
-        body_sha256 = hashlib.sha256(effective_body.encode("utf-8")).hexdigest()
+    if "body-readback" in result.verified_steps:
+        body_sha256 = result.verified_body_sha256
     if node_id is None and result.status in {"success", "dedupe"}:
         # No fresh authoritative readback of the issue: not a verified success.
         return _dataclass_replace(

@@ -1084,6 +1084,194 @@ def test_ac2_wrapper_body_sha256_is_remote_verified_evidence_only(inproc: Projec
     assert bad.body_sha256 is None
 
 
+def _wrapper_kw(p: Project, **over):
+    kw = {
+        "repo": TRUSTED,
+        "title": TITLE,
+        "body": "",
+        "body_file": p.body_file(),
+        "labels": [],
+        "parent_issue_number": 0,
+        "dependency_issue_numbers": [],
+        "gh_bin": str(p.gh),
+        "sleep_fn": lambda _s: None,
+    }
+    kw.update(over)
+    return kw
+
+
+def _sha(text: str) -> str:
+    import hashlib
+
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _after_node_id_get(monkeypatch: pytest.MonkeyPatch, action) -> None:
+    """Run ``action`` right after the wrapper's node-id GET (i.e. after the body was verified)."""
+    real = txn._issue_graphql_ids
+
+    def wrapped(*a, **k):
+        out = real(*a, **k)
+        action()
+        return out
+
+    monkeypatch.setattr(txn, "_issue_graphql_ids", wrapped)
+
+
+def test_ac2_body_sha256_survives_body_file_edit_after_verification(
+    inproc: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    other = "## Acceptance Criteria\n\n- [ ] AC1: swapped after the readback\n"
+    body_file = Path(inproc.body_file())
+    _after_node_id_get(monkeypatch, lambda: body_file.write_text(other, encoding="utf-8"))
+    res = txn.run_transaction_with_authoritative_readback(
+        **_wrapper_kw(inproc, body_file=str(body_file))
+    )
+    assert res.status == "success", res
+    assert body_file.read_text(encoding="utf-8") == other  # the swap really happened
+    assert res.body_sha256 == _sha(VALID_BODY) != _sha(other)
+    assert res.body_sha256 == _sha(inproc.state["issues"][0]["body"])  # == the remote body
+
+
+def test_ac2_body_sha256_survives_body_file_deletion_after_verification(
+    inproc: Project, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    body_file = Path(inproc.body_file())
+    _after_node_id_get(monkeypatch, body_file.unlink)
+    res = txn.run_transaction_with_authoritative_readback(
+        **_wrapper_kw(inproc, body_file=str(body_file))
+    )
+    assert not body_file.exists()
+    assert res.status == "success", res
+    assert res.body_sha256 == _sha(VALID_BODY)
+
+
+def test_ac2_body_sha256_is_the_raw_remote_body_hash_not_the_normalised_or_local_one(
+    inproc: Project,
+) -> None:
+    # remote differs from the local text only by line endings / trailing whitespace (accepted by
+    # the normalised comparison); the evidence hash must still point at what the remote stored.
+    remote = VALID_BODY.replace("\n", "\r\n") + "  \n"
+    inproc.set_state(stored_body=remote)
+    res = txn.run_transaction_with_authoritative_readback(**_wrapper_kw(inproc))
+    assert res.status == "success", res
+    assert inproc.state["issues"][0]["body"] == remote
+    assert res.body_sha256 == _sha(remote) != _sha(VALID_BODY)
+
+
+def test_ac2_remote_body_change_after_create_never_reports_success_or_a_hash(
+    inproc: Project,
+) -> None:
+    inproc.set_state(get_override={"body": "tampered remote body"})
+    res = txn.run_transaction_with_authoritative_readback(**_wrapper_kw(inproc))
+    assert res.status == "partial_failure" and res.failure_stage == "body-readback"
+    assert res.body_sha256 is None and res.issue_number == 501 and res.issue_url
+
+
+def _load_mutant(project: Project, old: str, new: str):
+    """Load a one-edit mutant of the real source from inside the scratch project copy (the gate
+    resolves repo_identity relative to the module location, so it must live at the same layout)."""
+    import importlib.util
+
+    src = (ROOT / SCRIPT_REL).read_text(encoding="utf-8")
+    assert src.count(old) == 1, old
+    path = project.root / SCRIPT_REL.parent / "create_issue_txn_mutant.py"
+    path.write_text(src.replace(old, new), encoding="utf-8")
+    spec = importlib.util.spec_from_file_location("create_issue_txn_mutant", path)
+    mod = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _evidence_scenario(p: Project, mod) -> list[str]:
+    """Return the list of violated evidence invariants (empty == the code is sound)."""
+    violations: list[str] = []
+    # (a) remote body mismatch must not be success and must not carry a hash
+    p.set_state(get_override={"body": "tampered remote body"})
+    bad = mod.run_transaction_with_authoritative_readback(**_wrapper_kw(p))
+    if bad.status == "success" or bad.body_sha256 is not None:
+        violations.append("remote-mismatch-accepted")
+    p.set_state(
+        issues=[], created=False, next_number=501, get_override=None, get_calls=0, create_calls=0
+    )
+    # (b) the hash must follow the verified remote body, not a later body_file state
+    body_file = Path(p.body_file())
+    real = mod._issue_graphql_ids
+
+    def swap(*a, **k):
+        out = real(*a, **k)
+        body_file.write_text("swapped after verification\n", encoding="utf-8")
+        return out
+
+    mod._issue_graphql_ids = swap
+    try:
+        ok = mod.run_transaction_with_authoritative_readback(
+            **_wrapper_kw(p, body_file=str(body_file))
+        )
+    finally:
+        mod._issue_graphql_ids = real
+    if ok.status != "success" or ok.body_sha256 != _sha(VALID_BODY):
+        violations.append("hash-does-not-follow-verified-body")
+    return violations
+
+
+def test_ac2_evidence_scenario_is_clean_on_the_real_source(inproc: Project) -> None:
+    assert _evidence_scenario(inproc, txn) == []
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "expected"),
+    [
+        (
+            "_normalize_readback_body(remote_body) != expected_norm",
+            "False",
+            "remote-mismatch-accepted",
+        ),
+        (
+            'return hashlib.sha256(remote_body.encode("utf-8")).hexdigest()',
+            'return hashlib.sha256(expected_body.encode("utf-8")).hexdigest()',
+            None,  # equal to the pre-create snapshot: only observable with a normalised-equal remote
+        ),
+        (
+            "body_sha256 = result.verified_body_sha256",
+            'body_sha256 = hashlib.sha256(Path(body_file).read_text(encoding="utf-8").encode("utf-8")).hexdigest()',
+            "hash-does-not-follow-verified-body",
+        ),
+        (
+            'if "body-readback" in result.verified_steps:\n        body_sha256 = result.verified_body_sha256',
+            'if True:\n        body_sha256 = result.verified_body_sha256 or hashlib.sha256(body.encode("utf-8")).hexdigest()',
+            "remote-mismatch-accepted",
+        ),
+    ],
+    ids=[
+        "comparison-disabled",
+        "hash-of-snapshot",
+        "wrapper-rereads-body-file",
+        "hash-claimed-without-verification",
+    ],
+)
+def test_ac2_mutants_of_body_comparison_and_hash_propagation_are_detected(
+    inproc: Project, old: str, new: str, expected: str | None
+) -> None:
+    mod = _load_mutant(inproc, old, new)
+    if expected is None:
+        # snapshot-hash mutant: remote differs from the snapshot only by CRLF + trailing spaces
+        remote = VALID_BODY.replace("\n", "\r\n") + "  \n"
+        inproc.set_state(stored_body=remote)
+        res = mod.run_transaction_with_authoritative_readback(**_wrapper_kw(inproc))
+        assert res.body_sha256 != _sha(remote), (
+            "mutant survived: hash no longer follows the remote body"
+        )
+        # and the real source is caught by the very same observation
+        inproc.set_state(issues=[], created=False, next_number=501, get_calls=0, create_calls=0)
+        assert txn.run_transaction_with_authoritative_readback(
+            **_wrapper_kw(inproc)
+        ).body_sha256 == _sha(remote)
+        return
+    assert expected in _evidence_scenario(inproc, mod)
+
+
 # --------------------------------------------------------------------------- AC5 Agent / Skill parity
 
 
