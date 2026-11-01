@@ -1082,19 +1082,15 @@ def _parent_kind_body() -> str:
     return text[start : text.index('"""', start)]
 
 
-def test_ac8_e2e_parent_kind_body_hitting_c9_exit_2_is_rejected(proj: Project) -> None:
-    """Known consequence of AC8 (source test_1844 is deferred because of it): a parent-kind candidate without
-    Allowed Paths / Runtime Verification Applicability makes the real hygiene exit 2, which is now refused
-    instead of tolerated. Pinned so a hygiene follow-up changes this deliberately."""
-    body = _parent_kind_body()
+def _run_hygiene(proj: Project, body: str) -> subprocess.CompletedProcess:
     (proj.root / "tmp").mkdir(exist_ok=True)
-    (proj.root / "tmp" / "parent.md").write_text(body, encoding="utf-8")
-    direct = subprocess.run(
+    (proj.root / "tmp" / "hyg.md").write_text(body, encoding="utf-8")
+    return subprocess.run(
         [
             sys.executable,
             str(proj.root / ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py"),
             "--body-file",
-            str(proj.root / "tmp" / "parent.md"),
+            str(proj.root / "tmp" / "hyg.md"),
         ],
         cwd=proj.root,
         capture_output=True,
@@ -1102,9 +1098,31 @@ def test_ac8_e2e_parent_kind_body_hitting_c9_exit_2_is_rejected(proj: Project) -
         timeout=120,
         check=False,
     )
-    assert direct.returncode == 2 and "Allowed Paths section is missing" in direct.stderr
+
+
+def test_ac8_e2e_parent_kind_body_skips_c9_and_hygiene_exit_1_is_accepted(proj: Project) -> None:
+    """Issue #44: C9 does not apply to canonical parent kind, so a readiness-compliant parent body
+    without Allowed Paths / Runtime Verification Applicability gets hygiene exit 1 (no change) and
+    proceeds through the normal transaction path."""
+    body = _parent_kind_body()
+    direct = _run_hygiene(proj, body)
+    assert direct.returncode == 1 and "C9 autofix not safe" not in direct.stderr
+    assert "status: no_change" in direct.stderr
     rc, res = proj.run_txn(proj.payload(body))
-    _assert_failed_no_mutation(proj, rc, res, "issue_contract_hygiene_unsafe_or_checker_error")
+    assert (rc, res["status"]) == (0, "ok")
+
+
+def test_ac8_e2e_non_parent_kind_without_allowed_paths_still_fails_closed(proj: Project) -> None:
+    """Issue #44 guard: the parent exemption must not leak to implementation / unknown kinds."""
+    impl = VALID_BODY.replace("## Runtime Verification Applicability", "## Renamed Section")
+    if "## Allowed Paths" in impl:
+        impl = impl.replace("## Allowed Paths", "## Renamed Paths")
+    direct = _run_hygiene(proj, impl)
+    assert direct.returncode == 2 and "C9 autofix not safe" in direct.stderr
+    rc, res = proj.run_txn(proj.payload(impl))
+    _assert_failed_no_mutation(
+        proj, rc, res
+    )  # rejected (template guard fires first); never mutates
 
 
 def test_ac8_e2e_real_hygiene_exit_1_and_exit_0_are_both_accepted(proj: Project) -> None:
@@ -1682,10 +1700,6 @@ def test_ac6_every_deferred_id_is_a_native_creator_runtime_or_hygiene_conflict()
             assert "#35" in entry["rerun_condition"]
         elif "runtime_smoke" in entry["id"]:
             assert "runtime smoke" in entry["owner_stage"]
-        elif entry["owner_stage"].startswith("Stage 2-4 follow-up: hygiene C9"):
-            assert entry["id"].endswith(
-                "test_1844_parent_candidate_runs_real_local_validators_before_executor"
-            )
         else:
             assert entry["id"].startswith(".claude/skills/edit-issue/tests/")
             assert entry["owner_stage"].startswith("native-relationship approval")

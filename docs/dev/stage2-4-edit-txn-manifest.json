@@ -50,23 +50,17 @@
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 1,
-    "tests/stage2/test_stage2_4_edit_txn.py": 185
+    "tests/stage2/test_stage2_4_edit_txn.py": 186
   },
   "expected_ran": {
-    ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 43,
+    ".claude/skills/edit-issue/tests/test_edit_issue_txn.py": 44,
     ".claude/skills/edit-issue/tests/test_edit_issue_txn_preexisting_readiness.py": 106,
     ".claude/skills/edit-issue/tests/test_issue_content_update_txn.py": 3,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
     ".claude/agents/tests/test_issue_creator_editor_runtime_smoke.py": 0,
-    "tests/stage2/test_stage2_4_edit_txn.py": 185
+    "tests/stage2/test_stage2_4_edit_txn.py": 186
   },
   "deferred_tests": [
-    {
-      "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_1844_parent_candidate_runs_real_local_validators_before_executor",
-      "owner_stage": "Stage 2-4 follow-up: hygiene C9 vs parent-kind bodies (squne121/agent-platform#44)",
-      "reason": "AC8 conflict, not native: the test feeds a parent-kind candidate with no `## Allowed Paths` / Runtime Verification Applicability section through the REAL hygiene script, which exits 2 (`C9 autofix not safe: ## Allowed Paths section is missing`). The source txn tolerated exit 2 (`returncode in (0, 1, 2)`) and let readiness decide; Issue #34 AC8 forbids routing exit 2 into a success path, so the txn now returns failed_no_mutation. The behaviour is pinned by tests/stage2 test_ac8_e2e_parent_kind_body_hitting_c9_exit_2_is_rejected.",
-      "rerun_condition": "issue_contract_hygiene_autofix.py stops returning exit 2 for readiness-compliant parent-kind bodies (follow-up Issue); then drop this id and re-run unchanged"
-    },
     {
       "id": ".claude/skills/edit-issue/tests/test_edit_issue_txn.py::test_preflight_failure_blocks_all_mutation",
       "owner_stage": "native-relationship approval (follow-up squne121/agent-platform#46; needs a new human approval)",
@@ -485,11 +479,11 @@
     },
     "source_collected_total": 198,
     "new_tests": {
-      "tests/stage2/test_stage2_4_edit_txn.py": 185
+      "tests/stage2/test_stage2_4_edit_txn.py": 186
     },
-    "collected_total": 383,
-    "ran_total": 344,
-    "deferred_total": 39,
+    "collected_total": 384,
+    "ran_total": 346,
+    "deferred_total": 38,
     "skipped": 0,
     "note": "source counts match the Issue text (test_edit_issue_txn 69, preexisting_readiness 118, issue_content_update_txn 3); the source files are collected as moved (only the repo literal differs)."
   },
@@ -629,6 +623,7 @@
     ".claude/skills/issue-refinement-loop/tests/test_semantic_review_bounded_discovery_contract.py": "outside the Issue #34 Allowed Paths, disclosed: `_STAGE2_DANGLING_REFS` ({issue-editor.md}) -> empty set. The test itself fails with `landed: drop it from the allowlist` once the file exists, so this one-line change is forced by migrating issue-editor.md. The Stage 1b-4 manifest dangling_refs entry is reworded accordingly (docs/dev/stage1b4-semantic-review-manifest.json).",
     "docs/dev/stage1a-core-manifest.json": "removed the deferred_imports `edit_issue_txn` and deferred_script_refs `edit_issue_txn.py` entries (now real files); import closure re-verified",
     "docs/dev/stage2-1b-exec-manifest.json": "removed the 2 deferred env-parity tests that imported edit_issue_txn (expected_ran 15 -> 17 for that file; lane 122 collected / 122 ran / 0 deferred) and the dangling_refs entry",
-    "docs/dev/stage2-4-edit-txn-manifest.json (Stage 2-5 / #35)": "released the 4 test_issue_creator_issue_editor_split deferrals (test_issue_creator_frontmatter_tools_exact_set, test_issue_creator_skills_exact_set, test_both_agents_document_controlled_executor_procedural_contract, test_both_agents_document_nested_invocation_distinction) after .claude/agents/issue-creator.md landed: expected_ran 3 -> 7 for that file, ran_total 340 -> 344, deferred_total 43 -> 39. Edited under the Issue #35 Allowed Paths entry 'parent manifest' (the manifest that holds exactly these 4 deferrals); nothing else in the lane was touched."
+    "docs/dev/stage2-4-edit-txn-manifest.json (Stage 2-5 / #35)": "released the 4 test_issue_creator_issue_editor_split deferrals (test_issue_creator_frontmatter_tools_exact_set, test_issue_creator_skills_exact_set, test_both_agents_document_controlled_executor_procedural_contract, test_both_agents_document_nested_invocation_distinction) after .claude/agents/issue-creator.md landed: expected_ran 3 -> 7 for that file, ran_total 340 -> 344, deferred_total 43 -> 39. Edited under the Issue #35 Allowed Paths entry 'parent manifest' (the manifest that holds exactly these 4 deferrals); nothing else in the lane was touched.",
+    "docs/dev/stage2-4-edit-txn-manifest.json (Issue #44)": "released the test_1844_parent_candidate_runs_real_local_validators_before_executor deferral after issue_contract_hygiene_autofix.py skips C9 repair for canonical parent kind: test_edit_issue_txn expected_ran 43 -> 44, tests/stage2 file collect/ran 185 -> 186 (AC8 parent-kind pin replaced by a positive test plus a non-parent fail-closed guard), collected_total 383 -> 384, ran_total 344 -> 346, deferred_total 39 -> 38."
   }
 }
