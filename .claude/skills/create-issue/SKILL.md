@@ -16,7 +16,7 @@ description: ユーザーの要求を Terminal AI Agent が再現可能に作業
 - **`--label-profile triage_only` は無ラベル起票ではない**。`_resolve_labels` が `triage-required` を必ず追加するため、同様に拒否される。label・parent・dependency なしの正規経路は `--label-profile standard`（既定）+ `--issue-kind` 無指定（kind は body の Machine-Readable Contract で宣言）+ 明示 label なし。
 - 下の「sub-issue 登録手順（手動実行が必要な場合）」「Blocker / Blocked-by 設定手順」「label-readback 失敗後の reconcile 手順」の raw `gh api` / `gh issue edit` は承認されていない。agent-platform では実行しない。承認が出るまで、親子・依存関係は Issue 本文に書く。
 - create の失敗（タイムアウト・receipt 喪失・gh 失敗後の書き込み済み）は `failure_stage: issue-create-outcome-unknown` を返し、authoritative な title readback の結果を `failure_message` に含める。「書き込みなし」とは断定しない。再実行前に readback で確認する。
-- `check_issue_overlap.py` / `plan_child_materialization.py` / `materialize_child_issues.py` / `mutation_route_matrix.py` は Stage 2-6（#36）所有で未移管。未移管の間、4a・4b と overlap preflight は実行できない（`docs/dev/stage2-5-create-txn-manifest.json` の `dangling_references` に owner_stage と再実行条件を記録）。
+- `check_issue_overlap.py` / `plan_child_materialization.py` / `materialize_child_issues.py` / `mutation_route_matrix.py` は Stage 2-6a（#36）で移管済み。4a・4b と overlap preflight は実行できるが、`materialize_child_issues.py` の作成は `create_issue_txn.py` 経由のみで、label / native parent / dependency を伴う子 Issue は未承認操作として txn が書き込み前に拒否する（`docs/dev/stage2-6-materialization-manifest.json` 参照）。
 
 ## Procedure（手順）
 

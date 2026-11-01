@@ -1,0 +1,4 @@
+# 起票予定 Issue の Allowed Paths（overlap preflight fixture）
+.claude/skills/create-issue/scripts/check_issue_overlap.py
+.claude/skills/create-issue/SKILL.md
+docs/dev/workflow.md
