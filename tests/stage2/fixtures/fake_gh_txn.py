@@ -90,6 +90,8 @@ if argv[:1] == ["api"]:
 
         write(state["patch_mode"], apply_patch)
     if method == "POST" and path.endswith("/comments"):
+        if not path.endswith(f"/issues/{state['number']}/comments"):
+            unexpected()  # a comment aimed at any other issue is never served
         state["posts"] += 1
         body = Path(argv[argv.index("--field") + 1].split("=@", 1)[1]).read_text(encoding="utf-8")
 

@@ -128,15 +128,20 @@ ACTOR_CAPABILITY_READY = "ready"
 ACTOR_CAPABILITY_DEGRADED = "degraded"
 ACTOR_CAPABILITY_UNAVAILABLE = "unavailable"
 
-# GitHub operations that mutate state. Their native routes are NOT migrated
-# into this repository yet (Stage 2), so no route may be reported available.
-# Names in this set are always treated as mutation-requiring, whatever the
-# caller declared for `requires_mutation` (fail closed).
+# GitHub operations that mutate state. Names in this set are always treated as
+# mutation-requiring, whatever the caller declared for `requires_mutation`
+# (fail closed). `pr_*` routes are not migrated and stay unavailable.
 _MUTATION_OPERATION_NAMES = frozenset(
     {
         "issue_comment",
         "issue_edit",
         "issue_create",
+        # unapproved Issue metadata mutations: no route exists, never available
+        "issue_label_edit",
+        "issue_state_change",
+        "issue_native_parent_edit",
+        "issue_dependency_edit",
+        "issue_relationship_edit",
         "pr_comment",
         "pr_create",
         "pr_edit",
@@ -144,10 +149,18 @@ _MUTATION_OPERATION_NAMES = frozenset(
     }
 )
 
-# Operations with an implemented route in this repository. Empty until the
-# Stage 2 GitHub mutation implementation is migrated; a route is "available"
-# only if it is listed here (Issue #9: no false-ready for unmigrated routes).
-_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset()
+# Operations with an implemented route in this repository (Issue #37, Stage 2-7).
+# A route is "available" only if it is listed here, and each entry maps to exactly
+# one migrated canonical consumer that delegates to the controlled executor:
+#   issue_comment -> publish_termination_report.py (issue_comment.publish lane)
+#   issue_edit    -> edit_issue_txn.py
+#   issue_create  -> create_issue_txn.py
+# "available" is a route-existence statement only; it is NOT proof of GitHub write
+# permission (`permission` stays "unverified"). label / state / native parent /
+# dependency / relationship and every `pr_*` operation have no entry here.
+_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset(
+    {"issue_comment", "issue_edit", "issue_create"}
+)
 
 DEFAULT_BUDGET_SECONDS = 30.0
 _GITHUB_AUTH_PROBE_CAP_SECONDS = 30.0

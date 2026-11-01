@@ -17,7 +17,7 @@
     ".claude/skills/issue-refinement-loop/scripts/tests/test_root_entry_router_workflow_capability.py": 3,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_skill_runtime_exec_env_allowlist.py": 30,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry.py": 30,
-    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 16,
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 25,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_compact_stdout_grammar.py": 10,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry.py": 85,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry_security.py": 25,
@@ -37,18 +37,19 @@
     "scripts/agent-guards/tests/test_skill_runtime_policy_commands.py": 41,
     "scripts/agent-guards/tests/test_skill_runtime_preflight_no_worktree.py": 4,
     "scripts/agent-guards/tests/test_trusted_runtime_capability_preflight.py": 6,
-    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 22,
+    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 51,
     "scripts/agent-ops/tests/test_workflow_capability_preflight_deadline.py": 6,
     "tests/stage1a/test_stage1a_2_canonical_preflight.py": 36,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
-    "tests/stage1a/test_stage1a_core_wiring.py": 20
+    "tests/stage1a/test_stage1a_core_wiring.py": 20,
+    ".claude/skills/issue-refinement-loop/tests/test_thin_entrypoint.py": 10
   },
   "expected_ran": {
     ".claude/skills/issue-refinement-loop/scripts/tests/test_repair_issue_contract.py": 53,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_root_entry_router_workflow_capability.py": 3,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_skill_runtime_exec_env_allowlist.py": 30,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry.py": 30,
-    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 16,
+    ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_canonical_executor.py": 25,
     ".claude/skills/issue-refinement-loop/scripts/tests/test_workflow_start_entry_compact_stdout_grammar.py": 10,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry.py": 85,
     ".claude/skills/issue-refinement-loop/tests/test_command_registry_security.py": 25,
@@ -68,11 +69,12 @@
     "scripts/agent-guards/tests/test_skill_runtime_policy_commands.py": 41,
     "scripts/agent-guards/tests/test_skill_runtime_preflight_no_worktree.py": 4,
     "scripts/agent-guards/tests/test_trusted_runtime_capability_preflight.py": 6,
-    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 22,
+    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 51,
     "scripts/agent-ops/tests/test_workflow_capability_preflight_deadline.py": 6,
     "tests/stage1a/test_stage1a_2_canonical_preflight.py": 36,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
-    "tests/stage1a/test_stage1a_core_wiring.py": 20
+    "tests/stage1a/test_stage1a_core_wiring.py": 20,
+    ".claude/skills/issue-refinement-loop/tests/test_thin_entrypoint.py": 10
   },
   "deferred_tests": [],
   "excluded_untracked_copies": [
@@ -222,7 +224,7 @@
     "tests/test_run_refinement_preflight_credentialless_transport.py:1279: synthetic home path literal split (same value at runtime)"
   ],
   "not_migrated_source_tests": {
-    "count": 95,
+    "count": 94,
     "owner_stage": "follows the stage that migrates the implementation each file covers; per-file triage happens at that stage's closure (not assigned individually here)",
     "source": "pre-split-agent-platform-20261020 issue-refinement-loop/tests and scripts/tests",
     "files": [
@@ -313,7 +315,6 @@
       "test_structural_repair_deadlock_arbitration.py",
       "test_structural_repair_known_scalars_wiring.py",
       "test_template_section_repair.py",
-      "test_thin_entrypoint.py",
       "test_trusted_anchor_iteration_zero.py",
       "test_trusted_human_context_patch_safety.py",
       "test_trusted_human_context_path_literal_extraction.py",
@@ -411,5 +412,9 @@
   "stage_2_3": {
     "issue": "squne121/agent-platform#33",
     "note": "Stage 2-3: test_guard_issue_body / test_guard_ac_vc_alignment / test_issue_contract_hygiene_autofix (edit-issue/tests) and test_pytest_vc_baseline_shape_compiler (issue-contract-review/tests) live outside the 1a test_dirs, so no name left not_migrated_source_tests (count stays 96); docs/dev/stage2-3-edit-guards-manifest.json pins them and edit-issue/scripts joined the import-closure scan. Stage 2-6b (#36): test_dependency_materialization moved out of not_migrated_source_tests (count 96 -> 95) and docs/dev/stage2-6-materialization-manifest.json joined later_stage_test_manifests."
+  },
+  "stage_2_7": {
+    "issue": "squne121/agent-platform#37",
+    "note": "issue_comment / issue_edit / issue_create routes became available (permission stays unverified); counts re-measured: canonical_executor 16->25, workflow_capability_preflight 22->51. See docs/dev/stage2-7-terminal-wiring-manifest.json. test_thin_entrypoint.py (10 tests, SKILL.md's own verification command) migrated into this lane: 769->779."
   }
 }
