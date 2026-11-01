@@ -102,13 +102,13 @@ $ pnpm build
 **必須フィールド（すべて必要）**:
 - `applicable_acs`: 動作検証の対象 AC リスト
 - `execution_environment`: 必要な CLI ツール名・認証方法・ネットワーク要件
-- `skip_conditions`: 実行環境が整っていない場合の停止条件（exit 77 SKIP 規約）
+- `skip_conditions`: 実行環境が整っていない場合の停止条件（exit 77 SKIP 規約。規約の詳細定義は未移管で、現時点の正本はない）
 - `fallback_policy`: フォールバック経由の成功を PASS としない旨の明示
 - `artifact_requirements`: 証跡出力先・ファイル名パターン
 
 **修復方針**:
 - `fix_hint` に示された不足フィールドを補完する
-- 必須フィールドの一覧は上記の本節が現行の記述である。`review-issue` C10 が検査するのは `deferred` の検証先（`deferred_destination` / `deferred_verification_condition`）の存在のみで、`immediate` の各フィールド（`skip_conditions` / `artifact_requirements` 等）の詳細要件は検査しない。`validate_issue_body.py` の LP020 は起票時に decision enum・reason・`deferred` の 2 フィールドの有無を検査し、`immediate` の必須フィールド不足は `issue-contract-review` の `rva_immediate_field_missing` が着手前に検出する。各フィールドの詳細な要件定義（exit 77 SKIP 規約・証跡形式など）を持つ総合 policy は `docs/dev/runtime-verification-policy.md` だったが未移管（#50 で deferred）で、現時点で完全に代替する正本はない
+- 必須フィールドの一覧は上記の本節が現行の記述である。`review-issue` C10 が検査するのは `deferred` の検証先のみで（`destination_type`+`destination_ref` の組、または `deferred_verification_condition` のどちらかがあれば PASS。`deferred_destination` というキー名自体は見ない）、`immediate` の各フィールド（`skip_conditions` / `artifact_requirements` 等）の詳細要件は検査しない。`validate_issue_body.py` の LP020 は起票時に decision enum・reason（`require_reason` 有効時のみ）・`deferred` の `deferred_destination` と `deferred_verification_condition` の両方の有無を検査し、`immediate` の必須フィールド不足は `issue-contract-review` の `rva_immediate_field_missing` が着手前に検出する。各フィールドの詳細な要件定義（exit 77 SKIP 規約・証跡形式など）を持つ総合 policy は `docs/dev/runtime-verification-policy.md` だったが未移管（#50 で deferred）で、現時点で完全に代替する正本はない
 
 ## Runtime Verification Applicability
 
@@ -135,7 +135,7 @@ Issue 起票時に動作検証の適用判定セクションを記載する。`r
 
 - `deferred` の場合は `deferred_destination`（destination_type + destination_ref）と `deferred_verification_condition` の **両方を必ず記載する**（`review-issue` C10 blocker）。
 - 自由記述の「後続 Issue で検証する」だけでは不完全。機械的に検出できる半構造化フォーマットで記述すること。
-- 機械的な検査の担当範囲: `docs/dev/extension-surface-runtime-policy.yaml` は Claude extension surface の risk-trigger rule（どの変更が `immediate` の根拠になり得るか）の正本、`review-issue` C9 は section / decision enum の存在、C10 は `deferred` の検証先の整合、C11 は decision と `runtime-verification` タグの整合を検査する。これらは Runtime Verification 全体の policy ではなく、総合 policy（`docs/dev/runtime-verification-policy.md`）は未移管（#50 で deferred）。
+- 機械的な検査の担当範囲: `docs/dev/extension-surface-runtime-policy.yaml` は Claude extension surface の risk-trigger rule（どの変更が `immediate` の根拠になり得るか）の正本、`review-issue` C9 は section / decision enum（section や decision が無い implementation Issue は FAIL ではなく legacy 扱いで、FAIL は enum 不正のみ）の、C10 は `deferred` の検証先の整合、C11 は decision と `runtime-verification` タグの整合を検査する。これらは Runtime Verification 全体の policy ではなく、総合 policy（`docs/dev/runtime-verification-policy.md`）は未移管（#50 で deferred）。
 
 ### `actual`/`canonical` ランタイム受け入れと `fixture` 意味論との AC 分離規則（Issue #2807）
 

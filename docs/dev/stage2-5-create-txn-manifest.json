@@ -127,7 +127,7 @@
     },
     ".claude/skills/create-issue/references/body-authoring.md": {
       "source_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
-      "moved_sha256": "e659167a7b57c190ddf9c4da792032d7c83d6132bbe6b9c28c3f7707bbdfa0f7",
+      "moved_sha256": "58e7cffd95b2b1bb53f66d891c7e94b75da144fa0d15769d4d947c42ae771961",
       "verbatim": false,
       "source_lines": 799,
       "moved_lines": 793,
@@ -354,14 +354,14 @@
     {
       "id": "verify_vc_single_command_guardrail_docs.py + 16 tests",
       "classification": "deferred",
-      "owner_stage": "unassigned (not a current #5/#29 Stage 0-2 deliverable; #5 Stage 3 covers investigation Agents only). Needs a dedicated Issue + human approval",
+      "owner_stage": "unassigned (not a current #5/#29 Stage 0-2 deliverable; not in #5 Stage 3, which covers investigation Agents only). Needs a dedicated Issue + human approval",
       "reason": "docs-only lint of create-issue's own docs; necessity not demonstrated because Issue-body enforcement is already migrated (validate_issue_body.py compound_shell=error, vc_contract_syntax.py). Possible future consumer: a CI docs-lint job, if one is ever approved",
       "rerun_condition": "re-evaluate if docs drift from the enforced VC rule is observed, or a CI docs-lint job is approved; then migrate script + 16 tests unchanged via a dedicated Issue"
     },
     {
       "id": "ssot-discovery",
       "classification": "deferred",
-      "owner_stage": "unassigned (#5 limits ssot-discovery to cases where a runtime dependency is confirmed; none is; #5 Stage 3 covers investigation Agents only)",
+      "owner_stage": "unassigned (#5 limits ssot-discovery to cases where a runtime dependency is confirmed; none is; not in #5 Stage 3, which covers investigation Agents only)",
       "reason": "separate Skill; no migrated consumer invokes it (create-issue only had a Related link, removed; its name-based implicit-workflow-skill guard needs no Skill file)",
       "rerun_condition": "a migrated Skill/script is shown to depend on ssot-discovery at runtime; then a dedicated Issue decides migration"
     },
@@ -382,7 +382,7 @@
     {
       "id": "docs/dev/visual-impact.schema.json, visual-surfaces.*",
       "classification": "deferred",
-      "owner_stage": "unassigned (visual-impact owner Skills are not in #5 Stage 0-2 scope; #5 Stage 3 covers investigation Agents only)",
+      "owner_stage": "unassigned (visual-impact owner Skills are not in #5 Stage 0-2 scope; not in #5 Stage 3, which covers investigation Agents only)",
       "reason": "no consumer in migrated tree; SKILL.md now stops instead of guessing the schema",
       "rerun_condition": "a dedicated Issue migrates a visual_impact owner Skill/script that reads these files, with human approval"
     },

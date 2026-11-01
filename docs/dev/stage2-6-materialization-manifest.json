@@ -571,7 +571,7 @@
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
       "source_lines": 574,
       "verbatim": false,
-      "intentional_diff": " | #50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs)"
+      "intentional_diff": "#50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs)"
     }
   },
   "source_inventory": {
