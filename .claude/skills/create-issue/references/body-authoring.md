@@ -108,7 +108,7 @@ $ pnpm build
 
 **修復方針**:
 - `fix_hint` に示された不足フィールドを補完する
-- 各フィールドの詳細要件は `review-issue` C10 の `fix_hint` と `docs/dev/extension-surface-runtime-policy.yaml` を参照する（`docs/dev/runtime-verification-policy.md` は未移管。#50 で deferred）
+- 必須フィールドの一覧は上記の本節が現行の記述である。`review-issue` C10 が検査するのは `deferred` の検証先（`deferred_destination` / `deferred_verification_condition`）の存在のみで、`immediate` の各フィールド（`skip_conditions` / `artifact_requirements` 等）の詳細要件は検査しない。`validate_issue_body.py` の LP020 は起票時に decision enum・reason・`deferred` の 2 フィールドの有無を検査し、`immediate` の必須フィールド不足は `issue-contract-review` の `rva_immediate_field_missing` が着手前に検出する。各フィールドの詳細な要件定義（exit 77 SKIP 規約・証跡形式など）を持つ総合 policy は `docs/dev/runtime-verification-policy.md` だったが未移管（#50 で deferred）で、現時点で完全に代替する正本はない
 
 ## Runtime Verification Applicability
 
@@ -135,7 +135,7 @@ Issue 起票時に動作検証の適用判定セクションを記載する。`r
 
 - `deferred` の場合は `deferred_destination`（destination_type + destination_ref）と `deferred_verification_condition` の **両方を必ず記載する**（`review-issue` C10 blocker）。
 - 自由記述の「後続 Issue で検証する」だけでは不完全。機械的に検出できる半構造化フォーマットで記述すること。
-- 適用判定の機械的な基準は `docs/dev/extension-surface-runtime-policy.yaml` と `review-issue` C10 が正本（`docs/dev/runtime-verification-policy.md` は未移管。#50 で deferred）。
+- 機械的な検査の担当範囲: `docs/dev/extension-surface-runtime-policy.yaml` は Claude extension surface の risk-trigger rule（どの変更が `immediate` の根拠になり得るか）の正本、`review-issue` C9 は section / decision enum の存在、C10 は `deferred` の検証先の整合、C11 は decision と `runtime-verification` タグの整合を検査する。これらは Runtime Verification 全体の policy ではなく、総合 policy（`docs/dev/runtime-verification-policy.md`）は未移管（#50 で deferred）。
 
 ### `actual`/`canonical` ランタイム受け入れと `fixture` 意味論との AC 分離規則（Issue #2807）
 
@@ -226,8 +226,7 @@ runtime_assertion_bindings:
 
 ## VC 作成ガイダンス
 
-> 動作検証 AC（`runtime-verification: true`）を含む VC の設計は `docs/dev/extension-surface-runtime-policy.yaml` と `review-issue` C10 を参照すること（`docs/dev/runtime-verification-policy.md` は未移管。#50 で deferred）。
-> SKIP 規約（exit 77）・証跡保存フォーマット・テストシナリオ最小セット・Stop Condition 連動が定義されている。
+> 動作検証 AC（`runtime-verification: true`）を含む VC の設計では、extension surface の risk-trigger は `docs/dev/extension-surface-runtime-policy.yaml`、`deferred` の整合は `review-issue` C10 を参照すること。ただし SKIP 規約（exit 77）・証跡保存フォーマット・テストシナリオ最小セット・Stop Condition 連動を定義していた `docs/dev/runtime-verification-policy.md` は未移管（#50 で deferred）で、これらはどちらの consumer も定義・検査しない。現時点で参照できる正本はなく、推測で補わず Issue 本文に明記する。
 
 ### pytest baseline-fail VC の正規形（canonical form, marker: pytest_baseline_fail_canonical_rules）
 

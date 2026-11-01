@@ -127,10 +127,10 @@
     },
     ".claude/skills/create-issue/references/body-authoring.md": {
       "source_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
-      "moved_sha256": "293375f6fe80898723e5ea1748d7cccc670cf488dae57bccd9893260c29f74f9",
+      "moved_sha256": "e659167a7b57c190ddf9c4da792032d7c83d6132bbe6b9c28c3f7707bbdfa0f7",
       "verbatim": false,
       "source_lines": 799,
-      "moved_lines": 794,
+      "moved_lines": 793,
       "intentional_diff": "#50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs); otherwise verbatim"
     },
     ".claude/skills/create-issue/references/implementation-label-autoassign.md": {
@@ -332,9 +332,9 @@
     ".claude/skills/create-issue/scripts/plan_child_materialization.py": "owner_stage Stage 2-6 / #36; SKILL step 4a not runnable until then.",
     ".claude/skills/create-issue/scripts/materialize_child_issues.py": "owner_stage Stage 2-6 / #36; SKILL step 4b not runnable until then.",
     ".claude/skills/create-issue/scripts/verify-anchors.sh": "#50 decision: obsolete. SKILL (Step 1 anchor bullet) now runs a single `git grep -nF -- <anchor> <path>` (the Anchor Verification Preflight in body-authoring.md); the 60-line wrapper adds nothing a standard git grep lacks and create_issue_txn.py never called it. Not migrated; no new wrapper or gate. rerun_condition: n/a.",
-    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "#50 decision: deferred (optional docs lint). Issue-body VC compound-shell checking is already enforced by validate_issue_body.py (compound_shell=error) and issue-contract-review/vc_contract_syntax.py. The lint only scans create-issue's own docs and is a permanent gate candidate; body-authoring.md no longer points to it. owner_stage: Stage 3 docs lint (needs a dedicated Issue + human approval). rerun_condition: such an Issue migrates it with test_verify_vc_single_command_guardrail_docs.py (16 tests) unchanged.",
-    ".claude/skills/ssot-discovery/SKILL.md": "#50 decision: deferred (separate Skill; owner_stage Stage 3 skills). create-issue only named it in a Related link (removed) and in the name-based implicit-workflow-skill guard, which does not need the Skill to exist. rerun_condition: Stage 3 migrates ssot-discovery (then the Related link may be restored).",
-    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "#50 decision per item: docs/dev/workflow.md = deferred (owner_stage docs Issue; SKILL (Step 1 procedure) now cites .github/ISSUE_TEMPLATE/implementation.yml). runtime-verification-policy.md = deferred (docs Issue; mechanical rules live in extension-surface-runtime-policy.yaml + review-issue C10, body-authoring.md now points there). visual-impact.schema.json / visual-surfaces.* = deferred (owner_stage Stage 3; no migrated script reads them; SKILL says to stop rather than guess the schema; edit-issue/review-issue/issue-contract-review SKILL.md links are outside #50 scope). docs/product/requirements.md = obsolete (legacy game product doc; example reference replaced by docs/dev/*.md). scripts/claude-gpt/* = deferred (claude-gpt launcher assets stay out per refinement-migration-manifest.json; text in body-authoring.md marked unmigrated). None is copied merely because it exists. rerun_condition: a dedicated docs/Stage 3 Issue.",
+    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "#50 decision: deferred (optional docs lint). Issue-body VC compound-shell checking is already enforced by validate_issue_body.py (compound_shell=error) and issue-contract-review/vc_contract_syntax.py. The lint only scans create-issue's own docs and is a permanent gate candidate; body-authoring.md no longer points to it. owner_stage: unassigned (needs a dedicated Issue + human approval; necessity not demonstrated). rerun_condition: such an Issue migrates it with test_verify_vc_single_command_guardrail_docs.py (16 tests) unchanged.",
+    ".claude/skills/ssot-discovery/SKILL.md": "#50 decision: deferred (separate Skill; owner_stage unassigned, no runtime dependency confirmed). create-issue only named it in a Related link (removed) and in the name-based implicit-workflow-skill guard, which does not need the Skill to exist. rerun_condition: a migrated consumer is shown to depend on ssot-discovery at runtime (then the Related link may be restored).",
+    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "#50 decision per item: docs/dev/workflow.md = deferred (owner_stage docs Issue; SKILL (Step 1 procedure) now cites .github/ISSUE_TEMPLATE/implementation.yml). runtime-verification-policy.md = deferred (docs Issue; mechanical rules live in extension-surface-runtime-policy.yaml + review-issue C10, body-authoring.md now points there). visual-impact.schema.json / visual-surfaces.* = deferred (owner_stage unassigned; no migrated script reads them; SKILL says to stop rather than guess the schema; edit-issue/review-issue/issue-contract-review SKILL.md links are outside #50 scope). docs/product/requirements.md = obsolete (legacy game product doc; example reference replaced by docs/dev/*.md). scripts/claude-gpt/* = deferred (claude-gpt launcher assets stay out per refinement-migration-manifest.json; text in body-authoring.md marked unmigrated). None is copied merely because it exists. rerun_condition: a dedicated docs Issue (or, for visual-impact/ssot-discovery/lint, a concrete migrated consumer).",
     ".claude/agents/some-agent.md": "example path inside body-authoring.md prose, not a real reference.",
     "stage1b4 'issue-creator' dangling note": "historical; resolved by this Stage (see stage_updates)."
   },
@@ -348,22 +348,22 @@
       "id": "verify-anchors.sh",
       "classification": "obsolete",
       "owner_stage": "n/a",
-      "reason": "replaced by single git grep -nF (existing capability); never called by create_issue_txn.py; docs/dev/workflow.md/visual-impact links in issue-refinement-loop, edit-issue, review-issue, issue-contract-review SKILL.md are link-only and outside #50 scope",
+      "reason": "replaced by a single git grep -nF (existing capability); never called by create_issue_txn.py; no wrapper or gate is added",
       "rerun_condition": "n/a"
     },
     {
       "id": "verify_vc_single_command_guardrail_docs.py + 16 tests",
       "classification": "deferred",
-      "owner_stage": "Stage 3 docs lint (Issue to be filed with human approval)",
-      "reason": "docs-only lint; Issue-body enforcement already migrated",
-      "rerun_condition": "dedicated Issue migrates script + tests unchanged"
+      "owner_stage": "unassigned (not a current #5/#29 Stage 0-2 deliverable; #5 Stage 3 covers investigation Agents only). Needs a dedicated Issue + human approval",
+      "reason": "docs-only lint of create-issue's own docs; necessity not demonstrated because Issue-body enforcement is already migrated (validate_issue_body.py compound_shell=error, vc_contract_syntax.py). Possible future consumer: a CI docs-lint job, if one is ever approved",
+      "rerun_condition": "re-evaluate if docs drift from the enforced VC rule is observed, or a CI docs-lint job is approved; then migrate script + 16 tests unchanged via a dedicated Issue"
     },
     {
       "id": "ssot-discovery",
       "classification": "deferred",
-      "owner_stage": "Stage 3",
-      "reason": "separate Skill; reference removed",
-      "rerun_condition": "Stage 3 migrates the Skill"
+      "owner_stage": "unassigned (#5 limits ssot-discovery to cases where a runtime dependency is confirmed; none is; #5 Stage 3 covers investigation Agents only)",
+      "reason": "separate Skill; no migrated consumer invokes it (create-issue only had a Related link, removed; its name-based implicit-workflow-skill guard needs no Skill file)",
+      "rerun_condition": "a migrated Skill/script is shown to depend on ssot-discovery at runtime; then a dedicated Issue decides migration"
     },
     {
       "id": "docs/dev/workflow.md",
@@ -382,9 +382,9 @@
     {
       "id": "docs/dev/visual-impact.schema.json, visual-surfaces.*",
       "classification": "deferred",
-      "owner_stage": "Stage 3",
-      "reason": "no consumer in migrated tree",
-      "rerun_condition": "Stage 3 migrates visual-impact owner skills"
+      "owner_stage": "unassigned (visual-impact owner Skills are not in #5 Stage 0-2 scope; #5 Stage 3 covers investigation Agents only)",
+      "reason": "no consumer in migrated tree; SKILL.md now stops instead of guessing the schema",
+      "rerun_condition": "a dedicated Issue migrates a visual_impact owner Skill/script that reads these files, with human approval"
     },
     {
       "id": "docs/product/requirements.md",
@@ -407,5 +407,6 @@
       "reason": "pin the migrated body-authoring.md/SKILL.md guidance; run unchanged",
       "rerun_condition": "n/a (3 tests in this lane: 1 + 2)"
     }
-  ]
+  ],
+  "dependency_decisions_50_ac1_assessment": "#50 AC1 is met only as: every dependency has an explicit classification and rerun/re-evaluation condition. owner_stage is a real Stage/Issue only for required_now (#50). obsolete items need none. Deferred items are 'unassigned': no current Stage (#5/#29 Stage 0-2, or Stage 3 = investigation Agents) is claimed to own them, and each needs a new human-approved Issue if a concrete consumer appears. Nothing here asserts that an owner has been assigned."
 }
