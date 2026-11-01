@@ -703,12 +703,17 @@ def test_variant_or_unknown_pr_issue_names_declared_read_only_still_block(monkey
     assert result["checks"]["github"]["operations"][operation]["route"] == "unavailable"
 
 
-def test_read_only_operation_names_declared_read_only_stay_ready(monkeypatch):
+@pytest.mark.parametrize("operation", ["issue_read", "read_issue"])
+def test_read_only_operation_names_declared_read_only_add_no_route_blocker(monkeypatch, operation):
+    """The decision also depends on host probes (uv, controlled read), so assert only on what the
+    operation name contributes: no route blocker, and the read-only name stays outside the mutation set."""
     result = _assess_ops(
         monkeypatch,
-        [{"phase": "p", "actor_role": "r", "operation": "issue_read", "requires_mutation": False}],
+        [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": False}],
     )
-    assert result["decision"] == wcp.DECISION_READY
+    assert not any("operation_route_unavailable" in r for r in result["reasons"])
+    assert not wcp._is_mutation_operation_name(operation)
+    assert result["checks"]["github"]["operations"][operation]["permission"] == "unverified"
 
 
 @pytest.mark.parametrize(

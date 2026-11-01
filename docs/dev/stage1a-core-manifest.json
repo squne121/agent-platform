@@ -37,7 +37,7 @@
     "scripts/agent-guards/tests/test_skill_runtime_policy_commands.py": 41,
     "scripts/agent-guards/tests/test_skill_runtime_preflight_no_worktree.py": 4,
     "scripts/agent-guards/tests/test_trusted_runtime_capability_preflight.py": 6,
-    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 64,
+    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 65,
     "scripts/agent-ops/tests/test_workflow_capability_preflight_deadline.py": 6,
     "tests/stage1a/test_stage1a_2_canonical_preflight.py": 36,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
@@ -69,7 +69,7 @@
     "scripts/agent-guards/tests/test_skill_runtime_policy_commands.py": 41,
     "scripts/agent-guards/tests/test_skill_runtime_preflight_no_worktree.py": 4,
     "scripts/agent-guards/tests/test_trusted_runtime_capability_preflight.py": 6,
-    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 64,
+    "scripts/agent-ops/tests/test_workflow_capability_preflight.py": 65,
     "scripts/agent-ops/tests/test_workflow_capability_preflight_deadline.py": 6,
     "tests/stage1a/test_stage1a_2_canonical_preflight.py": 36,
     "tests/stage1a/test_stage1a_core_closure.py": 11,
@@ -415,6 +415,6 @@
   },
   "stage_2_7": {
     "issue": "squne121/agent-platform#37",
-    "note": "issue_comment / issue_edit / issue_create routes became available (permission stays unverified); counts re-measured: canonical_executor 16->25, workflow_capability_preflight 22->64. See docs/dev/stage2-7-terminal-wiring-manifest.json. test_thin_entrypoint.py (10 tests, SKILL.md's own verification command) migrated into this lane: 731->792 in total (canonical_executor +9, workflow_capability_preflight +42, test_thin_entrypoint +10)."
+    "note": "issue_comment / issue_edit / issue_create routes became available (permission stays unverified); counts re-measured: canonical_executor 16->25, workflow_capability_preflight 22->65. See docs/dev/stage2-7-terminal-wiring-manifest.json. test_thin_entrypoint.py (10 tests, SKILL.md's own verification command) migrated into this lane: 731->793 in total (canonical_executor +9, workflow_capability_preflight +43, test_thin_entrypoint +10)."
   }
 }

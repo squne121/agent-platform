@@ -207,8 +207,8 @@
         "deferred": 0
       },
       "stage1a-core-manifest.json": {
-        "collect": 792,
-        "ran": 792,
+        "collect": 793,
+        "ran": 793,
         "deferred": 0
       },
       "stage1b1-leaf-manifest.json": {
@@ -277,8 +277,8 @@
         "deferred": 0
       }
     },
-    "collect": 4601,
-    "ran": 4524,
+    "collect": 4602,
+    "ran": 4525,
     "deferred": 77,
     "note": "sums of the existing stage manifests plus this manifest; the per-lane runners (run_stage0_tests.py, run_stage1a_tests.py, run_stage1b1_tests.py <manifest>) verify each lane's real collect/ran/deferred/skip counts in CI. stage0 pins collect counts only."
   },
@@ -286,7 +286,7 @@
     "test_thin_entrypoint.py (counted in the stage1a-core lane, which owns that directory): ruff format only (import/blank-line layout); assertions byte-identical to the source",
     "scripts/agent-ops/workflow_capability_preflight.py: _KNOWN_OPERATION_ROUTES = {issue_comment, issue_edit, issue_create} (source: the full production route set); _MUTATION_OPERATION_NAMES gains the unapproved label / state / native parent / dependency / relationship names, and an allowlist (_READ_ONLY_OPERATION_NAMES = issue_read, read_issue) is the only way to be non-mutating: every other name (unregistered, re-cased, padded, separator-variant, non-ASCII) is mutating and unavailable whatever requires_mutation says; the planned-operations file rejects names outside [a-z0-9_]+",
     "scripts/agent-ops/tests/test_workflow_capability_preflight.py and test_workflow_start_entry_canonical_executor.py: the old 'issue_* routes are unavailable' expectations are replaced by (a) positive controls for the three approved operations (route available, permission unverified, inner preflight starts) and (b) negative controls for pr_*, label, state, native parent / dependency / relationship and unregistered operations (blocked, inner preflight never starts)",
-    "stage1a-core-manifest.json: expected counts re-measured (canonical_executor 16->25, workflow_capability_preflight 22->64)",
+    "stage1a-core-manifest.json: expected counts re-measured (canonical_executor 16->25, workflow_capability_preflight 22->65)",
     "tests/stage2/fixtures/fake_gh_txn.py: a comment POST aimed at any issue other than the fixture issue is refused as unexpected (exit 97) instead of being counted",
     "SKILL.md: only the transfer-status note changed (one line; file stays at 500 lines)"
   ],
