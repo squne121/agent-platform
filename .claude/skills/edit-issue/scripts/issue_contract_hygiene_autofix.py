@@ -41,6 +41,9 @@ if str(_AGENT_OPS_DIR) not in sys.path:
 from allowed_paths_policy import is_no_path_marker  # noqa: E402
 
 
+# Canonical issue kind for which C9 does not apply (see check_issue_contract C9 / Issue #44).
+C9_NOT_APPLICABLE_KIND = "parent"
+
 # Whitelist of path prefixes that are known non-runtime (workflow/docs/scripts only).
 # Paths NOT matching any prefix here → exit 2 (fail-closed).
 # NOTE: .github/workflows/** is intentionally excluded from the non-runtime whitelist
@@ -331,11 +334,18 @@ def repair_c9(lines: list[str]) -> tuple[list[str], str, Optional[str]]:
 
 
 def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
+    """Backward-compatible wrapper: (has_other_blockers, codes) only."""
+    has_other, codes, _kind = check_non_c4_c9_blockers_with_kind(body)
+    return has_other, codes
+
+
+def check_non_c4_c9_blockers_with_kind(body: str) -> tuple[bool, list[str], Optional[str]]:
     """
     Run check_issue_contract.py --json on the body and return
     (has_other_blockers, other_blocker_codes).
 
-    Returns (True, [codes...]) if there are blocking issues other than C4/C9.
+    Returns (has_other, codes, issue_kind) where issue_kind is the checker-reported kind
+    (None if unavailable). Returns (True, [codes...], ...) if there are blocking issues other than C4/C9.
     Returns (False, []) if only C4/C9 blockers (or no blockers).
     Returns (True, ["check_error"]) if check_issue_contract.py is missing, cannot be invoked,
     times out, or emits no/invalid JSON (fail-closed; Stage 2-3 intentional diff).
@@ -349,7 +359,7 @@ def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
             "failing closed (treating as non-C4/C9 blocker)",
             file=sys.stderr,
         )
-        return True, ["check_error"]
+        return True, ["check_error"], None
 
     # Write body to a temp file so check_issue_contract.py can read it
     try:
@@ -360,7 +370,7 @@ def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
             tmp_path = tf.name
     except OSError as e:
         print(f"[WARN] Cannot write temp file for contract check: {e}", file=sys.stderr)
-        return True, ["check_error"]
+        return True, ["check_error"], None
 
     try:
         # Caller contract with check_issue_contract.py --json:
@@ -390,7 +400,7 @@ def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
                     "failing closed (treating as non-C4/C9 blocker)",
                     file=sys.stderr,
                 )
-                return True, ["check_error"]
+                return True, ["check_error"], None
             blocking = data.get("blocking_issues") if isinstance(data, dict) else None
             if not isinstance(blocking, list):
                 # verdict without a blocking_issues list (e.g. {"error": ...}): no verdict -> closed
@@ -398,7 +408,7 @@ def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
                     "[WARN] check_issue_contract.py --json had no blocking_issues list; failing closed",
                     file=sys.stderr,
                 )
-                return True, ["check_error"]
+                return True, ["check_error"], None
             # blocking_issues is a list of strings (human-readable messages).
             # This script can only autofix C4 ($ prefix) and C9 (RVA section).
             # Filter out messages that belong to checks this script handles or cannot
@@ -440,28 +450,31 @@ def check_non_c4_c9_blockers(body: str) -> tuple[bool, list[str]]:
             for msg in blocking:
                 if not any(pat in msg for pat in FILTER_PATTERNS):
                     other_blockers.append(msg)
-            return len(other_blockers) > 0, other_blockers
+            issue_kind = data.get("issue_kind") if isinstance(data, dict) else None
+            if not isinstance(issue_kind, str):
+                issue_kind = None
+            return len(other_blockers) > 0, other_blockers, issue_kind
         # empty stdout: the checker produced no verdict (crash / killed) -> fail closed
         print(
             "[WARN] check_issue_contract.py --json produced no stdout; failing closed "
             f"(exit code {proc.returncode})",
             file=sys.stderr,
         )
-        return True, ["check_error"]
+        return True, ["check_error"], None
     except Exception as e:
         print(
             f"[WARN] check_issue_contract.py invocation failed ({type(e).__name__}): {e}; "
             "failing closed",
             file=sys.stderr,
         )
-        return True, ["check_error"]
+        return True, ["check_error"], None
     finally:
         try:
             os.unlink(tmp_path)
         except OSError:
             pass
 
-    return False, []  # pragma: no cover - every branch above returns
+    return False, [], None  # pragma: no cover - every branch above returns
 
 
 # Patterns for C4 repair (fenced bash block command line detection)
@@ -630,7 +643,7 @@ def main() -> int:
 
     # AC4: Check for non-C4/C9 blockers first — if found, exit 2
     # (This script can only autofix C4 and C9; other blockers need human attention)
-    has_other, other_codes = check_non_c4_c9_blockers(original_body)
+    has_other, other_codes, issue_kind = check_non_c4_c9_blockers_with_kind(original_body)
     if has_other:
         print(
             f"[ERROR] Non-C4/C9 blocking issues detected; cannot autofix: {other_codes}",
@@ -667,8 +680,13 @@ def main() -> int:
         )
         return 2
 
-    # Apply C9 repair
-    lines, c9_result, c9_reason = repair_c9(lines)
+    # Apply C9 repair. C9 (Runtime Verification Applicability / Allowed Paths) does not apply
+    # to canonical `parent` kind (Issue #44); the kind comes from the strict checker verdict
+    # (MRC-first detect_issue_kind). Any other / unknown / missing kind keeps the fail-closed repair.
+    if issue_kind == C9_NOT_APPLICABLE_KIND:
+        c9_result, c9_reason = C9Result.NO_CHANGE, None
+    else:
+        lines, c9_result, c9_reason = repair_c9(lines)
     c9_repaired = (c9_result == C9Result.OK)
 
     # If C9 is not autofixable (runtime/unknown paths or missing Allowed Paths) → exit 2
