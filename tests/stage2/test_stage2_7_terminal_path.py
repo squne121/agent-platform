@@ -154,7 +154,7 @@ def test_step4_stale_digest_is_write_zero_and_step5_is_not_reached(proj: Project
 def test_step4_wrong_repo_is_write_zero(proj: Project) -> None:
     rc, res = _step4(proj, repo=LEGACY_SLUG)
     assert rc == 1 and res["status"] == "failed_no_mutation"
-    assert proj.gh_calls == [] or proj.gh_writes == []
+    assert proj.gh_writes == []
     assert proj.state["patches"] == 0 and proj.state["body"] == OLD_BODY
 
 

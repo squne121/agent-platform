@@ -684,3 +684,39 @@ def test_one_unapproved_operation_blocks_a_mixed_declaration(monkeypatch):
     assert result["decision"] == wcp.DECISION_BLOCKED
     assert result["checks"]["github"]["operations"]["issue_edit"]["route"] == "available"
     assert result["checks"]["github"]["operations"]["pr_create"]["route"] == "unavailable"
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        "pr_merge",
+        "PR_CREATE",
+        " issue_comment",
+        "Issue_Comment",
+        "issue_label_edit ",
+        "issue_unknown",
+    ],
+)
+def test_variant_or_unknown_pr_issue_names_declared_read_only_still_block(monkeypatch, operation):
+    result = _assess_ops(
+        monkeypatch,
+        [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": False}],
+    )
+    assert result["decision"] == wcp.DECISION_BLOCKED
+    assert result["checks"]["github"]["operations"][operation]["route"] == "unavailable"
+
+
+def test_read_only_operation_names_declared_read_only_stay_ready(monkeypatch):
+    result = _assess_ops(
+        monkeypatch,
+        [{"phase": "p", "actor_role": "r", "operation": "issue_read", "requires_mutation": False}],
+    )
+    assert result["decision"] == wcp.DECISION_READY
+
+
+@pytest.mark.parametrize("operation", [" issue_comment", "Issue_Comment", "pr_create "])
+def test_planned_operations_file_rejects_non_canonical_operation_names(tmp_path, operation):
+    path = tmp_path / "ops.json"
+    path.write_text(json.dumps([{"operation": operation, "requires_mutation": False}]))
+    with pytest.raises(ValueError, match="canonical"):
+        wcp._load_planned_operations(str(path))
