@@ -262,9 +262,9 @@
         "deferred": 0
       },
       "stage2-4-edit-txn-manifest.json": {
-        "collect": 383,
-        "ran": 344,
-        "deferred": 39
+        "collect": 384,
+        "ran": 346,
+        "deferred": 38
       },
       "stage2-5-create-txn-manifest.json": {
         "collect": 306,
@@ -277,9 +277,9 @@
         "deferred": 0
       }
     },
-    "collect": 4602,
-    "ran": 4525,
-    "deferred": 77,
+    "collect": 4603,
+    "ran": 4527,
+    "deferred": 76,
     "note": "sums of the existing stage manifests plus this manifest; the per-lane runners (run_stage0_tests.py, run_stage1a_tests.py, run_stage1b1_tests.py <manifest>) verify each lane's real collect/ran/deferred/skip counts in CI. stage0 pins collect counts only."
   },
   "intentional_diffs": [
