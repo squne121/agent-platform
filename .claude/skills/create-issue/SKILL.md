@@ -136,7 +136,7 @@ AC は検証可能な記述にし、実装か調査かを自分で確認する�
 
 #### VC 作成の決定論的ルール
 
-> **VC_SINGLE_COMMAND_GUARDRAIL**: VC は shell control operator（&&, ||, |, ;, &）を使わない単一コマンドで記述する。詳細は [`references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL`](references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL) を参照。違反検出は `uv run python3 .claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py --strict` で行う。
+> **VC_SINGLE_COMMAND_GUARDRAIL**: VC は shell control operator（&&, ||, |, ;, &）を使わない単一コマンドで記述する。詳細は [`references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL`](references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL) を参照。違反検出は起票時の `validate_issue_body.py`（`compound_shell` = error）と着手前の `issue-contract-review/scripts/vc_contract_syntax.py` が行う（旧 docs lint は未移管。#50 で deferred）。
 
 - **削除確認パターン**: `rg --files-without-match --fixed-strings -- "<literal>" <file>` を使い、literal が file に存在しなければ exit 0 を成功とする（`--` は option parsing の終端で、`--settings` のように `-` で始まる literal を pattern として扱うために必須。1 command = 1 concrete file、`-q` は併用しない。`-c` / `--count` は no-match で exit 1 を返すため削除確認に使わない。`grep ... && echo PASS || echo FAIL` 形式も禁止。詳細は [`references/body-authoring.md`](references/body-authoring.md) の「削除確認パターン」を参照）
 - **marker 単位の独立確認**: 1 つの AC に複数の marker を使う場合、marker ごとにヒット件数を個別検証

@@ -33,7 +33,7 @@ Issue 本文に `## Machine-Readable Contract` がある場合、author / caller
 Issue 本文の `## Required Skills` は **ドメイン知識スキル** のみを列挙する（例: TypeScript / ECS / Canvas / Vitest BDD 等）。
 
 - ワークフロー skill（`issue-contract-review` / `implement-issue` / `pr-review-judge` / `ssot-discovery` 等）はここに書かない。skill 間で関係性が定義されているため
-- rule 参照は per-directory `CLAUDE.md`（Claude Code 自動ロード）と `ssot-discovery` skill で行うため、`## Rules` への列挙は最小限に
+- rule 参照は per-directory `CLAUDE.md`（Claude Code 自動ロード）で行う（`ssot-discovery` skill は未移管。#50 で deferred）ため、`## Rules` への列挙は最小限に
 - spec / doc / path reference（`docs/adr/...`, `docs/dev/*.md` 等）は skill ではない。`## Background` / `## In Scope` の適切な section に書く
 - runtime dependency がない場合は `- なし` と明記するか、section 全体を省略する
 

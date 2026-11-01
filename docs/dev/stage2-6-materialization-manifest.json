@@ -566,7 +566,7 @@
       "ast_identical": false
     },
     ".claude/skills/create-issue/SKILL.md": {
-      "moved_sha256": "c088b73f5b2985c626d114dfd820d88fb7e38422d8229d0033f3fb96c8a18e4b",
+      "moved_sha256": "817e274d8cd9a3ed901905579f0708ff68e26ad30b416b919989716c31b1caac",
       "moved_lines": 587,
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
       "source_lines": 574,

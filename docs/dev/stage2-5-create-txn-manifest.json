@@ -91,7 +91,7 @@
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
-      "moved_sha256": "c088b73f5b2985c626d114dfd820d88fb7e38422d8229d0033f3fb96c8a18e4b",
+      "moved_sha256": "817e274d8cd9a3ed901905579f0708ff68e26ad30b416b919989716c31b1caac",
       "verbatim": false,
       "source_lines": 574,
       "moved_lines": 587,
@@ -127,7 +127,7 @@
     },
     ".claude/skills/create-issue/references/body-authoring.md": {
       "source_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
-      "moved_sha256": "76d36aea3a628cec7e6e15e518781543acab426847e082a1586adb40704213f0",
+      "moved_sha256": "293375f6fe80898723e5ea1748d7cccc670cf488dae57bccd9893260c29f74f9",
       "verbatim": false,
       "source_lines": 799,
       "moved_lines": 794,
@@ -331,10 +331,10 @@
     ".claude/skills/create-issue/scripts/check_issue_overlap.py": "owner_stage Stage 2-6 / #36; rerun_condition: #36 migrates it. SKILL step 3.6 is not runnable until then.",
     ".claude/skills/create-issue/scripts/plan_child_materialization.py": "owner_stage Stage 2-6 / #36; SKILL step 4a not runnable until then.",
     ".claude/skills/create-issue/scripts/materialize_child_issues.py": "owner_stage Stage 2-6 / #36; SKILL step 4b not runnable until then.",
-    ".claude/skills/create-issue/scripts/verify-anchors.sh": "#50 decision: obsolete. SKILL step 1 now runs a single `git grep -nF -- <anchor> <path>` (the Anchor Verification Preflight in body-authoring.md); the 60-line wrapper adds nothing a standard git grep lacks and create_issue_txn.py never called it. Not migrated; no new wrapper or gate. rerun_condition: n/a.",
+    ".claude/skills/create-issue/scripts/verify-anchors.sh": "#50 decision: obsolete. SKILL (Step 1 anchor bullet) now runs a single `git grep -nF -- <anchor> <path>` (the Anchor Verification Preflight in body-authoring.md); the 60-line wrapper adds nothing a standard git grep lacks and create_issue_txn.py never called it. Not migrated; no new wrapper or gate. rerun_condition: n/a.",
     ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "#50 decision: deferred (optional docs lint). Issue-body VC compound-shell checking is already enforced by validate_issue_body.py (compound_shell=error) and issue-contract-review/vc_contract_syntax.py. The lint only scans create-issue's own docs and is a permanent gate candidate; body-authoring.md no longer points to it. owner_stage: Stage 3 docs lint (needs a dedicated Issue + human approval). rerun_condition: such an Issue migrates it with test_verify_vc_single_command_guardrail_docs.py (16 tests) unchanged.",
     ".claude/skills/ssot-discovery/SKILL.md": "#50 decision: deferred (separate Skill; owner_stage Stage 3 skills). create-issue only named it in a Related link (removed) and in the name-based implicit-workflow-skill guard, which does not need the Skill to exist. rerun_condition: Stage 3 migrates ssot-discovery (then the Related link may be restored).",
-    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "#50 decision per item: docs/dev/workflow.md = deferred (owner_stage docs Issue; SKILL step 1 now cites .github/ISSUE_TEMPLATE/implementation.yml). runtime-verification-policy.md = deferred (docs Issue; mechanical rules live in extension-surface-runtime-policy.yaml + review-issue C10, body-authoring.md now points there). visual-impact.schema.json / visual-surfaces.* = deferred (owner_stage Stage 3; no migrated script reads them; SKILL says to stop rather than guess the schema; edit-issue/review-issue/issue-contract-review SKILL.md links are outside #50 scope). docs/product/requirements.md = obsolete (legacy game product doc; example reference replaced by docs/dev/*.md). scripts/claude-gpt/* = deferred (claude-gpt launcher assets stay out per refinement-migration-manifest.json; text in body-authoring.md marked unmigrated). None is copied merely because it exists. rerun_condition: a dedicated docs/Stage 3 Issue.",
+    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "#50 decision per item: docs/dev/workflow.md = deferred (owner_stage docs Issue; SKILL (Step 1 procedure) now cites .github/ISSUE_TEMPLATE/implementation.yml). runtime-verification-policy.md = deferred (docs Issue; mechanical rules live in extension-surface-runtime-policy.yaml + review-issue C10, body-authoring.md now points there). visual-impact.schema.json / visual-surfaces.* = deferred (owner_stage Stage 3; no migrated script reads them; SKILL says to stop rather than guess the schema; edit-issue/review-issue/issue-contract-review SKILL.md links are outside #50 scope). docs/product/requirements.md = obsolete (legacy game product doc; example reference replaced by docs/dev/*.md). scripts/claude-gpt/* = deferred (claude-gpt launcher assets stay out per refinement-migration-manifest.json; text in body-authoring.md marked unmigrated). None is copied merely because it exists. rerun_condition: a dedicated docs/Stage 3 Issue.",
     ".claude/agents/some-agent.md": "example path inside body-authoring.md prose, not a real reference.",
     "stage1b4 'issue-creator' dangling note": "historical; resolved by this Stage (see stage_updates)."
   },
@@ -348,7 +348,7 @@
       "id": "verify-anchors.sh",
       "classification": "obsolete",
       "owner_stage": "n/a",
-      "reason": "replaced by single git grep -nF (existing capability); never called by create_issue_txn.py",
+      "reason": "replaced by single git grep -nF (existing capability); never called by create_issue_txn.py; docs/dev/workflow.md/visual-impact links in issue-refinement-loop, edit-issue, review-issue, issue-contract-review SKILL.md are link-only and outside #50 scope",
       "rerun_condition": "n/a"
     },
     {
