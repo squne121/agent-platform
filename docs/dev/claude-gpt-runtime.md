@@ -171,7 +171,9 @@ CI: 既存 `python-test` job に `uv run --locked pytest -q scripts/claude-gpt/t
 既存 6 ファイルの非依存 assertions をそのまま維持し、repository 全体の物理的不在ではなく、既存の
 canonical executor fixture を再利用する実 subprocess 検証へ置き換えた。launcher がない場合と、呼び出すと
 exit 97 になる fixture launcher が同居する場合の両方で、実 executor → entry → router → capability producer が
-inner-preflight marker まで到達することを検査する。`gh`、inner preflight と local bare origin は fixture であり、
+inner-preflight marker まで到達することを検査する。fixture の `launch.sh` / `preflight.sh` / `lib.sh` /
+`repair_proxy.sh` は呼出時に case 専用の marker を残し、stderr や非 0 exit が握り潰されても呼出を検出する。
+`gh`、inner preflight と local bare origin は fixture であり、
 実 GitHub 認証・外部推論や GPT backend の動作は検証しない。
 
 対象 test ファイルの局所実測は 36 件 PASS。test ID / 収集件数を維持し、manifest・既存 CI lane・production chain

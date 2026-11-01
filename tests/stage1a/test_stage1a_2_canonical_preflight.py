@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shlex
 import shutil
 import subprocess
 import sys
@@ -366,11 +367,17 @@ def test_no_launcher_or_proxy_dependency_in_migrated_chain(tmp_path):
         case.mkdir()
         repo = canonical._make_repo(case)
         launcher_dir = repo / "scripts/claude-gpt"
+        called_marker = case / "launcher-called.marker"
         if state == "poisoned":
             launcher_dir.mkdir(parents=True)
-            for name in ("launch.sh", "preflight.sh", "lib.sh"):
+            for name in ("launch.sh", "preflight.sh", "lib.sh", "repair_proxy.sh"):
                 poison = launcher_dir / name
-                poison.write_text("#!/bin/sh\nprintf 'I57_LAUNCHER_CALLED\\n' >&2\nexit 97\n")
+                # The executor sanitizes env and the producer captures stderr.
+                # An absolute fixture-only marker survives even swallowed errors.
+                poison.write_text(
+                    f"#!/bin/sh\n: > {shlex.quote(str(called_marker))}\n"
+                    "printf 'I57_LAUNCHER_CALLED\\n' >&2\nexit 97\n"
+                )
                 poison.chmod(0o755)
         else:
             assert not launcher_dir.exists()
@@ -397,6 +404,7 @@ def test_no_launcher_or_proxy_dependency_in_migrated_chain(tmp_path):
         assert inner_marker.read_text() == "inner-preflight-ran", state
         assert probe_log.read_text().splitlines()[-1] == "inner-preflight-start", state
         assert "I57_LAUNCHER_CALLED" not in result.stdout + result.stderr, state
+        assert not called_marker.exists(), state
         assert launcher_dir.exists() == (state == "poisoned")
 
 
