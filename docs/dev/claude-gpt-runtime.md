@@ -128,9 +128,18 @@ GPT 経路の login・consent・推論・usage 計測を**一切行っていな�
 
 ## 6. test と CI
 
-`scripts/claude-gpt/tests/` は全て offline。fake loopback proxy(別 process または in-process)と、argv / env / cwd を
-JSON に書き出す fake `claude`、`file://` の fake installer だけを使う。実 proxy・実 Claude・login・推論は使わない。
-HOME / XDG / config / socket は全て `tmp_path` 配下の sentinel であり、実際の credential path を参照しない。
+`scripts/claude-gpt/tests/` は fake loopback proxy、argv / env / cwd を JSON に書き出す fake `claude`、
+`file://` の fake installer を使い、GPT login / 推論 / provider API 呼び出しを試験しない。
+ただし、全 test が完全に親環境から隔離されているわけではない。
+
+- 新規 `test_runtime_migration.py` と `_launcher_harness.py` の HOME / XDG / config は `tmp_path` の
+  sentinel であり、新規 test の `GH_CONFIG_DIR` / `SSH_AUTH_SOCK` も sentinel である。
+- 移管元の repair tests は親環境を継承し、主に `CLAUDE_GPT_HOME` を一時ディレクトリへ向ける。
+  repair helper の `curl` には `-q` がないため、実行環境の `.curlrc` が影響し得る。
+- launcher diagnostics は PATH 上の `claude-code-proxy --version` を実行し得る(上限 2 秒)。
+  実 binary が入った開発機では、この補助診断まで fake とは限らない。proxy 起動や認証・推論ではない。
+- CI / 開発試験では専用の一時 HOME と管理された PATH を使うこと。既存 test の構造を保持した今回の
+  移管だけでは、任意の開発機における完全な hermeticity を保証しない。
 
 `test_runtime_migration.py` が固定する contract:
 
@@ -149,7 +158,18 @@ HOME / XDG / config / socket は全て `tmp_path` 配下の sentinel であり�
 CI: 既存 `python-test` job に `uv run --locked pytest -q scripts/claude-gpt/tests` を 1 行追加しただけである
 (新 job・新 gate・wrapper なし)。
 
-## 7. 未確認(UNVERIFIED)/ 残作業
+## 7. 受入停止と未確認(UNVERIFIED)/ 残作業
+
+**既存 Stage 1a テストとの衝突: FAIL。** 本候補では focused tests 83 件は成功したが、既存 `tests/` 全体は
+1,243 件成功 / 1 件失敗だった。失敗は
+`tests/stage1a/test_stage1a_2_canonical_preflight.py::test_no_launcher_or_proxy_dependency_in_migrated_chain`
+の `scripts/claude-gpt` 自体が存在しないことを要求する末尾 assertion。移管前 base HEAD では同 test は成功する。
+chain の launcher 非依存を検証する preceding assertions は維持・通過している。
+
+本 Issue の現在の変更範囲には上記既存 test は含まれず、既存契約変更も承認されていないため削除・skip・迂回は
+行わない。最小の解消候補は、Stage 1a の「chain は launcher に依存しない」保証を保ちつつ、repository 全体の
+物理的不在という前提を、独立 runtime が併存できる検証へ置き換えること。これは承認後の follow-up とし、
+現候補は **merge-ready ではない**。GitHub CI 成功や canonical loop の terminal approval を主張しない。
 
 - upstream proxy 経路(ChatGPT backend-api)と SIWC の互換性、および auth / billing の扱い。
 - 実 Claude binary + 実 proxy での起動、推論、usage 計測(いずれも未実施)。
