@@ -663,14 +663,11 @@ def test_unapproved_routes_stay_unavailable_and_blocked(monkeypatch, operation, 
         monkeypatch,
         [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": declared}],
     )
-    if operation != "no_such_route":
-        assert operation in wcp._MUTATION_OPERATION_NAMES
-    if operation in wcp._MUTATION_OPERATION_NAMES or declared:
-        assert result["decision"] == wcp.DECISION_BLOCKED
-        assert result["checks"]["github"]["operations"][operation] == {
-            "route": "unavailable",
-            "permission": "unverified",
-        }
+    assert result["decision"] == wcp.DECISION_BLOCKED
+    assert result["checks"]["github"]["operations"][operation] == {
+        "route": "unavailable",
+        "permission": "unverified",
+    }
 
 
 def test_one_unapproved_operation_blocks_a_mixed_declaration(monkeypatch):
@@ -714,7 +711,17 @@ def test_read_only_operation_names_declared_read_only_stay_ready(monkeypatch):
     assert result["decision"] == wcp.DECISION_READY
 
 
-@pytest.mark.parametrize("operation", [" issue_comment", "Issue_Comment", "pr_create "])
+@pytest.mark.parametrize(
+    "operation",
+    [
+        " issue_comment",
+        "Issue_Comment",
+        "pr_create ",
+        "issue-edit",
+        "\u200bissue_comment",
+        "\u0456ssue_comment",
+    ],
+)
 def test_planned_operations_file_rejects_non_canonical_operation_names(tmp_path, operation):
     path = tmp_path / "ops.json"
     path.write_text(json.dumps([{"operation": operation, "requires_mutation": False}]))

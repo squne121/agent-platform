@@ -41,6 +41,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -154,13 +155,11 @@ _READ_ONLY_OPERATION_NAMES = frozenset({"issue_read", "read_issue"})
 
 
 def _is_mutation_operation_name(operation: str) -> bool:
-    """Fail closed on the name alone: registered mutation names, and any other `pr_*` /
-    `issue_*` name that is not an explicit read-only name, are mutating whatever the caller
-    declared for `requires_mutation` (so an unknown `pr_merge` declared read-only still blocks)."""
-    operation = operation.strip().casefold()
-    if operation in _MUTATION_OPERATION_NAMES:
-        return True
-    return operation.startswith(("pr_", "issue_")) and operation not in _READ_ONLY_OPERATION_NAMES
+    """Allowlist, fail closed: only the exact read-only names may be treated as non-mutating.
+    Every other name -- registered mutation names, unregistered names, padded / re-cased /
+    separator-variant / non-ASCII spellings -- is mutating whatever the caller declared for
+    `requires_mutation`, and (having no route) therefore blocks."""
+    return operation not in _READ_ONLY_OPERATION_NAMES
 
 
 # Operations with an implemented route in this repository (Issue #37, Stage 2-7).
@@ -438,11 +437,12 @@ def _load_planned_operations(path: str | None) -> list[dict]:
             raise ValueError(
                 f"planned-operations-json entry missing non-empty 'operation': {entry!r}"
             )
-        if operation != operation.strip() or operation != operation.casefold():
-            # a padded / differently-cased spelling must never be looked up leniently
+        if not re.fullmatch(r"[a-z0-9_]+", operation):
+            # padded / re-cased / separator-variant / non-ASCII spellings are rejected, never
+            # looked up leniently
             raise ValueError(
                 f"planned-operations-json entry 'operation' must be canonical "
-                f"(no surrounding whitespace, lowercase): {operation!r}"
+                f"([a-z0-9_]+): {operation!r}"
             )
         if "requires_mutation" in entry and not isinstance(entry["requires_mutation"], bool):
             raise ValueError(
