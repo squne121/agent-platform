@@ -33,7 +33,7 @@ _EXT = r"(?:py|md|json|sh|yaml|yml)"
 def skill_references() -> set[str]:
     text = (SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
     refs = set(re.findall(rf"`([^`\s]+\.{_EXT})(?:#[^`]*)?`", text))
-    refs |= set(re.findall(rf"\]\(([^)\s#]+\.(?:py|md|json))", text))
+    refs |= set(re.findall(r"\]\(([^)\s#]+\.(?:py|md|json))", text))
     refs |= set(
         re.findall(
             rf"(?<![\w/.\-])((?:references|scripts|schemas|\.claude|docs)/[\w./\-]+\.{_EXT})", text

@@ -158,9 +158,7 @@ _MUTATION_OPERATION_NAMES = frozenset(
 # "available" is a route-existence statement only; it is NOT proof of GitHub write
 # permission (`permission` stays "unverified"). label / state / native parent /
 # dependency / relationship and every `pr_*` operation have no entry here.
-_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset(
-    {"issue_comment", "issue_edit", "issue_create"}
-)
+_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset({"issue_comment", "issue_edit", "issue_create"})
 
 DEFAULT_BUDGET_SECONDS = 30.0
 _GITHUB_AUTH_PROBE_CAP_SECONDS = 30.0
