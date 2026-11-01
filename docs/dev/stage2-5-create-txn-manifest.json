@@ -37,7 +37,9 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py",
     "tests/create-issue/test_create_issue_txn_validator_parity.py",
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py",
-    "tests/stage2/test_stage2_5_create_txn.py"
+    "tests/stage2/test_stage2_5_create_txn.py",
+    ".claude/skills/create-issue/tests/test_body_authoring_actual_vs_fixture_runtime_ac_separation.py",
+    ".claude/skills/create-issue/tests/test_deletion_vc_guidance_exit_semantics.py"
   ],
   "expected_collect": {
     ".claude/skills/create-issue/tests/test_create_issue_txn.py": 138,
@@ -45,7 +47,9 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
     "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 135
+    "tests/stage2/test_stage2_5_create_txn.py": 135,
+    ".claude/skills/create-issue/tests/test_body_authoring_actual_vs_fixture_runtime_ac_separation.py": 1,
+    ".claude/skills/create-issue/tests/test_deletion_vc_guidance_exit_semantics.py": 2
   },
   "expected_ran": {
     ".claude/skills/create-issue/tests/test_create_issue_txn.py": 138,
@@ -53,7 +57,9 @@
     ".claude/skills/create-issue/scripts/tests/test_create_issue_txn_validation_hook.py": 5,
     "tests/create-issue/test_create_issue_txn_validator_parity.py": 5,
     ".claude/agents/tests/test_issue_creator_issue_editor_split.py": 7,
-    "tests/stage2/test_stage2_5_create_txn.py": 135
+    "tests/stage2/test_stage2_5_create_txn.py": 135,
+    ".claude/skills/create-issue/tests/test_body_authoring_actual_vs_fixture_runtime_ac_separation.py": 1,
+    ".claude/skills/create-issue/tests/test_deletion_vc_guidance_exit_semantics.py": 2
   },
   "deferred_tests": [
     {
@@ -85,11 +91,11 @@
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
-      "moved_sha256": "91cf4128e9ee35815d1a68d4d334e16afc9f3278be0d035c0a185a5aa6156c32",
+      "moved_sha256": "c088b73f5b2985c626d114dfd820d88fb7e38422d8229d0033f3fb96c8a18e4b",
       "verbatim": false,
       "source_lines": 574,
-      "moved_lines": 591,
-      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it. Stage 2-6a (#36) then replaced the one-line \"unmigrated\" note (step 3.6/4a/4b availability) with the 2-6a status; moved_sha256/moved_lines updated accordingly."
+      "moved_lines": 587,
+      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it. Stage 2-6a (#36) then replaced the one-line \"unmigrated\" note (step 3.6/4a/4b availability) with the 2-6a status; moved_sha256/moved_lines updated accordingly. | #50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs)"
     },
     ".claude/agents/issue-creator.md": {
       "source_sha256": "e348e9918dab4f397df093fb65c4175d90381ddd5ffa883d453e52e354c69af2",
@@ -121,10 +127,11 @@
     },
     ".claude/skills/create-issue/references/body-authoring.md": {
       "source_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
-      "moved_sha256": "98a6dc024d8aa5be4cdea6f599267a6eb168fdfd6b082dacb9e451bc185f56df",
-      "verbatim": true,
+      "moved_sha256": "76d36aea3a628cec7e6e15e518781543acab426847e082a1586adb40704213f0",
+      "verbatim": false,
       "source_lines": 799,
-      "moved_lines": 799
+      "moved_lines": 794,
+      "intentional_diff": "#50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs); otherwise verbatim"
     },
     ".claude/skills/create-issue/references/implementation-label-autoassign.md": {
       "source_sha256": "22e1290cf572e7cd957938295a1f9cb8564a42145239bd053e453965153e9d0d",
@@ -164,6 +171,22 @@
       "source_lines": 87,
       "moved_lines": 96,
       "intentional_diff": "Stage 2-6a (#36) replaced the Stage 2-5 import shim with the SOURCE conftest (child-plan fixtures restored, TRUSTED_REPO from repo_identity); moved_sha256/moved_lines updated accordingly."
+    },
+    ".claude/skills/create-issue/tests/test_body_authoring_actual_vs_fixture_runtime_ac_separation.py": {
+      "source_sha256": "7c42216225ba49d5bfb12c6b4b2fcd73513de0363d00d7aded01077e633dc691",
+      "moved_sha256": "7c42216225ba49d5bfb12c6b4b2fcd73513de0363d00d7aded01077e633dc691",
+      "verbatim": true,
+      "source_lines": 83,
+      "moved_lines": 83,
+      "intentional_diff": "none (verbatim copy; migrated by #50)"
+    },
+    ".claude/skills/create-issue/tests/test_deletion_vc_guidance_exit_semantics.py": {
+      "source_sha256": "291966fa5012c2b04a45a489363f1ed5192a88f505485884d15f5228bdbf408d",
+      "moved_sha256": "291966fa5012c2b04a45a489363f1ed5192a88f505485884d15f5228bdbf408d",
+      "verbatim": true,
+      "source_lines": 381,
+      "moved_lines": 381,
+      "intentional_diff": "none (verbatim copy; migrated by #50)"
     }
   },
   "source_inventory": {
@@ -179,8 +202,8 @@
     "new_tests": {
       "tests/stage2/test_stage2_5_create_txn.py": 135
     },
-    "collected_total": 306,
-    "ran_total": 305,
+    "collected_total": 309,
+    "ran_total": 308,
     "deferred_total": 1,
     "skipped": 0,
     "not_migrated_source_tests": {
@@ -192,13 +215,12 @@
         ".claude/skills/create-issue/tests/test_plan_child_materialization.py"
       ],
       "owner unassigned (not in Issue #35 In Scope; no script they cover is migrated)": [
-        ".claude/skills/create-issue/tests/test_body_authoring_actual_vs_fixture_runtime_ac_separation.py",
-        ".claude/skills/create-issue/tests/test_deletion_vc_guidance_exit_semantics.py",
-        ".claude/skills/create-issue/tests/test_verify_vc_single_command_guardrail_docs.py",
+        ".claude/skills/create-issue/tests/test_verify_vc_single_command_guardrail_docs.py (deferred by #50, see dangling_references)",
         ".claude/skills/create-issue/scripts/tests/test_{gfm_table_detection,heading_policy,lp010_ac_extraction_regression,mrc_contract_parser,prose_boundary_policy*,validate_api_*,validate_japanese_content}.py"
       ]
     },
-    "fixtures_not_migrated": ".claude/skills/create-issue/tests/fixtures/implementation_issue_*.md (5 files) and tests/fixtures/create-issue/* are referenced by no in-scope test; the second set is #36 child-materialization data."
+    "fixtures_not_migrated": ".claude/skills/create-issue/tests/fixtures/implementation_issue_*.md (5 files) and tests/fixtures/create-issue/* are referenced by no in-scope test; the second set is #36 child-materialization data.",
+    "released_by_50": "test_body_authoring_actual_vs_fixture_runtime_ac_separation.py (1) and test_deletion_vc_guidance_exit_semantics.py (2) are migrated verbatim: they only read the migrated body-authoring.md / SKILL.md and the migrated baseline_vc_preflight.py (real subprocess, rg/git required, no skip)."
   },
   "intentional_diffs": [
     "1. repo identity: `_require_trusted_repo` (exact match against repo_identity via the fixed on-disk path) runs in the public `run_transaction` / `reconcile_transaction` (and therefore `main`, and `run_transaction_with_authoritative_readback`) BEFORE any `gh` call. Source only checked that --repo was `<owner>/<name>`. A wrong, legacy, malformed or missing repo and an unusable identity config/module are `repo-identity` failures with zero gh calls.",
@@ -257,7 +279,8 @@
   "stage_updates": {
     "docs/dev/stage2-4-edit-txn-manifest.json": "released the 4 test_issue_creator_issue_editor_split deferrals (they read issue-creator.md): expected_ran 3 -> 7, ran_total 340 -> 344, deferred_total 43 -> 39. The remaining 39 deferrals (native relationships #46, hygiene C9 #44, runtime smoke) are untouched. This is the 'parent manifest' of the #35 Allowed Paths; no other Stage 2-4 file or limit was widened.",
     "docs/dev/stage1b4-semantic-review-manifest.json": "NOT edited (outside the #35 Allowed Paths): its dangling_refs note 'issue-creator: Not migrated yet' is now historical; the drift is disclosed here and in the PR.",
-    ".github/workflows/ci.yml": "added the stage2-5-create-txn lane"
+    ".github/workflows/ci.yml": "added the stage2-5-create-txn lane",
+    "#50": "stage2-5 lane: +2 test files (3 tests): collect 306->309, ran 305->308; stage2-7 lane_totals and the ci.yml pin updated accordingly. SKILL.md / body-authoring.md: dangling references corrected (see dependency_decisions_50)."
   },
   "import_subprocess_closure": {
     "create_issue_txn.py imports": "stdlib only (argparse, hashlib, importlib.util, json, re, subprocess, sys, time, dataclasses, pathlib, typing)",
@@ -308,10 +331,10 @@
     ".claude/skills/create-issue/scripts/check_issue_overlap.py": "owner_stage Stage 2-6 / #36; rerun_condition: #36 migrates it. SKILL step 3.6 is not runnable until then.",
     ".claude/skills/create-issue/scripts/plan_child_materialization.py": "owner_stage Stage 2-6 / #36; SKILL step 4a not runnable until then.",
     ".claude/skills/create-issue/scripts/materialize_child_issues.py": "owner_stage Stage 2-6 / #36; SKILL step 4b not runnable until then.",
-    ".claude/skills/create-issue/scripts/verify-anchors.sh": "owner_stage unassigned (SKILL step 1 anchor preflight; not in #35 scope). Not runnable; the step is a documentation-level preflight and create_issue_txn.py does not call it.",
-    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "owner_stage unassigned (docs guardrail check + its 16 tests; not in #35 scope).",
-    ".claude/skills/ssot-discovery/SKILL.md": "owner_stage unassigned (separate Skill).",
-    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "owner_stage unassigned (referenced as reading material by SKILL/body-authoring; no migrated script reads them).",
+    ".claude/skills/create-issue/scripts/verify-anchors.sh": "#50 decision: obsolete. SKILL step 1 now runs a single `git grep -nF -- <anchor> <path>` (the Anchor Verification Preflight in body-authoring.md); the 60-line wrapper adds nothing a standard git grep lacks and create_issue_txn.py never called it. Not migrated; no new wrapper or gate. rerun_condition: n/a.",
+    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "#50 decision: deferred (optional docs lint). Issue-body VC compound-shell checking is already enforced by validate_issue_body.py (compound_shell=error) and issue-contract-review/vc_contract_syntax.py. The lint only scans create-issue's own docs and is a permanent gate candidate; body-authoring.md no longer points to it. owner_stage: Stage 3 docs lint (needs a dedicated Issue + human approval). rerun_condition: such an Issue migrates it with test_verify_vc_single_command_guardrail_docs.py (16 tests) unchanged.",
+    ".claude/skills/ssot-discovery/SKILL.md": "#50 decision: deferred (separate Skill; owner_stage Stage 3 skills). create-issue only named it in a Related link (removed) and in the name-based implicit-workflow-skill guard, which does not need the Skill to exist. rerun_condition: Stage 3 migrates ssot-discovery (then the Related link may be restored).",
+    "docs/dev/{workflow.md,visual-impact.schema.json,visual-surfaces.*,runtime-verification-policy.md}, docs/product/requirements.md, scripts/claude-gpt/*": "#50 decision per item: docs/dev/workflow.md = deferred (owner_stage docs Issue; SKILL step 1 now cites .github/ISSUE_TEMPLATE/implementation.yml). runtime-verification-policy.md = deferred (docs Issue; mechanical rules live in extension-surface-runtime-policy.yaml + review-issue C10, body-authoring.md now points there). visual-impact.schema.json / visual-surfaces.* = deferred (owner_stage Stage 3; no migrated script reads them; SKILL says to stop rather than guess the schema; edit-issue/review-issue/issue-contract-review SKILL.md links are outside #50 scope). docs/product/requirements.md = obsolete (legacy game product doc; example reference replaced by docs/dev/*.md). scripts/claude-gpt/* = deferred (claude-gpt launcher assets stay out per refinement-migration-manifest.json; text in body-authoring.md marked unmigrated). None is copied merely because it exists. rerun_condition: a dedicated docs/Stage 3 Issue.",
     ".claude/agents/some-agent.md": "example path inside body-authoring.md prose, not a real reference.",
     "stage1b4 'issue-creator' dangling note": "historical; resolved by this Stage (see stage_updates)."
   },
@@ -319,5 +342,70 @@
     "Label approval: implementation Issues created WITHOUT an explicit `--issue-kind implementation` flag are label-free (kind comes from the body MRC). Creating them WITH the standard labels (phase/implementation, agent/implementer, enhancement) or any triage_only/triage-required flow needs a human-approved label mutation and a dedicated Issue; until then those inputs are rejected before any gh call.",
     "native parent / blocked-by / blocking mutation approval (existing follow-up squne121/agent-platform#46)."
   ],
-  "rollback": "Revert the PR. It is additive (new files under create-issue/, issue-creator.md, tests/stage2 fixtures + test, this manifest, one CI lane) plus edits to docs/dev/stage2-4-edit-txn-manifest.json (restoring the 4 deferrals and expected_ran 3). The legacy repo is untouched."
+  "rollback": "Revert the PR. It is additive (new files under create-issue/, issue-creator.md, tests/stage2 fixtures + test, this manifest, one CI lane) plus edits to docs/dev/stage2-4-edit-txn-manifest.json (restoring the 4 deferrals and expected_ran 3). The legacy repo is untouched.",
+  "dependency_decisions_50": [
+    {
+      "id": "verify-anchors.sh",
+      "classification": "obsolete",
+      "owner_stage": "n/a",
+      "reason": "replaced by single git grep -nF (existing capability); never called by create_issue_txn.py",
+      "rerun_condition": "n/a"
+    },
+    {
+      "id": "verify_vc_single_command_guardrail_docs.py + 16 tests",
+      "classification": "deferred",
+      "owner_stage": "Stage 3 docs lint (Issue to be filed with human approval)",
+      "reason": "docs-only lint; Issue-body enforcement already migrated",
+      "rerun_condition": "dedicated Issue migrates script + tests unchanged"
+    },
+    {
+      "id": "ssot-discovery",
+      "classification": "deferred",
+      "owner_stage": "Stage 3",
+      "reason": "separate Skill; reference removed",
+      "rerun_condition": "Stage 3 migrates the Skill"
+    },
+    {
+      "id": "docs/dev/workflow.md",
+      "classification": "deferred",
+      "owner_stage": "docs Issue (unassigned)",
+      "reason": "reading material only; replaced by implementation.yml link",
+      "rerun_condition": "docs Issue"
+    },
+    {
+      "id": "docs/dev/runtime-verification-policy.md",
+      "classification": "deferred",
+      "owner_stage": "docs Issue (unassigned)",
+      "reason": "no migrated script reads it; policy yaml + C10 are the machine SSOT",
+      "rerun_condition": "docs Issue"
+    },
+    {
+      "id": "docs/dev/visual-impact.schema.json, visual-surfaces.*",
+      "classification": "deferred",
+      "owner_stage": "Stage 3",
+      "reason": "no consumer in migrated tree",
+      "rerun_condition": "Stage 3 migrates visual-impact owner skills"
+    },
+    {
+      "id": "docs/product/requirements.md",
+      "classification": "obsolete",
+      "owner_stage": "n/a",
+      "reason": "legacy game product doc",
+      "rerun_condition": "n/a"
+    },
+    {
+      "id": "scripts/claude-gpt/*",
+      "classification": "deferred",
+      "owner_stage": "unassigned (out of agent-platform per refinement-migration-manifest)",
+      "reason": "launcher assets; doc mention only",
+      "rerun_condition": "explicit human decision"
+    },
+    {
+      "id": "test_body_authoring_actual_vs_fixture_runtime_ac_separation / test_deletion_vc_guidance_exit_semantics",
+      "classification": "required_now",
+      "owner_stage": "#50 (this change)",
+      "reason": "pin the migrated body-authoring.md/SKILL.md guidance; run unchanged",
+      "rerun_condition": "n/a (3 tests in this lane: 1 + 2)"
+    }
+  ]
 }

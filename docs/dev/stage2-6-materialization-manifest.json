@@ -159,7 +159,7 @@
   },
   "dangling_references": {
     ".claude/skills/create-issue/scripts/validate_japanese_content.py": "owner_stage unassigned (see deferred_files)",
-    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "owner_stage unassigned (unchanged from Stage 2-5)",
+    ".claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py": "deferred by #50 (see stage2-5 manifest dependency_decisions_50)",
     ".claude/skills/issue-refinement-loop/SKILL.md and references/termination-policy.md": "owner_stage Stage 2-7 / #37 (terminal-path wiring); the migrated references describe a Step 5 gate whose caller is not wired yet. issue-refinement-loop as a whole is NOT claimed terminal-ready."
   },
   "human_judgment_required": [
@@ -566,11 +566,12 @@
       "ast_identical": false
     },
     ".claude/skills/create-issue/SKILL.md": {
-      "moved_sha256": "91cf4128e9ee35815d1a68d4d334e16afc9f3278be0d035c0a185a5aa6156c32",
-      "moved_lines": 591,
+      "moved_sha256": "c088b73f5b2985c626d114dfd820d88fb7e38422d8229d0033f3fb96c8a18e4b",
+      "moved_lines": 587,
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
       "source_lines": 574,
-      "verbatim": false
+      "verbatim": false,
+      "intentional_diff": " | #50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs)"
     }
   },
   "source_inventory": {

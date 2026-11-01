@@ -34,7 +34,7 @@ Issue 本文の `## Required Skills` は **ドメイン知識スキル** のみ�
 
 - ワークフロー skill（`issue-contract-review` / `implement-issue` / `pr-review-judge` / `ssot-discovery` 等）はここに書かない。skill 間で関係性が定義されているため
 - rule 参照は per-directory `CLAUDE.md`（Claude Code 自動ロード）と `ssot-discovery` skill で行うため、`## Rules` への列挙は最小限に
-- spec / doc / path reference（`docs/adr/...`, `docs/product/requirements.md` 等）は skill ではない。`## Background` / `## In Scope` の適切な section に書く
+- spec / doc / path reference（`docs/adr/...`, `docs/dev/*.md` 等）は skill ではない。`## Background` / `## In Scope` の適切な section に書く
 - runtime dependency がない場合は `- なし` と明記するか、section 全体を省略する
 
 ## ワークフロー不具合検出時の修正方針起案ガイダンス（決定論的修正優先）
@@ -108,7 +108,7 @@ $ pnpm build
 
 **修復方針**:
 - `fix_hint` に示された不足フィールドを補完する
-- 各フィールドの詳細要件は `docs/dev/runtime-verification-policy.md` を参照する
+- 各フィールドの詳細要件は `review-issue` C10 の `fix_hint` と `docs/dev/extension-surface-runtime-policy.yaml` を参照する（`docs/dev/runtime-verification-policy.md` は未移管。#50 で deferred）
 
 ## Runtime Verification Applicability
 
@@ -135,7 +135,7 @@ Issue 起票時に動作検証の適用判定セクションを記載する。`r
 
 - `deferred` の場合は `deferred_destination`（destination_type + destination_ref）と `deferred_verification_condition` の **両方を必ず記載する**（`review-issue` C10 blocker）。
 - 自由記述の「後続 Issue で検証する」だけでは不完全。機械的に検出できる半構造化フォーマットで記述すること。
-- 適用判定の詳細基準は `docs/dev/runtime-verification-policy.md` の「Runtime Verification Applicability」を参照する。
+- 適用判定の機械的な基準は `docs/dev/extension-surface-runtime-policy.yaml` と `review-issue` C10 が正本（`docs/dev/runtime-verification-policy.md` は未移管。#50 で deferred）。
 
 ### `actual`/`canonical` ランタイム受け入れと `fixture` 意味論との AC 分離規則（Issue #2807）
 
@@ -156,7 +156,7 @@ fixture semantics AC の PASS は canonical runtime acceptance AC の代替に�
 - launcher hash
 - actual connected server の diagnosis（`connected_server` の `base_url` / `reachable` / `model_catalog_ok` / `classification`）
 
-上記の必須フィールドと既存 producer `CLAUDE_GPT_SMOKE_RESULT_V1`（`scripts/claude-gpt/runtime_smoke_test.sh`）の実 schema との対応（新しい schema field は追加しない）:
+上記の必須フィールドと既存 producer `CLAUDE_GPT_SMOKE_RESULT_V1`（`scripts/claude-gpt/runtime_smoke_test.sh`。この repo には未移管で、claude-gpt 資産は #50 で deferred）の実 schema との対応（新しい schema field は追加しない）:
 
 - `run_head_sha` := `CLAUDE_GPT_SMOKE_RESULT_V1.sut.git_head`
 - `git_dirty` := `CLAUDE_GPT_SMOKE_RESULT_V1.sut.git_dirty`
@@ -226,7 +226,7 @@ runtime_assertion_bindings:
 
 ## VC 作成ガイダンス
 
-> 動作検証 AC（`runtime-verification: true`）を含む VC の設計は `docs/dev/runtime-verification-policy.md` を参照すること。
+> 動作検証 AC（`runtime-verification: true`）を含む VC の設計は `docs/dev/extension-surface-runtime-policy.yaml` と `review-issue` C10 を参照すること（`docs/dev/runtime-verification-policy.md` は未移管。#50 で deferred）。
 > SKIP 規約（exit 77）・証跡保存フォーマット・テストシナリオ最小セット・Stop Condition 連動が定義されている。
 
 ### pytest baseline-fail VC の正規形（canonical form, marker: pytest_baseline_fail_canonical_rules）
@@ -337,7 +337,7 @@ Issue body の VC（Verification Commands）は **shell control operator に依�
 | `;` | 逐次実行。前段の失敗を無視する |
 | `&` | バックグラウンド実行。exit code が非同期になる |
 
-> **リダイレクト演算子（`<<`, `<`, `>`, `>>`, `<<<`）について**: VC 例示での使用は避けることを推奨するが、`<file>` や `<pattern>` 等の placeholder との誤判定リスクがあるため、`verify_vc_single_command_guardrail_docs.py` は機械的な enforce を行わない。
+> **リダイレクト演算子（`<<`, `<`, `>`, `>>`, `<<<`）について**: VC 例示での使用は避けることを推奨するが、`<file>` や `<pattern>` 等の placeholder との誤判定リスクがあるため、機械的な enforce は行わない。
 
 ### SC2015 問題（A && B || C パターン）
 
@@ -353,13 +353,8 @@ Issue body の VC（Verification Commands）は **shell control operator に依�
 
 ### checker script entrypoint（チェッカースクリプトの入口）
 
-compound shell 違反の自動検出は以下のスクリプトで行う:
-
-```bash
-uv run python3 .claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py --strict
-```
-
-違反があれば file:line で報告して exit 1。成功時は exit 0。
+Issue 本文の VC に対する compound shell 違反は、起票時の `validate_issue_body.py`（`compound_shell` = error）と着手前の `issue-contract-review/scripts/vc_contract_syntax.py` が検出する。
+本ドキュメント自体の fenced block を lint する旧 `verify_vc_single_command_guardrail_docs.py` は未移管（#50 で deferred）。
 
 ### 決定論的 VC と意味的評価 AC の分離
 
@@ -775,7 +770,7 @@ gh issue list --search "<関連語>" --state open --json number,title,url
 
 `create-issue` / `edit-issue` / `issue-contract-review` / `review-issue` の4スキルが Issue 本文で扱いうる
 `visual_impact` 関連フィールド（`VISUAL_IMPACT_DECLARATION_V1` 等）は、単一の canonical schema ファイル
-[`docs/dev/visual-impact.schema.json`](../../../../docs/dev/visual-impact.schema.json) への参照として共有する。
+`docs/dev/visual-impact.schema.json`（この repo には未移管。#50 で deferred）への参照として共有する。
 4 スキルのいずれも、このフィールドのキー集合・enum を独自に再定義しない（重複定義禁止）。
 
 - `docs/dev/visual-impact.schema.json` の `$defs.VISUAL_IMPACT_DECLARATION_V1` が Issue/PR body 上で人間または
