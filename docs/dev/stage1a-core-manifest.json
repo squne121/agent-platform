@@ -222,7 +222,7 @@
     "tests/test_run_refinement_preflight_credentialless_transport.py:1279: synthetic home path literal split (same value at runtime)"
   ],
   "not_migrated_source_tests": {
-    "count": 96,
+    "count": 95,
     "owner_stage": "follows the stage that migrates the implementation each file covers; per-file triage happens at that stage's closure (not assigned individually here)",
     "source": "pre-split-agent-platform-20261020 issue-refinement-loop/tests and scripts/tests",
     "files": [
@@ -247,7 +247,6 @@
       "test_contract_update_lane_reason_code.py",
       "test_critical_external_claims_producer_contract.py",
       "test_decide_rewrite_route_human_review_directive.py",
-      "test_dependency_materialization.py",
       "test_design_note_contract.py",
       "test_evidence_span_source.py",
       "test_fail_closed_override_rewrite.py",
@@ -402,7 +401,8 @@
     "docs/dev/stage2-1b-exec-manifest.json",
     "docs/dev/stage2-1c-exec-tests-manifest.json",
     "docs/dev/stage2-2-comment-lane-manifest.json",
-    "docs/dev/stage2-3-edit-guards-manifest.json"
+    "docs/dev/stage2-3-edit-guards-manifest.json",
+    "docs/dev/stage2-6-materialization-manifest.json"
   ],
   "stage_1b_3": {
     "issue": "squne121/agent-platform#14",
@@ -410,6 +410,6 @@
   },
   "stage_2_3": {
     "issue": "squne121/agent-platform#33",
-    "note": "Stage 2-3: test_guard_issue_body / test_guard_ac_vc_alignment / test_issue_contract_hygiene_autofix (edit-issue/tests) and test_pytest_vc_baseline_shape_compiler (issue-contract-review/tests) live outside the 1a test_dirs, so no name left not_migrated_source_tests (count stays 96); docs/dev/stage2-3-edit-guards-manifest.json pins them and edit-issue/scripts joined the import-closure scan."
+    "note": "Stage 2-3: test_guard_issue_body / test_guard_ac_vc_alignment / test_issue_contract_hygiene_autofix (edit-issue/tests) and test_pytest_vc_baseline_shape_compiler (issue-contract-review/tests) live outside the 1a test_dirs, so no name left not_migrated_source_tests (count stays 96); docs/dev/stage2-3-edit-guards-manifest.json pins them and edit-issue/scripts joined the import-closure scan. Stage 2-6b (#36): test_dependency_materialization moved out of not_migrated_source_tests (count 96 -> 95) and docs/dev/stage2-6-materialization-manifest.json joined later_stage_test_manifests."
   }
 }
