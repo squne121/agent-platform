@@ -158,18 +158,27 @@ GPT 経路の login・consent・推論・usage 計測を**一切行っていな�
 CI: 既存 `python-test` job に `uv run --locked pytest -q scripts/claude-gpt/tests` を 1 行追加しただけである
 (新 job・新 gate・wrapper なし)。
 
-## 7. 受入停止と未確認(UNVERIFIED)/ 残作業
+## 7. Stage 1a 整合と未確認(UNVERIFIED)/ 残作業
 
-**既存 Stage 1a テストとの衝突: FAIL。** 本候補では focused tests 83 件は成功したが、既存 `tests/` 全体は
+**履歴: 移管当初の Stage 1a 回帰は FAIL。** focused tests 83 件は成功したが、既存 `tests/` 全体は
 1,243 件成功 / 1 件失敗だった。失敗は
 `tests/stage1a/test_stage1a_2_canonical_preflight.py::test_no_launcher_or_proxy_dependency_in_migrated_chain`
-の `scripts/claude-gpt` 自体が存在しないことを要求する末尾 assertion。移管前 base HEAD では同 test は成功する。
-chain の launcher 非依存を検証する preceding assertions は維持・通過している。
+の `scripts/claude-gpt` 自体が存在しないことを要求する末尾 assertion。移管前 base HEAD では同 test は成功した。
+この FAIL と当時の独立レビュー `REQUEST_CHANGES` は過去の証跡として保持する。
 
-本 Issue の現在の変更範囲には上記既存 test は含まれず、既存契約変更も承認されていないため削除・skip・迂回は
-行わない。最小の解消候補は、Stage 1a の「chain は launcher に依存しない」保証を保ちつつ、repository 全体の
-物理的不在という前提を、独立 runtime が併存できる検証へ置き換えること。これは承認後の follow-up とし、
-現候補は **merge-ready ではない**。GitHub CI 成功や canonical loop の terminal approval を主張しない。
+2026-11-02 JST、Issue #57 限りで上記 test 1 ファイルの変更をユーザーが承認した
+([承認記録](https://github.com/squne121/agent-platform/issues/57#issuecomment-6564883786))。
+既存 6 ファイルの非依存 assertions をそのまま維持し、repository 全体の物理的不在ではなく、既存の
+canonical executor fixture を再利用する実 subprocess 検証へ置き換えた。launcher がない場合と、呼び出すと
+exit 97 になる fixture launcher が同居する場合の両方で、実 executor → entry → router → capability producer が
+inner-preflight marker まで到達することを検査する。`gh`、inner preflight と local bare origin は fixture であり、
+実 GitHub 認証・外部推論や GPT backend の動作は検証しない。
+
+対象 test ファイルの局所実測は 36 件 PASS。test ID / 収集件数を維持し、manifest・既存 CI lane・production chain
+のコードを変更せず、skip / xfail / deselect を追加していない。全回帰は既存 `stage1a-core` runner、
+`stage1a-2-canonical-preflight` の実コマンド、`pytest -q tests` と focused tests で確認する。
+HEAD に束縛した最終試験と独立レビューの結果は Issue #57 の最新証跡を参照する。
+ローカル試験の成功は GitHub CI 成功・canonical loop の terminal approval・本番切替承認ではない。
 
 - upstream proxy 経路(ChatGPT backend-api)と SIWC の互換性、および auth / billing の扱い。
 - 実 Claude binary + 実 proxy での起動、推論、usage 計測(いずれも未実施)。

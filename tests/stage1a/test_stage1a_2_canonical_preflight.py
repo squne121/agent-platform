@@ -339,7 +339,7 @@ def test_preflight_run_registry_target_exists_and_policy_agrees():
     assert (ROOT / policy.SKILL_RUNTIME_EXEC_REL).is_file()
 
 
-def test_no_launcher_or_proxy_dependency_in_migrated_chain():
+def test_no_launcher_or_proxy_dependency_in_migrated_chain(tmp_path):
     chain = [
         GUARDS / "skill_runtime_exec.py",
         GUARDS / "skill_runtime_command_policy.py",
@@ -352,7 +352,52 @@ def test_no_launcher_or_proxy_dependency_in_migrated_chain():
         text = path.read_text(encoding="utf-8")
         assert "preflight.sh" not in text.replace("`preflight.sh`", ""), path.name
         assert "scripts/claude-gpt" not in text.replace("scripts/claude-gpt/tests", ""), path.name
-    assert not (ROOT / "scripts" / "claude-gpt").exists()
+
+    # Issue #57: an independently owned runtime may coexist in the repository.
+    # Reuse the existing real executor -> entry -> router -> producer fixture;
+    # only gh, the inner-preflight marker and the local bare origin are fakes.
+    # Keep one collected test so the existing Stage 1a manifest remains exact.
+    canonical = _load(
+        "_canonical_executor_for_launcher_independence",
+        SKILL_SCRIPTS / "tests/test_workflow_start_entry_canonical_executor.py",
+    )
+    for state in ("absent", "poisoned"):
+        case = tmp_path / state
+        case.mkdir()
+        repo = canonical._make_repo(case)
+        launcher_dir = repo / "scripts/claude-gpt"
+        if state == "poisoned":
+            launcher_dir.mkdir(parents=True)
+            for name in ("launch.sh", "preflight.sh", "lib.sh"):
+                poison = launcher_dir / name
+                poison.write_text("#!/bin/sh\nprintf 'I57_LAUNCHER_CALLED\\n' >&2\nexit 97\n")
+                poison.chmod(0o755)
+        else:
+            assert not launcher_dir.exists()
+
+        trusted_gh_bin = case / "trusted-gh-bin"
+        canonical._write_controlled_gh(trusted_gh_bin)
+        canonical._install_real_capability_preflight_fixture(repo, trusted_gh_bin=trusted_gh_bin)
+        gh_config_dir = case / "fixture-gh-config"
+        gh_config_dir.mkdir()
+        inner_marker = case / "inner-ran.marker"
+        probe_log = case / "probe-order.log"
+        result = canonical._run_executor(
+            repo,
+            inner_marker,
+            extra_env=canonical._clean_gh_env(
+                case,
+                GH_CONFIG_DIR=str(gh_config_dir),
+                SKILL_RUNTIME_TEST_EXPECTED_GH_CONFIG_DIR=str(gh_config_dir),
+                SKILL_RUNTIME_TEST_GH_PROBE_LOG=str(probe_log),
+                LOOP_PLANNED_OPERATIONS_JSON=json.dumps(canonical._READ_ONLY_OPERATIONS),
+            ),
+        )
+        assert result.returncode == 0, (state, result.stdout, result.stderr)
+        assert inner_marker.read_text() == "inner-preflight-ran", state
+        assert probe_log.read_text().splitlines()[-1] == "inner-preflight-start", state
+        assert "I57_LAUNCHER_CALLED" not in result.stdout + result.stderr, state
+        assert launcher_dir.exists() == (state == "poisoned")
 
 
 # --- isolated-mode import / layout closure ---------------------------------------------------
