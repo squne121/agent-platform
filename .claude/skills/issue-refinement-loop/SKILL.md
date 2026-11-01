@@ -16,7 +16,7 @@ subagent_contract_mode: link_only
 note_ja: 本ファイルは thin entrypoint 契約のメタデータであり、判定ロジックの再実装は行わない
 -->
 
-> **移管状況 (Stage 1a-2)**: 検証済みなのは canonical `preflight.run`（read-only の capability preflight と inner preflight 起動）まで。Stage 1b / Stage 2（GitHub mutation: Issue/PR の comment・edit・create 等）/ I-4 は未移管で、mutation route は常に `unavailable`（capability は `blocked`）となる。後続手順のうち未移管の部分が成功したと扱わず、blocked / 未実装として報告すること。
+> **移管状況 (Stage 2-7)**: canonical terminal 経路 Step 4（`edit-issue` の `edit_issue_txn.py` 経由で issue-editor が本文更新）→ Step 4.5（`dependency_materializer.py gate`）→ Step 5（`publish_termination_report.py`）は fake `gh` の実 subprocess で end-to-end 検証済み（fixture 証跡であり live GitHub 証跡ではない。`tests/stage2/test_stage2_7_terminal_path.py`）。capability の mutation route は承認済みの `issue_comment` / `issue_edit` / `issue_create` のみ `available`（`permission` は常に `unverified` で、書き込み権限の証明ではない）。`pr_*`・label / state・native parent / dependency / relationship・未登録 operation は `unavailable` のまま。未割当の参照は `docs/dev/stage2-7-terminal-wiring-manifest.json` に owner_stage 付き deferred として記録済み。I-4 / Stage 3 / 実 GitHub Pilot-1 は未実施で、成功扱いにしないこと。
 
 `issue-refinement-loop` は control-plane 専用の thin entrypoint である。詳細 procedure は `references/` を必要時だけ読む progressive disclosure とし、planner / reviewer / worker の判定ロジックをこのファイルへ再実装しない。
 

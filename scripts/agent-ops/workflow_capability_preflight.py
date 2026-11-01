@@ -41,6 +41,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -128,15 +129,20 @@ ACTOR_CAPABILITY_READY = "ready"
 ACTOR_CAPABILITY_DEGRADED = "degraded"
 ACTOR_CAPABILITY_UNAVAILABLE = "unavailable"
 
-# GitHub operations that mutate state. Their native routes are NOT migrated
-# into this repository yet (Stage 2), so no route may be reported available.
-# Names in this set are always treated as mutation-requiring, whatever the
-# caller declared for `requires_mutation` (fail closed).
+# GitHub operations that mutate state. Names in this set are always treated as
+# mutation-requiring, whatever the caller declared for `requires_mutation`
+# (fail closed). `pr_*` routes are not migrated and stay unavailable.
 _MUTATION_OPERATION_NAMES = frozenset(
     {
         "issue_comment",
         "issue_edit",
         "issue_create",
+        # unapproved Issue metadata mutations: no route exists, never available
+        "issue_label_edit",
+        "issue_state_change",
+        "issue_native_parent_edit",
+        "issue_dependency_edit",
+        "issue_relationship_edit",
         "pr_comment",
         "pr_create",
         "pr_edit",
@@ -144,10 +150,28 @@ _MUTATION_OPERATION_NAMES = frozenset(
     }
 )
 
-# Operations with an implemented route in this repository. Empty until the
-# Stage 2 GitHub mutation implementation is migrated; a route is "available"
-# only if it is listed here (Issue #9: no false-ready for unmigrated routes).
-_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset()
+# Read-only operation names that may be declared `requires_mutation: false`.
+_READ_ONLY_OPERATION_NAMES = frozenset({"issue_read", "read_issue"})
+
+
+def _is_mutation_operation_name(operation: str) -> bool:
+    """Allowlist, fail closed: only the exact read-only names may be treated as non-mutating.
+    Every other name -- registered mutation names, unregistered names, padded / re-cased /
+    separator-variant / non-ASCII spellings -- is mutating whatever the caller declared for
+    `requires_mutation`, and (having no route) therefore blocks."""
+    return operation not in _READ_ONLY_OPERATION_NAMES
+
+
+# Operations with an implemented route in this repository (Issue #37, Stage 2-7).
+# A route is "available" only if it is listed here, and each entry maps to exactly
+# one migrated canonical consumer that delegates to the controlled executor:
+#   issue_comment -> publish_termination_report.py (issue_comment.publish lane)
+#   issue_edit    -> edit_issue_txn.py
+#   issue_create  -> create_issue_txn.py
+# "available" is a route-existence statement only; it is NOT proof of GitHub write
+# permission (`permission` stays "unverified"). label / state / native parent /
+# dependency / relationship and every `pr_*` operation have no entry here.
+_KNOWN_OPERATION_ROUTES: frozenset[str] = frozenset({"issue_comment", "issue_edit", "issue_create"})
 
 DEFAULT_BUDGET_SECONDS = 30.0
 _GITHUB_AUTH_PROBE_CAP_SECONDS = 30.0
@@ -413,6 +437,13 @@ def _load_planned_operations(path: str | None) -> list[dict]:
             raise ValueError(
                 f"planned-operations-json entry missing non-empty 'operation': {entry!r}"
             )
+        if not re.fullmatch(r"[a-z0-9_]+", operation):
+            # padded / re-cased / separator-variant / non-ASCII spellings are rejected, never
+            # looked up leniently
+            raise ValueError(
+                f"planned-operations-json entry 'operation' must be canonical "
+                f"([a-z0-9_]+): {operation!r}"
+            )
         if "requires_mutation" in entry and not isinstance(entry["requires_mutation"], bool):
             raise ValueError(
                 f"planned-operations-json entry 'requires_mutation' must be a bool: {entry!r}"
@@ -528,8 +559,8 @@ def assess(
     for entry in planned_operations:
         route = _operation_route(entry["operation"])
         operations[entry["operation"]] = {"route": route, "permission": "unverified"}
-        requires_mutation = (
-            entry.get("requires_mutation", True) or entry["operation"] in _MUTATION_OPERATION_NAMES
+        requires_mutation = entry.get("requires_mutation", True) or _is_mutation_operation_name(
+            entry["operation"]
         )
         if route == "unavailable" and requires_mutation:
             missing_mutation_route = True

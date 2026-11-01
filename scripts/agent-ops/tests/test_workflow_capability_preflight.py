@@ -256,14 +256,14 @@ def test_workflow_capability_separates_read_and_write_github_capability(monkeypa
     github = result["checks"]["github"]
     assert github["auth"] is True
     assert github["repo_read"] is True
-    # Mutation routes are unmigrated (Stage 2): never "available", never ready,
-    # and `permission` stays "unverified" (not a write-permission grant).
+    # Issue #37: issue_comment has a migrated canonical consumer, so the route is
+    # "available" -- but `permission` stays "unverified" (route existence is not a
+    # GitHub write-permission grant).
     assert github["operations"]["issue_comment"] == {
-        "route": "unavailable",
+        "route": "available",
         "permission": "unverified",
     }
-    assert result["decision"] == "blocked"
-    assert any("operation_route_unavailable:issue_comment" in r for r in result["reasons"])
+    assert not any("operation_route_unavailable" in r for r in result["reasons"])
     # read and write are reported through DISTINCT fields, not a single
     # collapsed boolean.
     assert "operations" in github and isinstance(github["operations"], dict)
@@ -595,3 +595,140 @@ def test_mutation_operation_name_is_blocked_regardless_of_declared_flag(monkeypa
     )
     assert result["decision"] == "blocked"
     assert result["checks"]["github"]["operations"]["pr_create"]["route"] == "unavailable"
+
+
+_APPROVED_ROUTES = ["issue_comment", "issue_edit", "issue_create"]
+_UNAPPROVED_ROUTES = [
+    "pr_comment",
+    "pr_create",
+    "pr_edit",
+    "pr_update_branch",
+    "issue_label_edit",
+    "issue_state_change",
+    "issue_native_parent_edit",
+    "issue_dependency_edit",
+    "issue_relationship_edit",
+    "no_such_route",
+]
+
+
+def _assess_ops(monkeypatch, operations):
+    monkeypatch.setattr(wcp, "_github_auth_probe", lambda deadline_ns: _completed_probe())
+    monkeypatch.setattr(
+        wcp, "_github_repo_read_probe", lambda repo, deadline_ns: _completed_probe()
+    )
+    return wcp.assess(
+        project_root=str(_REPO_ROOT),
+        profile="issue-to-impl",
+        repo=_DEFAULT_REPO,
+        spark_mode=None,
+        spark_fallback=None,
+        planned_operations=operations,
+    )
+
+
+def test_known_operation_routes_are_exactly_the_three_approved_issue_operations():
+    assert wcp._KNOWN_OPERATION_ROUTES == frozenset(_APPROVED_ROUTES)
+
+
+def test_each_available_route_maps_to_an_existing_canonical_consumer():
+    consumers = {
+        "issue_comment": ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py",
+        "issue_edit": ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
+        "issue_create": ".claude/skills/create-issue/scripts/create_issue_txn.py",
+    }
+    assert set(consumers) == set(_APPROVED_ROUTES)
+    for rel in consumers.values():
+        assert (_REPO_ROOT / rel).is_file(), rel
+
+
+@pytest.mark.parametrize("declared", [True, False])
+@pytest.mark.parametrize("operation", _APPROVED_ROUTES)
+def test_approved_routes_are_available_with_permission_unverified(monkeypatch, operation, declared):
+    result = _assess_ops(
+        monkeypatch,
+        [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": declared}],
+    )
+    assert result["checks"]["github"]["operations"][operation] == {
+        "route": "available",
+        "permission": "unverified",
+    }
+    assert not any("operation_route_unavailable" in r for r in result["reasons"])
+
+
+@pytest.mark.parametrize("declared", [True, False])
+@pytest.mark.parametrize("operation", _UNAPPROVED_ROUTES)
+def test_unapproved_routes_stay_unavailable_and_blocked(monkeypatch, operation, declared):
+    result = _assess_ops(
+        monkeypatch,
+        [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": declared}],
+    )
+    assert result["decision"] == wcp.DECISION_BLOCKED
+    assert result["checks"]["github"]["operations"][operation] == {
+        "route": "unavailable",
+        "permission": "unverified",
+    }
+
+
+def test_one_unapproved_operation_blocks_a_mixed_declaration(monkeypatch):
+    result = _assess_ops(
+        monkeypatch,
+        [
+            {"phase": "p", "actor_role": "r", "operation": "issue_edit"},
+            {"phase": "p", "actor_role": "r", "operation": "pr_create"},
+        ],
+    )
+    assert result["decision"] == wcp.DECISION_BLOCKED
+    assert result["checks"]["github"]["operations"]["issue_edit"]["route"] == "available"
+    assert result["checks"]["github"]["operations"]["pr_create"]["route"] == "unavailable"
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        "pr_merge",
+        "PR_CREATE",
+        " issue_comment",
+        "Issue_Comment",
+        "issue_label_edit ",
+        "issue_unknown",
+    ],
+)
+def test_variant_or_unknown_pr_issue_names_declared_read_only_still_block(monkeypatch, operation):
+    result = _assess_ops(
+        monkeypatch,
+        [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": False}],
+    )
+    assert result["decision"] == wcp.DECISION_BLOCKED
+    assert result["checks"]["github"]["operations"][operation]["route"] == "unavailable"
+
+
+@pytest.mark.parametrize("operation", ["issue_read", "read_issue"])
+def test_read_only_operation_names_declared_read_only_add_no_route_blocker(monkeypatch, operation):
+    """The decision also depends on host probes (uv, controlled read), so assert only on what the
+    operation name contributes: no route blocker, and the read-only name stays outside the mutation set."""
+    result = _assess_ops(
+        monkeypatch,
+        [{"phase": "p", "actor_role": "r", "operation": operation, "requires_mutation": False}],
+    )
+    assert not any("operation_route_unavailable" in r for r in result["reasons"])
+    assert not wcp._is_mutation_operation_name(operation)
+    assert result["checks"]["github"]["operations"][operation]["permission"] == "unverified"
+
+
+@pytest.mark.parametrize(
+    "operation",
+    [
+        " issue_comment",
+        "Issue_Comment",
+        "pr_create ",
+        "issue-edit",
+        "\u200bissue_comment",
+        "\u0456ssue_comment",
+    ],
+)
+def test_planned_operations_file_rejects_non_canonical_operation_names(tmp_path, operation):
+    path = tmp_path / "ops.json"
+    path.write_text(json.dumps([{"operation": operation, "requires_mutation": False}]))
+    with pytest.raises(ValueError, match="canonical"):
+        wcp._load_planned_operations(str(path))

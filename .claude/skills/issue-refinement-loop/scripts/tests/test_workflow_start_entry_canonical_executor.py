@@ -439,7 +439,7 @@ printf '%s\\n' "${{probe}}:gh_config=${{gh_config_state}}" >> "${{SKILL_RUNTIME_
     gh_path.chmod(0o755)
 
 
-def test_canonical_executor_preserves_gh_config_dir_and_blocks_unmigrated_mutation_route(
+def test_canonical_executor_preserves_gh_config_dir_and_blocks_unapproved_mutation_route(
     tmp_path: Path,
 ) -> None:
     """An isolated-HOME process crosses the real executor -> workflow-start
@@ -474,7 +474,7 @@ def test_canonical_executor_preserves_gh_config_dir_and_blocks_unmigrated_mutati
                     {
                         "phase": "workflow_start",
                         "actor_role": "issue-refinement-loop",
-                        "operation": "issue_comment",
+                        "operation": "pr_comment",
                         "requires_mutation": True,
                     }
                 ]
@@ -482,11 +482,11 @@ def test_canonical_executor_preserves_gh_config_dir_and_blocks_unmigrated_mutati
         },
     )
 
-    # Mutation routes are not migrated (Stage 2): the read probes still run in
-    # order with the preserved GH_CONFIG_DIR, but the capability is blocked and
-    # the inner preflight is never started (no false-ready).
+    # `pr_*` routes are not migrated: the read probes still run in order with the
+    # preserved GH_CONFIG_DIR, but the capability is blocked and the inner
+    # preflight is never started (no false-ready).
     assert result.returncode != 0, result.stdout + result.stderr
-    assert "operation_route_unavailable:issue_comment" in result.stdout + result.stderr
+    assert "operation_route_unavailable:pr_comment" in result.stdout + result.stderr
     assert not inner_marker.exists()
     assert probe_log.read_text(encoding="utf-8").splitlines() == [
         "gh-auth:gh_config=expected_path",
@@ -745,8 +745,11 @@ def test_canonical_executor_rejects_linked_worktree_execution(tmp_path: Path) ->
 
 
 @pytest.mark.parametrize("requires_mutation", [True, False])
-def test_canonical_executor_unmigrated_mutation_operation_never_reaches_inner(
-    tmp_path: Path, requires_mutation: bool
+@pytest.mark.parametrize(
+    "operation", ["pr_edit", "pr_create", "issue_label_edit", "issue_relationship_edit"]
+)
+def test_canonical_executor_unapproved_mutation_operation_never_reaches_inner(
+    tmp_path: Path, requires_mutation: bool, operation: str
 ) -> None:
     """Negative control: a mutation operation name is blocked whatever the caller declares for
     `requires_mutation`, so declaring it read-only cannot manufacture a ready decision."""
@@ -757,7 +760,7 @@ def test_canonical_executor_unmigrated_mutation_operation_never_reaches_inner(
     gh_config_dir = tmp_path / "launcher-gh-config"
     gh_config_dir.mkdir()
     inner_marker = tmp_path / "inner-ran.marker"
-    declaration = [{**_READ_ONLY_OPERATIONS[0], "operation": "issue_edit"}]
+    declaration = [{**_READ_ONLY_OPERATIONS[0], "operation": operation}]
     declaration[0]["requires_mutation"] = requires_mutation
 
     result = _run_executor(
@@ -774,7 +777,40 @@ def test_canonical_executor_unmigrated_mutation_operation_never_reaches_inner(
 
     assert result.returncode != 0, result.stdout + result.stderr
     assert _parse_compact_stdout(result.stdout)["status"] == "blocked"
-    assert "operation_route_unavailable:issue_edit" in result.stdout + result.stderr
+    assert f"operation_route_unavailable:{operation}" in result.stdout + result.stderr
     # the read probes succeed, so the unmigrated route is the only blocker
     assert "auth_unavailable" not in result.stdout + result.stderr
     assert not inner_marker.exists()
+
+
+@pytest.mark.parametrize("operation", ["issue_comment", "issue_edit", "issue_create"])
+def test_canonical_executor_approved_mutation_route_reaches_inner_with_permission_unverified(
+    tmp_path: Path, operation: str
+) -> None:
+    """Positive control (Issue #37): the three approved Issue operations have a real consumer, so the
+    route is available and the inner preflight starts. Availability is not a write-permission proof."""
+    repo = _make_repo(tmp_path)
+    trusted_gh_bin = tmp_path / "trusted-gh-bin"
+    _write_controlled_gh(trusted_gh_bin)
+    _install_real_capability_preflight_fixture(repo, trusted_gh_bin=trusted_gh_bin)
+    gh_config_dir = tmp_path / "launcher-gh-config"
+    gh_config_dir.mkdir()
+    inner_marker = tmp_path / "inner-ran.marker"
+    probe_log = tmp_path / "probe-order.log"
+    declaration = [{**_READ_ONLY_OPERATIONS[0], "operation": operation, "requires_mutation": True}]
+
+    result = _run_executor(
+        repo,
+        inner_marker,
+        extra_env=_clean_gh_env(
+            tmp_path,
+            GH_CONFIG_DIR=str(gh_config_dir),
+            SKILL_RUNTIME_TEST_EXPECTED_GH_CONFIG_DIR=str(gh_config_dir),
+            SKILL_RUNTIME_TEST_GH_PROBE_LOG=str(probe_log),
+            LOOP_PLANNED_OPERATIONS_JSON=json.dumps(declaration),
+        ),
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "operation_route_unavailable" not in result.stdout + result.stderr
+    assert inner_marker.exists()

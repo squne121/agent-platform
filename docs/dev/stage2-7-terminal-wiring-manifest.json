@@ -1,0 +1,318 @@
+{
+  "schema": "STAGE2_7_TERMINAL_WIRING_MANIFEST_V1",
+  "issue": "squne121/agent-platform#37",
+  "parents": [
+    "squne121/agent-platform#29",
+    "squne121/agent-platform#5"
+  ],
+  "predecessors": [
+    "squne121/agent-platform#32",
+    "squne121/agent-platform#34",
+    "squne121/agent-platform#35",
+    "squne121/agent-platform#36"
+  ],
+  "follow_ups": [
+    "squne121/agent-platform#44",
+    "squne121/agent-platform#45",
+    "squne121/agent-platform#46",
+    "squne121/agent-platform#50"
+  ],
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "access": "read-only (git show); the legacy repo is never written"
+  },
+  "base": {
+    "branch": "main",
+    "sha": "5c001bb5dbf472c32edf6b04fd92f8035af5591f",
+    "note": "merge commit of PR #52, re-confirmed against fresh origin/main at start"
+  },
+  "scope_exception": "Issue #37-limited, human-approved Allowed Paths extension recorded on the Issue: scripts/agent-ops/workflow_capability_preflight.py and scripts/agent-ops/tests/test_workflow_capability_preflight.py only",
+  "mutation_routes": {
+    "available": {
+      "issue_comment": ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py",
+      "issue_edit": ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
+      "issue_create": ".claude/skills/create-issue/scripts/create_issue_txn.py"
+    },
+    "unavailable": [
+      "pr_comment",
+      "pr_create",
+      "pr_edit",
+      "pr_update_branch",
+      "issue_label_edit",
+      "issue_state_change",
+      "issue_native_parent_edit",
+      "issue_dependency_edit",
+      "issue_relationship_edit"
+    ],
+    "permission": "unverified",
+    "note": "available = a migrated canonical consumer that delegates to the controlled executor exists; it is NOT proof of GitHub write permission. unregistered operations are unavailable by construction."
+  },
+  "terminal_path": {
+    "step4": "edit-issue/scripts/edit_issue_txn.py (issue-editor controlled transaction) -> controlled_skill_mutation_exec -> gh",
+    "step4_5": "issue-refinement-loop/scripts/dependency_materializer.py gate (no hard dependency: proceed with zero writes; hard dependency needs a native relationship write: fail-closed, unapproved, #46)",
+    "step5": "issue-refinement-loop/scripts/publish_termination_report.py -> isolation_issue_comment_bridge -> controlled_skill_mutation_exec -> gh",
+    "wired_by": "capability preflight route table (_KNOWN_OPERATION_ROUTES); consumers already existed from Stage 2-2/2-4/2-5/2-6"
+  },
+  "required_files": [
+    "scripts/agent-ops/workflow_capability_preflight.py",
+    ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
+    ".claude/skills/create-issue/scripts/create_issue_txn.py",
+    ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py",
+    ".claude/skills/issue-refinement-loop/scripts/isolation_issue_comment_bridge.py",
+    ".claude/skills/issue-refinement-loop/scripts/dependency_materializer.py",
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "docs/dev/stage2-7-pilot1-handoff.md"
+  ],
+  "required_fixtures": [
+    "tests/stage2/fixtures/fake_gh_txn.py",
+    "tests/stage2/fixtures/valid_implementation_body.md"
+  ],
+  "test_files": [
+    "tests/stage2/test_stage2_7_terminal_path.py",
+    "tests/stage2/test_stage2_7_closure.py"
+  ],
+  "expected_collect": {
+    "tests/stage2/test_stage2_7_terminal_path.py": 18,
+    "tests/stage2/test_stage2_7_closure.py": 23
+  },
+  "expected_ran": {
+    "tests/stage2/test_stage2_7_terminal_path.py": 18,
+    "tests/stage2/test_stage2_7_closure.py": 23
+  },
+  "deferred_tests": [],
+  "migrated_in_2_7": [
+    ".claude/skills/issue-refinement-loop/references/ac-vc-reflection.md",
+    ".claude/skills/issue-refinement-loop/references/anchor-comment-handling.md",
+    ".claude/skills/issue-refinement-loop/references/index.md",
+    ".claude/skills/issue-refinement-loop/references/loop-state.md",
+    ".claude/skills/issue-refinement-loop/references/refinement-loop-plan-output.md",
+    ".claude/skills/issue-refinement-loop/references/scope-rollup-policy.md",
+    ".claude/skills/issue-refinement-loop/references/web-research-routing.md",
+    ".claude/skills/issue-refinement-loop/tests/test_thin_entrypoint.py"
+  ],
+  "skill_reference_inventory": {
+    "method": "backticked file tokens + markdown link targets + references|scripts|schemas|.claude|docs path prefixes in SKILL.md, resolved against the skill dir, scripts/, references/ and .claude/skills/. Re-measured at HEAD (the Issue text says 55; the current SKILL.md yields this total).",
+    "total": 68,
+    "resolved_elsewhere": {
+      "edit_issue_txn.py": ".claude/skills/edit-issue/scripts/edit_issue_txn.py",
+      "skill_runtime_command_policy.py": "scripts/agent-guards/skill_runtime_command_policy.py",
+      "skill_runtime_exec.py": "scripts/agent-guards/skill_runtime_exec.py",
+      "worktree_bootstrap_exec.py": "scripts/agent-ops/worktree_bootstrap_exec.py"
+    },
+    "removed_in_source": [
+      "build_loop_state.py",
+      "render_termination_report.py",
+      "loop_state.schema.json",
+      "schemas/loop_state.schema.json"
+    ],
+    "placeholders": [
+      ".claude/agents/*.md",
+      ".claude/artifacts/issue-refinement-loop/<N>/refinement_preflight_result_v1.json"
+    ],
+    "deferred": [
+      {
+        "id": "scripts/owner_reaction_decision.py",
+        "owner_stage": "stage_2 follow-up (unassigned; read-only owner-reaction lane)",
+        "reason": "only reached from the with_human_context heavy-mutation gate for the not_planned category; it is not on the Step 4/4.5/5 terminal path of the approved operations. The preflight launches it as a fresh subprocess and treats any failure as 'not approved' (fail-closed; negative control in test_stage2_7_closure.py). Its 6 source tests are already listed under not_migrated_source_tests in stage1a-core-manifest.json.",
+        "rerun_condition": "a dedicated Issue migrates owner_reaction_decision.py with its 6 source tests; then the heavy-mutation gate can return an approved not_planned decision"
+      },
+      {
+        "id": "run_codebase_investigator_agy_advisory.py",
+        "owner_stage": "stage_3 (codebase-investigator / AGY delegation)",
+        "reason": "advisory wrapper of the codebase-investigator SubAgent (Step 1); Stage 3 owns codebase-investigator / web-researcher / gemini-cli-headless-delegation per refinement-migration-manifest.json",
+        "rerun_condition": "Stage 3 migrates codebase-investigator and its AGY advisory wrapper"
+      },
+      {
+        "id": ".claude/skills/gemini-cli-headless-delegation/SKILL.md",
+        "owner_stage": "stage_3",
+        "reason": "external research delegation; Step 1b is conditional and Stage 3 owned",
+        "rerun_condition": "Stage 3 migrates gemini-cli-headless-delegation"
+      },
+      {
+        "id": ".claude/agents/issue-reviewer.md",
+        "owner_stage": "stage_1b follow-up (unassigned)",
+        "reason": "named as a reviewer SubAgent definition in the Step 2 prose; Step 2 review runs through the migrated issue-design-reviewer agent and run_root_review_pipeline; not read by any script on the terminal path",
+        "rerun_condition": "a dedicated Issue migrates the issue-reviewer agent definition"
+      },
+      {
+        "id": ".claude/skills/impl-review-loop/steps/preparation.md",
+        "owner_stage": "I-4",
+        "reason": "implementation review loop; I-4 is out of scope for #37",
+        "rerun_condition": "I-4 migrates impl-review-loop"
+      },
+      {
+        "id": "docs/dev/workflow.md",
+        "owner_stage": "unassigned (docs/dev general documentation)",
+        "reason": "general development-flow document; a 'Related' link only, no script or test reads it",
+        "rerun_condition": "a docs Issue migrates the general workflow documents"
+      },
+      {
+        "id": "docs/dev/agent-run-report.md",
+        "owner_stage": "unassigned (docs/dev general documentation)",
+        "reason": "run-report posting convention; a 'Related' link only",
+        "rerun_condition": "a docs Issue migrates the general workflow documents"
+      },
+      {
+        "id": "docs/dev/workflows/issue-refinement-loop-design.md",
+        "owner_stage": "unassigned (docs/dev design note)",
+        "reason": "derived design note, subordinate to SKILL.md by its own wording; no script or test reads it",
+        "rerun_condition": "a docs Issue migrates the design note"
+      }
+    ]
+  },
+  "asset_decisions": [
+    {
+      "id": "owner_reaction_decision",
+      "decision": "deferred",
+      "reason": "not on the approved terminal path; absence is fail-closed (see skill_reference_inventory.deferred)",
+      "owner_stage": "stage_2 follow-up (unassigned)",
+      "rerun_condition": "a dedicated Issue migrates it with its 6 source tests"
+    },
+    {
+      "id": "apply_triage_label_transition",
+      "decision": "deferred",
+      "reason": "a label mutation: label / state live changes are unapproved (parent #29 / #5); migrating the code would add an unapproved write route",
+      "owner_stage": "stage_2 follow-up (needs human approval of the label lane)",
+      "rerun_condition": "label transitions are approved on #29 / #5 and a dedicated Issue migrates the script with a controlled-executor lane"
+    },
+    {
+      "id": "retrospective_candidate_handoff",
+      "decision": "deferred",
+      "reason": "no Step 4/4.5/5 consumer in the migrated tree; already tracked as a dangling reference in the stage 2-5 / 2-6 manifests",
+      "owner_stage": "unassigned (create-issue peripheral)",
+      "rerun_condition": "the create-issue dangling dependencies are decided (#50)"
+    },
+    {
+      "id": "milestone_rollup",
+      "decision": "deferred",
+      "reason": "referenced only by create_issue_txn.py as an optional peripheral; already tracked as a dangling reference in the stage 2-5 / 2-6 manifests",
+      "owner_stage": "unassigned (create-issue peripheral, #50)",
+      "rerun_condition": "the create-issue dangling dependencies are decided (#50)"
+    },
+    {
+      "id": "scope_rollup",
+      "decision": "migrated",
+      "reason": "references/scope-rollup-policy.md (documentation only, linked from the migrated scope-signal-guard.md and the references index) is migrated; run_refinement_preflight's scope rollup join is already covered by migrated Stage 1a tests",
+      "owner_stage": "stage2-7",
+      "rerun_condition": "n/a"
+    }
+  ],
+  "lane_totals": {
+    "lanes": {
+      "stage0-test-manifest.json": {
+        "collect": 100,
+        "ran": 100,
+        "deferred": 0
+      },
+      "stage1a-core-manifest.json": {
+        "collect": 793,
+        "ran": 793,
+        "deferred": 0
+      },
+      "stage1b1-leaf-manifest.json": {
+        "collect": 299,
+        "ran": 297,
+        "deferred": 2
+      },
+      "stage1b2-contract-checkers-manifest.json": {
+        "collect": 608,
+        "ran": 608,
+        "deferred": 0
+      },
+      "stage1b3a-producer-transport-manifest.json": {
+        "collect": 175,
+        "ran": 174,
+        "deferred": 1
+      },
+      "stage1b3b-pipeline-tests-manifest.json": {
+        "collect": 183,
+        "ran": 181,
+        "deferred": 2
+      },
+      "stage1b4-semantic-review-manifest.json": {
+        "collect": 477,
+        "ran": 477,
+        "deferred": 0
+      },
+      "stage2-1a-policy-manifest.json": {
+        "collect": 141,
+        "ran": 141,
+        "deferred": 0
+      },
+      "stage2-1b-exec-manifest.json": {
+        "collect": 122,
+        "ran": 122,
+        "deferred": 0
+      },
+      "stage2-1c-exec-tests-manifest.json": {
+        "collect": 268,
+        "ran": 236,
+        "deferred": 32
+      },
+      "stage2-2-comment-lane-manifest.json": {
+        "collect": 129,
+        "ran": 129,
+        "deferred": 0
+      },
+      "stage2-3-edit-guards-manifest.json": {
+        "collect": 228,
+        "ran": 228,
+        "deferred": 0
+      },
+      "stage2-4-edit-txn-manifest.json": {
+        "collect": 383,
+        "ran": 344,
+        "deferred": 39
+      },
+      "stage2-5-create-txn-manifest.json": {
+        "collect": 306,
+        "ran": 305,
+        "deferred": 1
+      },
+      "stage2-6-materialization-manifest.json": {
+        "collect": 349,
+        "ran": 349,
+        "deferred": 0
+      }
+    },
+    "collect": 4602,
+    "ran": 4525,
+    "deferred": 77,
+    "note": "sums of the existing stage manifests plus this manifest; the per-lane runners (run_stage0_tests.py, run_stage1a_tests.py, run_stage1b1_tests.py <manifest>) verify each lane's real collect/ran/deferred/skip counts in CI. stage0 pins collect counts only."
+  },
+  "intentional_diffs": [
+    "test_thin_entrypoint.py (counted in the stage1a-core lane, which owns that directory): ruff format only (import/blank-line layout); assertions byte-identical to the source",
+    "scripts/agent-ops/workflow_capability_preflight.py: _KNOWN_OPERATION_ROUTES = {issue_comment, issue_edit, issue_create} (source: the full production route set); _MUTATION_OPERATION_NAMES gains the unapproved label / state / native parent / dependency / relationship names, and an allowlist (_READ_ONLY_OPERATION_NAMES = issue_read, read_issue) is the only way to be non-mutating: every other name (unregistered, re-cased, padded, separator-variant, non-ASCII) is mutating and unavailable whatever requires_mutation says; the planned-operations file rejects names outside [a-z0-9_]+",
+    "scripts/agent-ops/tests/test_workflow_capability_preflight.py and test_workflow_start_entry_canonical_executor.py: the old 'issue_* routes are unavailable' expectations are replaced by (a) positive controls for the three approved operations (route available, permission unverified, inner preflight starts) and (b) negative controls for pr_*, label, state, native parent / dependency / relationship and unregistered operations (blocked, inner preflight never starts)",
+    "stage1a-core-manifest.json: expected counts re-measured (canonical_executor 16->25, workflow_capability_preflight 22->65)",
+    "tests/stage2/fixtures/fake_gh_txn.py: a comment POST aimed at any issue other than the fixture issue is refused as unexpected (exit 97) instead of being counted",
+    "SKILL.md: only the transfer-status note changed (one line; file stays at 500 lines)"
+  ],
+  "negative_controls": [
+    "Step 4 stale digest / wrong repo / failed or unconfirmed PATCH: write-zero or not-ok, Step 5 not reached",
+    "Step 4.5 hard dependency (unapproved native relationship): never proceed, zero writes, no dependency endpoint call; wrong repo: zero gh calls",
+    "Step 5 wrong repo (legacy / foreign owner / malformed), wrong issue binding, failed POST, unreadable POST (readback mismatch), duplicate marker comments: not success, no extra write",
+    "capability route table: pr_*, label, state, native relationship and unregistered operations unavailable and blocked whatever requires_mutation says",
+    "owner_reaction_decision.py absent: fail-closed, never an implicit approval"
+  ],
+  "fixture_live_evidence_boundary": "Every GitHub interaction is a fake gh executable that is the only gh resolvable in a scratch copy of the repo. Nothing in this change is live GitHub evidence; the first live evidence is Pilot-1 (#29), which is not run here.",
+  "pilot1_handoff": {
+    "document": "docs/dev/stage2-7-pilot1-handoff.md",
+    "pilot_executed_in_this_change": false,
+    "conditions": [
+      "dedicated_docs_only_issue",
+      "before_after_digest",
+      "readback",
+      "status_decision"
+    ]
+  },
+  "human_judgment_required": [
+    "#46: approval of native parent / dependency / relationship mutation and the treatment of 37 deferred tests (the native relationship terminal path stays fail-closed until then)",
+    "#45: canonical RESULT schema vs producer output of ISSUE_EDIT_TXN_RESULT_V1 (not decided here)",
+    "#44: hygiene C9 rejects parent-kind bodies in edit_issue_txn (parent-kind Issues are out of Pilot-1)",
+    "#50: owner of create-issue dangling dependencies (not pulled into #37 completion)"
+  ],
+  "rollback": "revert the PR: additive (docs, references, tests); changed existing files are the capability route table, two tests, one fixture, the stage1a count manifest and one SKILL.md line"
+}
