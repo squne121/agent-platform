@@ -7,12 +7,24 @@ import shutil
 import sys
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 REL = ".claude/skills/issue-contract-review/scripts/declared_path_overlap.py"
 DEPS = [
     ".claude/skills/create-issue/scripts/check_issue_overlap.py",
     "scripts/agent-guards/changed_file_matcher.py",
+    # imported by check_issue_overlap.py via sys.path (scripts/agent-ops); not a tested dependency
+    "scripts/agent-ops/allowed_paths_policy.py",
 ]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_import_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Restore sys.path / sys.modules so no test depends on another test's imports."""
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(sys, "modules", dict(sys.modules))
+    sys.modules.pop("allowed_paths_policy", None)
 
 
 def _load(path: Path, name: str):
