@@ -281,3 +281,19 @@ jobs:
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/stage2-7-terminal-wiring-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
           grep -Eq "(^|[^0-9])0 deferred with reasons, 41 ran, 0 skipped" runner.out
+  i4-1-contract-review-leaf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect counts, 0 skipped / xfailed / deselected (fixture only, no real GitHub read or write)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-1-contract-review-leaf-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 125 ran, 0 skipped" runner.out

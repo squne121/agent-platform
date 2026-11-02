@@ -1,0 +1,73 @@
+{
+  "schema": "I4_1_CONTRACT_REVIEW_LEAF_MANIFEST_V1",
+  "issue": "squne121/agent-platform#61",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "required_files": [
+    ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py",
+    ".claude/skills/issue-contract-review/scripts/declared_path_overlap.py",
+    ".claude/skills/create-issue/scripts/check_issue_overlap.py",
+    "scripts/agent-guards/changed_file_matcher.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    ".claude/skills/issue-contract-review/tests/test_contract_review_result_parser.py",
+    ".claude/skills/issue-contract-review/tests/test_declared_path_overlap.py",
+    "tests/stage_i4/test_i4_1_closure.py",
+    "tests/stage_i4/test_i4_1_negative_controls.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/issue-contract-review/tests/test_contract_review_result_parser.py": 83,
+    ".claude/skills/issue-contract-review/tests/test_declared_path_overlap.py": 32,
+    "tests/stage_i4/test_i4_1_closure.py": 6,
+    "tests/stage_i4/test_i4_1_negative_controls.py": 4
+  },
+  "expected_ran": {
+    ".claude/skills/issue-contract-review/tests/test_contract_review_result_parser.py": 83,
+    ".claude/skills/issue-contract-review/tests/test_declared_path_overlap.py": 32,
+    "tests/stage_i4/test_i4_1_closure.py": 6,
+    "tests/stage_i4/test_i4_1_negative_controls.py": 4
+  },
+  "deferred_tests": [],
+  "source_parity": {
+    ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py": {
+      "source_sha256": "4aa1a1991284f75cba698e70c1597be956d073221ae49d15dd2bda84c0b3f1b0",
+      "moved_sha256": "4aa1a1991284f75cba698e70c1597be956d073221ae49d15dd2bda84c0b3f1b0",
+      "verbatim": true
+    },
+    ".claude/skills/issue-contract-review/scripts/declared_path_overlap.py": {
+      "source_sha256": "9174e144d5c230cb4ba431548c758c2c043f842901d86ac31be3448ee4f03c04",
+      "moved_sha256": "9174e144d5c230cb4ba431548c758c2c043f842901d86ac31be3448ee4f03c04",
+      "verbatim": true
+    },
+    ".claude/skills/issue-contract-review/tests/test_contract_review_result_parser.py": {
+      "source_sha256": "95c061aff8126e3ed2996a6a0f54c68de038dfd8d67f7efa420b00835b4815a1",
+      "moved_sha256": "bd14562aeeb0ce07d392c9725f44fa4a197f17131aaf80b30f3303c94a9ae7a3",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy repository slug in test fixtures replaced by a neutral example-owner/example-repo value (scripts/ci/check_no_functional_slug.py); no assertion logic changed."
+    },
+    ".claude/skills/issue-contract-review/tests/test_declared_path_overlap.py": {
+      "source_sha256": "bfd1d8cfc69ee375c6093468d6bd4e8a1d585e5dcf4ab5e628a4426cfa12d153",
+      "moved_sha256": "a9694611f830427e4816efd622cb86b8bbe9e1a82f7e892e72c8f995f05fa727",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy repository slug in test fixtures replaced by a neutral example-owner/example-repo value (scripts/ci/check_no_functional_slug.py); no assertion logic changed."
+    }
+  },
+  "deferred_dependencies": [
+    {
+      "path": "run_contract_review_once.py / check_blockers.sh",
+      "owner_stage": "I-4-3 (tracker #60)",
+      "reason": "orchestrator; out of scope",
+      "rerun_condition": "after I-4-1 and I-4-2 merge"
+    },
+    {
+      "path": "ensure_contract_snapshot.py / allowed_paths_review_gate.py",
+      "owner_stage": "I-4-2 (tracker #60)",
+      "reason": "gh api comment POST/PATCH path needs human decision",
+      "rerun_condition": "mutation route decided"
+    }
+  ]
+}
