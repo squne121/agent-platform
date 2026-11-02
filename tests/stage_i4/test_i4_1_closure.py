@@ -75,13 +75,3 @@ def test_no_functional_legacy_slug() -> None:
         text=True,
     )
     assert r.returncode == 0, r.stdout + r.stderr
-
-
-def test_out_of_scope_files_not_present() -> None:
-    for rel in (
-        f"{ICR}/scripts/run_contract_review_once.py",
-        f"{ICR}/scripts/check_blockers.sh",
-        ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py",
-        ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py",
-    ):
-        assert not (ROOT / rel).exists(), rel

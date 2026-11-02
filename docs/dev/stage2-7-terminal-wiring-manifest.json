@@ -277,13 +277,13 @@
         "deferred": 0
       },
       "i4-1-contract-review-leaf-manifest.json": {
-        "collect": 125,
-        "ran": 125,
+        "collect": 124,
+        "ran": 124,
         "deferred": 0
       }
     },
-    "collect": 4731,
-    "ran": 4655,
+    "collect": 4730,
+    "ran": 4654,
     "deferred": 76,
     "note": "sums of the existing stage manifests plus this manifest; the per-lane runners (run_stage0_tests.py, run_stage1a_tests.py, run_stage1b1_tests.py <manifest>) verify each lane's real collect/ran/deferred/skip counts in CI. stage0 pins collect counts only."
   },

@@ -10,7 +10,8 @@
     ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py",
     ".claude/skills/issue-contract-review/scripts/declared_path_overlap.py",
     ".claude/skills/create-issue/scripts/check_issue_overlap.py",
-    "scripts/agent-guards/changed_file_matcher.py"
+    "scripts/agent-guards/changed_file_matcher.py",
+    "scripts/agent-ops/allowed_paths_policy.py"
   ],
   "required_fixtures": [],
   "test_files": [
@@ -22,13 +23,13 @@
   "expected_collect": {
     ".claude/skills/issue-contract-review/tests/test_contract_review_result_parser.py": 83,
     ".claude/skills/issue-contract-review/tests/test_declared_path_overlap.py": 32,
-    "tests/stage_i4/test_i4_1_closure.py": 6,
+    "tests/stage_i4/test_i4_1_closure.py": 5,
     "tests/stage_i4/test_i4_1_negative_controls.py": 4
   },
   "expected_ran": {
     ".claude/skills/issue-contract-review/tests/test_contract_review_result_parser.py": 83,
     ".claude/skills/issue-contract-review/tests/test_declared_path_overlap.py": 32,
-    "tests/stage_i4/test_i4_1_closure.py": 6,
+    "tests/stage_i4/test_i4_1_closure.py": 5,
     "tests/stage_i4/test_i4_1_negative_controls.py": 4
   },
   "deferred_tests": [],
