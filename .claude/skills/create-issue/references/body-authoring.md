@@ -33,8 +33,8 @@ Issue 本文に `## Machine-Readable Contract` がある場合、author / caller
 Issue 本文の `## Required Skills` は **ドメイン知識スキル** のみを列挙する（例: TypeScript / ECS / Canvas / Vitest BDD 等）。
 
 - ワークフロー skill（`issue-contract-review` / `implement-issue` / `pr-review-judge` / `ssot-discovery` 等）はここに書かない。skill 間で関係性が定義されているため
-- rule 参照は per-directory `CLAUDE.md`（Claude Code 自動ロード）と `ssot-discovery` skill で行うため、`## Rules` への列挙は最小限に
-- spec / doc / path reference（`docs/adr/...`, `docs/product/requirements.md` 等）は skill ではない。`## Background` / `## In Scope` の適切な section に書く
+- rule 参照は per-directory `CLAUDE.md`（Claude Code 自動ロード）で行う（`ssot-discovery` skill は未移管。#50 で deferred）ため、`## Rules` への列挙は最小限に
+- spec / doc / path reference（`docs/adr/...`, `docs/dev/*.md` 等）は skill ではない。`## Background` / `## In Scope` の適切な section に書く
 - runtime dependency がない場合は `- なし` と明記するか、section 全体を省略する
 
 ## ワークフロー不具合検出時の修正方針起案ガイダンス（決定論的修正優先）
@@ -102,13 +102,13 @@ $ pnpm build
 **必須フィールド（すべて必要）**:
 - `applicable_acs`: 動作検証の対象 AC リスト
 - `execution_environment`: 必要な CLI ツール名・認証方法・ネットワーク要件
-- `skip_conditions`: 実行環境が整っていない場合の停止条件（exit 77 SKIP 規約）
+- `skip_conditions`: 実行環境が整っていない場合の停止条件（exit 77 SKIP 規約。規約の詳細定義は未移管で、現時点の正本はない）
 - `fallback_policy`: フォールバック経由の成功を PASS としない旨の明示
 - `artifact_requirements`: 証跡出力先・ファイル名パターン
 
 **修復方針**:
 - `fix_hint` に示された不足フィールドを補完する
-- 各フィールドの詳細要件は `docs/dev/runtime-verification-policy.md` を参照する
+- 必須フィールドの一覧は上記の本節が現行の記述である。`review-issue` C10 が検査するのは `deferred` の検証先のみで（`destination_type`+`destination_ref` の組、または `deferred_verification_condition` のどちらかがあれば PASS。`deferred_destination` というキー名自体は見ない）、`immediate` の各フィールド（`skip_conditions` / `artifact_requirements` 等）の詳細要件は検査しない。`validate_issue_body.py` の LP020 は起票時に decision enum・reason（`require_reason` 有効時のみ）・`deferred` の `deferred_destination` と `deferred_verification_condition` の両方の有無を検査し、`immediate` の必須フィールド不足は `issue-contract-review` の `rva_immediate_field_missing` が着手前に検出する。各フィールドの詳細な要件定義（exit 77 SKIP 規約・証跡形式など）を持つ総合 policy は `docs/dev/runtime-verification-policy.md` だったが未移管（#50 で deferred）で、現時点で完全に代替する正本はない
 
 ## Runtime Verification Applicability
 
@@ -135,7 +135,7 @@ Issue 起票時に動作検証の適用判定セクションを記載する。`r
 
 - `deferred` の場合は `deferred_destination`（destination_type + destination_ref）と `deferred_verification_condition` の **両方を必ず記載する**（`review-issue` C10 blocker）。
 - 自由記述の「後続 Issue で検証する」だけでは不完全。機械的に検出できる半構造化フォーマットで記述すること。
-- 適用判定の詳細基準は `docs/dev/runtime-verification-policy.md` の「Runtime Verification Applicability」を参照する。
+- 機械的な検査の担当範囲: `docs/dev/extension-surface-runtime-policy.yaml` は Claude extension surface の risk-trigger rule（どの変更が `immediate` の根拠になり得るか）の正本、`review-issue` C9 は section / decision enum（section や decision が無い implementation Issue は FAIL ではなく legacy 扱いで、FAIL は enum 不正のみ）の、C10 は `deferred` の検証先の整合、C11 は decision と `runtime-verification` タグの整合を検査する。これらは Runtime Verification 全体の policy ではなく、総合 policy（`docs/dev/runtime-verification-policy.md`）は未移管（#50 で deferred）。
 
 ### `actual`/`canonical` ランタイム受け入れと `fixture` 意味論との AC 分離規則（Issue #2807）
 
@@ -156,7 +156,7 @@ fixture semantics AC の PASS は canonical runtime acceptance AC の代替に�
 - launcher hash
 - actual connected server の diagnosis（`connected_server` の `base_url` / `reachable` / `model_catalog_ok` / `classification`）
 
-上記の必須フィールドと既存 producer `CLAUDE_GPT_SMOKE_RESULT_V1`（`scripts/claude-gpt/runtime_smoke_test.sh`）の実 schema との対応（新しい schema field は追加しない）:
+上記の必須フィールドと既存 producer `CLAUDE_GPT_SMOKE_RESULT_V1`（`scripts/claude-gpt/runtime_smoke_test.sh`。この repo には未移管で、claude-gpt 資産は #50 で deferred）の実 schema との対応（新しい schema field は追加しない）:
 
 - `run_head_sha` := `CLAUDE_GPT_SMOKE_RESULT_V1.sut.git_head`
 - `git_dirty` := `CLAUDE_GPT_SMOKE_RESULT_V1.sut.git_dirty`
@@ -226,8 +226,7 @@ runtime_assertion_bindings:
 
 ## VC 作成ガイダンス
 
-> 動作検証 AC（`runtime-verification: true`）を含む VC の設計は `docs/dev/runtime-verification-policy.md` を参照すること。
-> SKIP 規約（exit 77）・証跡保存フォーマット・テストシナリオ最小セット・Stop Condition 連動が定義されている。
+> 動作検証 AC（`runtime-verification: true`）を含む VC の設計では、extension surface の risk-trigger は `docs/dev/extension-surface-runtime-policy.yaml`、`deferred` の整合は `review-issue` C10 を参照すること。ただし SKIP 規約（exit 77）・証跡保存フォーマット・テストシナリオ最小セット・Stop Condition 連動を定義していた `docs/dev/runtime-verification-policy.md` は未移管（#50 で deferred）で、これらはどちらの consumer も定義・検査しない。現時点で参照できる正本はなく、推測で補わず Issue 本文に明記する。
 
 ### pytest baseline-fail VC の正規形（canonical form, marker: pytest_baseline_fail_canonical_rules）
 
@@ -337,7 +336,7 @@ Issue body の VC（Verification Commands）は **shell control operator に依�
 | `;` | 逐次実行。前段の失敗を無視する |
 | `&` | バックグラウンド実行。exit code が非同期になる |
 
-> **リダイレクト演算子（`<<`, `<`, `>`, `>>`, `<<<`）について**: VC 例示での使用は避けることを推奨するが、`<file>` や `<pattern>` 等の placeholder との誤判定リスクがあるため、`verify_vc_single_command_guardrail_docs.py` は機械的な enforce を行わない。
+> **リダイレクト演算子（`<<`, `<`, `>`, `>>`, `<<<`）について**: VC 例示での使用は避けることを推奨するが、`<file>` や `<pattern>` 等の placeholder との誤判定リスクがあるため、機械的な enforce は行わない。
 
 ### SC2015 問題（A && B || C パターン）
 
@@ -353,13 +352,8 @@ Issue body の VC（Verification Commands）は **shell control operator に依�
 
 ### checker script entrypoint（チェッカースクリプトの入口）
 
-compound shell 違反の自動検出は以下のスクリプトで行う:
-
-```bash
-uv run python3 .claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py --strict
-```
-
-違反があれば file:line で報告して exit 1。成功時は exit 0。
+Issue 本文の VC に対する compound shell 違反は、起票時の `validate_issue_body.py`（`compound_shell` = error）と着手前の `issue-contract-review/scripts/vc_contract_syntax.py` が検出する。
+本ドキュメント自体の fenced block を lint する旧 `verify_vc_single_command_guardrail_docs.py` は未移管（#50 で deferred）。
 
 ### 決定論的 VC と意味的評価 AC の分離
 
@@ -775,7 +769,7 @@ gh issue list --search "<関連語>" --state open --json number,title,url
 
 `create-issue` / `edit-issue` / `issue-contract-review` / `review-issue` の4スキルが Issue 本文で扱いうる
 `visual_impact` 関連フィールド（`VISUAL_IMPACT_DECLARATION_V1` 等）は、単一の canonical schema ファイル
-[`docs/dev/visual-impact.schema.json`](../../../../docs/dev/visual-impact.schema.json) への参照として共有する。
+`docs/dev/visual-impact.schema.json`（この repo には未移管。#50 で deferred）への参照として共有する。
 4 スキルのいずれも、このフィールドのキー集合・enum を独自に再定義しない（重複定義禁止）。
 
 - `docs/dev/visual-impact.schema.json` の `$defs.VISUAL_IMPACT_DECLARATION_V1` が Issue/PR body 上で人間または

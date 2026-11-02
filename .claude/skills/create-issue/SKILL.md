@@ -30,17 +30,16 @@ description: ユーザーの要求を Terminal AI Agent が再現可能に作業
 ### 1. 要求を分析する
 
 - ユーザーの要求から Outcome（達成したい状態）を抽出する
-- **anchor 主張を含む Issue**: Issue 本文で「既存ファイルの行番号・セクション見出し・関数名」を anchor として主張する場合は、起票前に [`references/body-authoring.md`](references/body-authoring.md) の Anchor Verification Preflight を参照し、以下のスクリプトで一括検証してから起票する:
+- **anchor 主張を含む Issue**: Issue 本文で「既存ファイルの行番号・セクション見出し・関数名」を anchor として主張する場合は、起票前に [`references/body-authoring.md`](references/body-authoring.md) の Anchor Verification Preflight を参照し、固定文字列の `git grep` で anchor ごとに検証してから起票する（専用 wrapper script は持たない。#50）:
   ```bash
-  # anchor_list.txt に 1 行 1 anchor を記載（# コメント行は無視される）
-  .claude/skills/create-issue/scripts/verify-anchors.sh anchor_list.txt
+  git grep -nF -- "<anchor文字列>" <対象ファイルパス>
   ```
-  スクリプトは `git grep -lF -- <anchor>` を配列形式で実行し、PASS/FAIL を出力する。exit 1 が返った場合は起票しない
+  0 hit の anchor は、新規追加と明記するか anchor 主張を修正する。検証できない anchor を含めたまま起票しない
 - **follow-up Issue の場合（post-merge-cleanup / issue-refinement-loop から委譲）**: [`references/body-authoring.md`](references/body-authoring.md) の「ワークフロー不具合検出時の修正方針起案ガイダンス」セクションを参照し、決定論的修正と workaround を明示比較してから Outcome を起案する
 - 実装案だけでなく、運用で解決できる案も比較し、採用方針を明示する
 - 要件が曖昧な場合は Issue を確定させず、`## Notes for Reviewer` に記載するか blocking stop として扱う（推測で埋めない）
 - **タイトル prefix と AC の性質のセルフチェック**: `research` / `調査` を名乗る Issue に `src/` や `tests/` の実装変更が AC として入っていないか確認する。入っている場合は `implementation` / `実装` に切り替えるか、Scope を分割して別 Issue にする
-- 不確実性が残る場合は `phase/research` / `state/needs-human` ラベルの付与要否を先に決める。implementation に昇格できる場合は `docs/dev/workflow.md` の implementation issue canonical contract を正本とし、`実装:` prefix + `phase/implementation` の consumer ready contract に沿って起票する（`state/queued` は deprecated のため付与しない）
+- 不確実性が残る場合は `phase/research` / `state/needs-human` ラベルの付与要否を先に決める。implementation に昇格できる場合は `.github/ISSUE_TEMPLATE/implementation.yml` の implementation issue contract（`docs/dev/workflow.md` は未移管。#50）を正本とし、`実装:` prefix + `phase/implementation` の consumer ready contract に沿って起票する（`state/queued` は deprecated のため付与しない）
 
 #### desired destination handoff guard（委譲先ガード）
 
@@ -137,7 +136,7 @@ AC は検証可能な記述にし、実装か調査かを自分で確認する�
 
 #### VC 作成の決定論的ルール
 
-> **VC_SINGLE_COMMAND_GUARDRAIL**: VC は shell control operator（&&, ||, |, ;, &）を使わない単一コマンドで記述する。詳細は [`references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL`](references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL) を参照。違反検出は `uv run python3 .claude/skills/create-issue/scripts/verify_vc_single_command_guardrail_docs.py --strict` で行う。
+> **VC_SINGLE_COMMAND_GUARDRAIL**: VC は shell control operator（&&, ||, |, ;, &）を使わない単一コマンドで記述する。詳細は [`references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL`](references/body-authoring.md#VC_SINGLE_COMMAND_GUARDRAIL) を参照。違反検出は起票時の `validate_issue_body.py`（`compound_shell` = error）と着手前の `issue-contract-review/scripts/vc_contract_syntax.py` が行う（旧 docs lint は未移管。#50 で deferred）。
 
 - **削除確認パターン**: `rg --files-without-match --fixed-strings -- "<literal>" <file>` を使い、literal が file に存在しなければ exit 0 を成功とする（`--` は option parsing の終端で、`--settings` のように `-` で始まる literal を pattern として扱うために必須。1 command = 1 concrete file、`-q` は併用しない。`-c` / `--count` は no-match で exit 1 を返すため削除確認に使わない。`grep ... && echo PASS || echo FAIL` 形式も禁止。詳細は [`references/body-authoring.md`](references/body-authoring.md) の「削除確認パターン」を参照）
 - **marker 単位の独立確認**: 1 つの AC に複数の marker を使う場合、marker ごとにヒット件数を個別検証
@@ -567,15 +566,13 @@ script 正本経由のみで復旧すること（audit trail・idempotency の�
 - サブ Issue を起票・追加するとき、親 Issue 本文にタスクが残っていれば停止して移行案を提示する
 - Outcome が動作状態のみで成果物形式を欠く Issue を確定させない（Outcome Quality Guard 参照）
 - 未解決の追加調査が残る状態で、「確認する」「決める」だけを Outcome にした Issue を起票しない
-- **scripts entrypoint 経由統一**: anchor preflight は必ず `.claude/skills/create-issue/scripts/verify-anchors.sh` 経由で実行する
-- **inline `gh` / `jq` / `grep` / `awk` / heredoc 使用禁止**: anchor preflight での inline bash パイプラインは使用しない
-- **スクリプトは配列形式の `git grep` のみ実行**: `eval` 禁止、入力 anchor は `^[A-Za-z0-9._/: #-]+$` で validation 済み
+- **anchor preflight は単一の `git grep -nF -- "<anchor>" <path>` のみ**: `eval` / pipeline / heredoc / `gh` / `jq` / `awk` を組み合わせない。anchor 文字列は fixed string としてのみ渡す（`verify-anchors.sh` は移管しない。#50）
 
 ## visual_impact フィールド（canonical schema owner）
 
 Issue 本文が `visual_impact` 関連フィールド（`VISUAL_IMPACT_DECLARATION_V1` 等）に触れる場合、
-単一の canonical schema ファイル [`docs/dev/visual-impact.schema.json`](../../../docs/dev/visual-impact.schema.json)
-を参照する（詳細は [`references/body-authoring.md`](references/body-authoring.md) の該当節）。
+単一の canonical schema ファイル `docs/dev/visual-impact.schema.json`（この repo には未移管。#50 で deferred。移管されるまで
+`visual_impact` を含む Issue は schema を推測で補わず blocking stop として扱う）を参照する（詳細は [`references/body-authoring.md`](references/body-authoring.md) の該当節）。
 本 SKILL.md では独自にキー集合・enum を再定義しない（Issue #2019 AC26）。
 
 ## Related（関連資料）
@@ -583,7 +580,6 @@ Issue 本文が `visual_impact` 関連フィールド（`VISUAL_IMPACT_DECLARATI
 - [`references/body-authoring.md`](references/body-authoring.md) — 本文編集の共通参照（schema 定義・VC 作成ガイダンス・Anchor Verification・Blocker 検出）
 - `.claude/skills/review-issue/SKILL.md` — Issue 品質レビュー
 - `.claude/skills/issue-contract-review/SKILL.md` — 着手前 contract 確認
-- `.claude/skills/ssot-discovery/SKILL.md` — 関連 SSOT の探索
 - `.github/ISSUE_TEMPLATE/implementation.yml` / `parent.yml` / `research.yml` — Issue Forms 正本
 
 ## 出力制約 (OUTPUT_BUDGET_V1)
