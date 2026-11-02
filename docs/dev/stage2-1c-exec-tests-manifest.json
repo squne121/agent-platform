@@ -287,12 +287,6 @@
       "rerun_condition": "I-4 migrates run_contract_review_once"
     },
     {
-      "script": "contract_review_result_parser.py",
-      "reason": "module-path constant of the contract_snapshot.publish trust chain; I-4 asset; lane refused before execution",
-      "owner_stage": "I-4",
-      "rerun_condition": "I-4 migrates the contract review parser"
-    },
-    {
       "script": "materialize_issue_scope_snapshot.py",
       "reason": "materializer of issue_scope_snapshot.materialize, lazily imported by the executor; drags controlled_git_change_exec (1614 lines). Decision (#31): keep deferred; the lane is refused before execution and the dormant handler fails closed without the module (negative test)",
       "owner_stage": "stage_2 (follow-up, needs human approval of a live git/scope lane)",

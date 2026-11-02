@@ -208,11 +208,6 @@
         "owner_stage": "I-4"
       },
       {
-        "script": "contract_review_result_parser.py",
-        "reason": "module-path constant of the contract_snapshot.publish trust chain in the executor; I-4 asset, lane refused before execution",
-        "owner_stage": "I-4"
-      },
-      {
         "script": "task_contextctl.py",
         "reason": "runtime subprocess target of publish_termination_report (best-effort refinement_approved signal); not migrated, the publisher degrades to deferred/ADAPTER_UNAVAILABLE (pinned in tests/stage2/test_stage2_2_comment_lane.py)",
         "owner_stage": "stage_3"

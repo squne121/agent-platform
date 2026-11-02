@@ -156,10 +156,13 @@ def _lane_numbers(path: Path) -> tuple[int, int, int]:
 
 def test_ac3_every_lane_manifest_is_accounted_for_and_totals_match() -> None:
     lanes = MANIFEST["lane_totals"]["lanes"]
+    # Only Stage 0 / 1a / 1b / 2 manifests are in the Stage 2 completion aggregate. I-4 and later
+    # manifests (e.g. i4-1-...) carry their own counts and CI lanes and are intentionally excluded.
+    stage_prefixes = ("stage0-", "stage1a-", "stage1b", "stage2-")
     on_disk = {
         p.name
         for p in DEV.glob("*manifest.json")
-        if p.name not in {"refinement-migration-manifest.json", MANIFEST_PATH.name}
+        if p.name.startswith(stage_prefixes) and p.name != MANIFEST_PATH.name
     }
     assert on_disk == set(lanes), sorted(on_disk ^ set(lanes))
     total = [0, 0, 0]
