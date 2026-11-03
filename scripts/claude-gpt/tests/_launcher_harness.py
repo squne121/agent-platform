@@ -42,6 +42,14 @@ _FAKE_SERVER_SOURCE = textwrap.dedent(
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):  # noqa: N802
+            if self.path == "/v1/models" and config.get("require_key") is not None:
+                if self.headers.get("Authorization") != "Bearer " + config["require_key"]:
+                    body = b'{"error":"unauthorized"}'
+                    self.send_response(401)
+                    self.send_header("Content-Length", str(len(body)))
+                    self.end_headers()
+                    self.wfile.write(body)
+                    return
             if self.path == "/v1/models":
                 status = config["models_status"]
                 if config.get("raw_models_body") is not None:
@@ -84,7 +92,11 @@ class FakeServer:
     """Separate-process fake claude-code-proxy bound to a real loopback TCP port."""
 
     def __init__(
-        self, models=REQUIRED_MODELS, models_status: int = 200, raw_models_body: str | None = None
+        self,
+        models=REQUIRED_MODELS,
+        models_status: int = 200,
+        raw_models_body: str | None = None,
+        require_key: str | None = None,
     ):
         self.proc = subprocess.Popen(
             [
@@ -96,6 +108,7 @@ class FakeServer:
                         "models": list(models),
                         "models_status": models_status,
                         "raw_models_body": raw_models_body,
+                        "require_key": require_key,
                     }
                 ),
             ],

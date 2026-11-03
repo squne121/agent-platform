@@ -59,12 +59,19 @@ shell 3 本は source から **byte-identical** で移す(本移管では一切�
 `launch.sh` は、既に起動している loopback `claude-code-proxy` へ Claude Code を向けるための env だけを追加し、
 指定された `claude` を `exec` する薄い wrapper である。
 
-- 追加する env(全て非 secret。`ANTHROPIC_AUTH_TOKEN` は固定 placeholder `unused`):
+- 追加する env(`ANTHROPIC_AUTH_TOKEN` は既定で placeholder `unused`。caller が `CLAUDE_GPT_PROXY_API_KEY` を設定した場合のみその値を使い、`--dry-run` 等の出力では `<redacted:...>` になる):
   `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` / `ANTHROPIC_SMALL_FAST_MODEL` /
   `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` / `CLAUDE_CODE_AUTO_MODE_SERVER=0` /
   `CLAUDE_CODE_AUTO_COMPACT_WINDOW` / `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` /
   `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1` / `LOOP_TASK_CONTEXT_RUNTIME_VARIANT=claude_gpt` /
   `CLAUDE_GPT_CLAUDE_BIN`。
+- ローカル proxy client key(Issue #64): CLIProxyAPI のように `/v1/models` に認証を要求する proxy では、
+  `CLAUDE_GPT_PROXY_API_KEY` を caller が export する。launcher はこれを `ANTHROPIC_AUTH_TOKEN` と
+  `/v1/models` 診断の `Authorization: Bearer`(curl config を stdin で渡し argv に出さない)にだけ使い、
+  出力・JSON・ログへは出さない。許可文字は `[A-Za-z0-9._~+/=-]`、それ以外は exit 2。未設定なら従来どおり
+  認証ヘッダー無し。誤 key / 欠落 key は HTTP 401 → exit 7。
+- model 上書き: `CLAUDE_GPT_MODEL_{MAIN,SMALL_FAST,OPUS,SONNET,HAIKU}` / `CLAUDE_GPT_AUTO_COMPACT_WINDOW` で
+  明示選択できる(未設定なら下記の既定値)。
 - model alias(`gpt-6-sol[1m]` / `gpt-6-luna[1m]` の役割割当)は source の既存値を**そのまま保持**しているだけで、
   本文書は model の推奨をしない。
 - しないこと: caller の cwd 変更、HOME / XDG / `CLAUDE_CONFIG_DIR` / `GH_CONFIG_DIR` / `SSH_AUTH_SOCK` の隔離・変更、

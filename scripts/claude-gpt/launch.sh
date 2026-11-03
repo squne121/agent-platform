@@ -26,6 +26,10 @@
 #   --claude-bin   claude 実行ファイルの絶対パスを明示する（CLAUDE_GPT_CLAUDE_BIN と同義）。
 #   --             以降は claude 本体へそのまま渡す追加引数（"$@" のまま保持する）。
 #
+# ローカル proxy client key: `CLAUDE_GPT_PROXY_API_KEY`（任意。CLIProxyAPI 等が要求する場合。
+# 未設定なら従来の placeholder・認証ヘッダー無し）。値は出力しない。
+# モデル: CLAUDE_GPT_MODEL_{MAIN,SMALL_FAST,OPUS,SONNET,HAIKU} / CLAUDE_GPT_AUTO_COMPACT_WINDOW で上書き可。
+#
 # 接続先: `ANTHROPIC_BASE_URL`（未設定なら upstream 既定の http://127.0.0.1:18765）。
 # loopback host のみ受け付ける。
 #
@@ -102,6 +106,13 @@ done
 # --- 以降 "$@" は `--` の後ろに来た claude 追加引数そのもの（文字列へ結合して再分割しない）。
 #     明示した permission mode も含め、launcher は判定・注入せずそのまま渡す。 ---
 
+case "${CLAUDE_GPT_PROXY_API_KEY:-}" in
+  *[!A-Za-z0-9._~+/=-]*)
+    printf '{"schema":"CLAUDE_GPT_LAUNCH_RESULT_V1","status":"blocked","reason":"invalid_proxy_api_key_format","hint":"CLAUDE_GPT_PROXY_API_KEY may only contain [A-Za-z0-9._~+/=-]"}\n' >&2
+    exit 2
+    ;;
+esac
+
 if [ "$DRY_RUN" = "true" ]; then
   printf '{"schema":"CLAUDE_GPT_LAUNCH_RESULT_V1","status":"dry_run","base_url":%s,"launch_env":%s,"isolation":"none","generated_settings":false}\n' \
     "$(claude_gpt_json_escape "$BASE_URL")" "$(claude_gpt_launch_env_json "$BASE_URL" "$(claude_gpt_resolve_claude_bin)")"
@@ -146,7 +157,8 @@ fi
 #
 # `CCP_AUTO_REVIEW_MODEL` は proxy **server** 側の設定であり、client launcher は設定しない。 ---
 export ANTHROPIC_BASE_URL="$BASE_URL"
-export ANTHROPIC_AUTH_TOKEN="$CLAUDE_GPT_AUTH_TOKEN_PLACEHOLDER"
+ANTHROPIC_AUTH_TOKEN=$(claude_gpt_effective_auth_token)
+export ANTHROPIC_AUTH_TOKEN
 export ANTHROPIC_MODEL="$CLAUDE_GPT_MODEL_MAIN"
 export ANTHROPIC_SMALL_FAST_MODEL="$CLAUDE_GPT_MODEL_SMALL_FAST"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="$CLAUDE_GPT_MODEL_OPUS"

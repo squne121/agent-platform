@@ -27,20 +27,32 @@ CLAUDE_GPT_DEFAULT_BASE_URL="http://127.0.0.1:18765"
 
 CLAUDE_GPT_AUTH_TOKEN_PLACEHOLDER="unused"
 
+# CLIProxyAPI 等、ローカル client key を要求する proxy 向け（Issue #64）。caller が
+# `CLAUDE_GPT_PROXY_API_KEY` を設定した場合のみ、その値を ANTHROPIC_AUTH_TOKEN と
+# `/v1/models` 診断の `Authorization: Bearer` に使う。未設定なら従来どおり placeholder・
+# 認証ヘッダー無し。値は stdout / stderr / JSON のどこにも出力しない（redact する）。
+claude_gpt_effective_auth_token() {
+  if [ -n "${CLAUDE_GPT_PROXY_API_KEY:-}" ]; then
+    printf '%s' "$CLAUDE_GPT_PROXY_API_KEY"
+  else
+    printf '%s' "$CLAUDE_GPT_AUTH_TOKEN_PLACEHOLDER"
+  fi
+}
+
 # `[1m]` suffix は upstream が案内する起動形式で、Claude Code 本体の local context
 # window policy を拡張する hint である。proxy は upstream（ChatGPT backend）へ転送する
 # 前にこの suffix を除去するため、実際に backend へ送られる model ID は base 名のまま。
-CLAUDE_GPT_MODEL_MAIN="gpt-6-sol[1m]"
-CLAUDE_GPT_MODEL_SMALL_FAST="gpt-6-luna[1m]"
+: "${CLAUDE_GPT_MODEL_MAIN:=gpt-6-sol[1m]}"
+: "${CLAUDE_GPT_MODEL_SMALL_FAST:=gpt-6-luna[1m]}"
 
 # role-based model routing。現行 launcher の値を維持する（配分変更は別 Issue の
 # explicit specification change であり、launcher 縮退と同時に比較しない。Issue #2925）。
-CLAUDE_GPT_MODEL_OPUS="gpt-6-sol[1m]"
-CLAUDE_GPT_MODEL_SONNET="gpt-6-sol[1m]"
-CLAUDE_GPT_MODEL_HAIKU="gpt-6-luna[1m]"
+: "${CLAUDE_GPT_MODEL_OPUS:=gpt-6-sol[1m]}"
+: "${CLAUDE_GPT_MODEL_SONNET:=gpt-6-sol[1m]}"
+: "${CLAUDE_GPT_MODEL_HAIKU:=gpt-6-luna[1m]}"
 
 # ChatGPT backend の実 context 上限（272k）に合わせた compaction window（upstream 案内値）。
-CLAUDE_GPT_AUTO_COMPACT_WINDOW="272000"
+: "${CLAUDE_GPT_AUTO_COMPACT_WINDOW:=272000}"
 
 # repair helper（repair_proxy.sh）が既定で pin する upstream proxy の version 補助情報。
 # 単独では起動可否を決めない（可否の authority は接続先 server の `/v1/models`）。
@@ -351,7 +363,19 @@ claude_gpt_probe_models() {
     return 1
   fi
   _cgt_pm_tmp=$(mktemp 2>/dev/null) || return 1
-  CGD_MODELS_HTTP_STATUS=$(curl -q --noproxy '*' -s --connect-timeout 2 -m 3 -o "$_cgt_pm_tmp" -w '%{http_code}' "${_cgt_pm_base}/v1/models" 2>/dev/null) || CGD_MODELS_HTTP_STATUS="000"
+  if [ -n "${CLAUDE_GPT_PROXY_API_KEY:-}" ]; then
+    # key は argv に載せず curl config を stdin で渡す（ps で見えない）。改行/引用符を含む key は拒否。
+    case "$CLAUDE_GPT_PROXY_API_KEY" in
+      *[!A-Za-z0-9._~+/=-]*)
+        rm -f "$_cgt_pm_tmp" 2>/dev/null
+        CGD_MODELS_HTTP_STATUS="000"
+        return 1
+        ;;
+    esac
+    CGD_MODELS_HTTP_STATUS=$(printf 'header = "Authorization: Bearer %s"\n' "$CLAUDE_GPT_PROXY_API_KEY" | curl -q --noproxy '*' -s --connect-timeout 2 -m 3 -K - -o "$_cgt_pm_tmp" -w '%{http_code}' "${_cgt_pm_base}/v1/models" 2>/dev/null) || CGD_MODELS_HTTP_STATUS="000"
+  else
+    CGD_MODELS_HTTP_STATUS=$(curl -q --noproxy '*' -s --connect-timeout 2 -m 3 -o "$_cgt_pm_tmp" -w '%{http_code}' "${_cgt_pm_base}/v1/models" 2>/dev/null) || CGD_MODELS_HTTP_STATUS="000"
+  fi
   [ -n "$CGD_MODELS_HTTP_STATUS" ] || CGD_MODELS_HTTP_STATUS="000"
   if [ "$CGD_MODELS_HTTP_STATUS" = "200" ]; then
     CGD_MODELS_JSON=$(cat "$_cgt_pm_tmp" 2>/dev/null)
@@ -442,7 +466,7 @@ claude_gpt_local_proxy_auxiliary_json() {
 claude_gpt_launch_env_json() {
   printf '{"ANTHROPIC_BASE_URL":%s,"ANTHROPIC_AUTH_TOKEN":%s,"ANTHROPIC_MODEL":%s,"ANTHROPIC_SMALL_FAST_MODEL":%s,"ANTHROPIC_DEFAULT_OPUS_MODEL":%s,"ANTHROPIC_DEFAULT_SONNET_MODEL":%s,"ANTHROPIC_DEFAULT_HAIKU_MODEL":%s,"CLAUDE_CODE_AUTO_MODE_SERVER":"0","CLAUDE_CODE_AUTO_COMPACT_WINDOW":%s,"CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC":"1","CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK":"1","LOOP_TASK_CONTEXT_RUNTIME_VARIANT":"claude_gpt","CLAUDE_GPT_CLAUDE_BIN":%s}' \
     "$(claude_gpt_json_escape "$1")" \
-    "$(claude_gpt_json_escape "$CLAUDE_GPT_AUTH_TOKEN_PLACEHOLDER")" \
+    "$(if [ -n "${CLAUDE_GPT_PROXY_API_KEY:-}" ]; then claude_gpt_json_escape "<redacted:CLAUDE_GPT_PROXY_API_KEY>"; else claude_gpt_json_escape "$CLAUDE_GPT_AUTH_TOKEN_PLACEHOLDER"; fi)" \
     "$(claude_gpt_json_escape "$CLAUDE_GPT_MODEL_MAIN")" \
     "$(claude_gpt_json_escape "$CLAUDE_GPT_MODEL_SMALL_FAST")" \
     "$(claude_gpt_json_escape "$CLAUDE_GPT_MODEL_OPUS")" \
