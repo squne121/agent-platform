@@ -353,3 +353,28 @@ jobs:
           set -eo pipefail
           uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
           ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
+
+  i4-4b2-vc-step4-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - name: ripgrep (required by the real baseline_vc_preflight rg VCs in the migrated tests; absence is a hard FAIL, never a skip)
+        run: sudo apt-get install -y ripgrep
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect counts, 0 skipped / xfailed / deselected (fake gh + temporary git repositories only; not a Final Gate / live E2E result)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4b2-vc-step4-tests-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 298 ran, 0 skipped" runner.out
+      - name: closure and negative controls (manifest parity, deferred owners, B1 non-overlap, closed Step 4 gate never reaches terminal approval)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
