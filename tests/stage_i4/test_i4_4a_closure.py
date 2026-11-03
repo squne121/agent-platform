@@ -85,6 +85,7 @@ def test_main_drift_policy_is_reused_not_duplicated() -> None:
     digest = hashlib.sha256(json.dumps(pinned, sort_keys=True).encode()).hexdigest()
     assert digest == m["source_router_ast_sha256"]
     assert _defs(ROOT / ROUTER) == {}, "router must import, not re-define, the drift policy"
+    saved_path = list(sys.path)
     sys.path.insert(0, str(ROOT / IRL / "scripts"))
     try:
         import route_loop_verdict_v2 as router
@@ -92,7 +93,7 @@ def test_main_drift_policy_is_reused_not_duplicated() -> None:
         # the router import puts scripts/agent-ops on sys.path; resolve the policy only after it
         main_drift_policy = importlib.import_module("main_drift_policy")
     finally:
-        sys.path.pop(0)
+        sys.path[:] = saved_path
     assert router.classify_main_drift is main_drift_policy.classify_main_drift
     assert router.MainDriftDecision is main_drift_policy.MainDriftDecision
 
@@ -113,13 +114,25 @@ def test_import_closure_records_unmigrated_dependencies() -> None:
     closure = closure["import_closure"]
     imports = {e["module"]: e for e in closure["deferred_imports"]}
     refs = {e["script"]: e for e in closure["deferred_script_refs"]}
-    assert "I-4-4C" in imports["pr_head_replay_publish_exec"]["owner_stage"]
-    assert "I-4-4C" in refs["implementation_landed_evidence.py"]["owner_stage"]
-    for rel in (
-        "scripts/agent-ops/pr_head_replay_publish_exec.py",
-        f"{IRL}/scripts/implementation_landed_evidence.py",
+    # (file, deferred registry, key): while unmigrated the dependency must be recorded for
+    # I-4-4C; once it is migrated the file may exist, but the deferred entry must be gone.
+    for rel, registry, key in (
+        (
+            "scripts/agent-ops/pr_head_replay_publish_exec.py",
+            imports,
+            "pr_head_replay_publish_exec",
+        ),
+        (
+            f"{IRL}/scripts/implementation_landed_evidence.py",
+            refs,
+            "implementation_landed_evidence.py",
+        ),
     ):
-        assert not (ROOT / rel).exists(), f"{rel} is declared unmigrated"
+        if (ROOT / rel).exists():
+            assert key not in registry, f"{key} is migrated; remove the stale deferred entry"
+        else:
+            assert "I-4-4C" in registry[key]["owner_stage"], key
+            assert registry[key]["reason"], key
 
 
 def test_deferred_source_tests_are_recorded_not_silenced() -> None:
@@ -166,9 +179,10 @@ def test_fixture_only_evidence_boundary() -> None:
 
 @pytest.mark.parametrize("name", sorted(POLICY_NAMES - {"_MAIN_DRIFT_SHA"}))
 def test_router_exports_policy_names(name: str) -> None:
+    saved_path = list(sys.path)
     sys.path.insert(0, str(ROOT / IRL / "scripts"))
     try:
         import route_loop_verdict_v2 as router
     finally:
-        sys.path.pop(0)
+        sys.path[:] = saved_path
     assert hasattr(router, name)
