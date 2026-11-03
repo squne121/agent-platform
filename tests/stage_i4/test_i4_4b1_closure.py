@@ -190,18 +190,20 @@ def test_reviewer_approve_alone_is_not_terminal_approval(adj: Any) -> None:
 
 
 def test_semantic_ambiguity_without_the_merge_tree_oracle_fails_closed(
-    adj: Any, tmp_path: Path
+    adj: Any, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """`pr_head_replay_publish_exec.py` (the real oracle) is unmigrated (I-4-4C): fail closed.
+    """With the merge-tree oracle unavailable, semantic ambiguity must fail closed.
 
     This is the migrated-stack counterpart of the source test
     `test_terminal_gate_resolves_semantic_ambiguity`, which needs the real oracle.  It proves
-    the fail-closed branch only; it is not evidence that the real oracle works.
+    the fail-closed branch only; it is not evidence that the real oracle works.  Unavailability
+    is simulated (import blocked for this test only), so a future I-4-4C migration that adds the
+    real oracle file does not break this test.  The router mutates `sys.path`; it is restored.
     """
+    monkeypatch.setitem(sys.modules, "pr_head_replay_publish_exec", None)
+    monkeypatch.setattr(sys, "path", list(sys.path))
     t = _load(TERMINAL_TESTS, "terminal_tests_i4_4b1_closure")
     try:
-        oracle = ROOT / "scripts/agent-ops/pr_head_replay_publish_exec.py"
-        assert not oracle.exists(), "oracle migrated: replace this test with the source test"
 
         def git(repo: Path, *args: str) -> str:
             return subprocess.run(
