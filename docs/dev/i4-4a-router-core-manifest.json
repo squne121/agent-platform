@@ -82,7 +82,7 @@
     },
     ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": {
       "source_sha256": "edac9e1a8ac94762dad9a273acaaa0023c2c42bb09735ce89babbb1b83b227e1",
-      "moved_sha256": "ca1f2bd158bf8f4a2cfa94e9732caa5575180097fffa10085d44b34b9de32053",
+      "moved_sha256": "d56dd66ace2a2f7d69cb5fa7f03a7ded62ca6359361a2214343da1f31a0d229d",
       "verbatim": false,
       "intentional_diff": "removed test_given_normal_step5_when_documented_then_live_main_drift_facts_are_built_before_routing (reads unmigrated steps/step-5-mergeability-handling.md; listed in deferred_source_tests) and its STEP5_MERGEABILITY constant; the two real-git oracle tests take an `oracle_stand_in` fixture (a test-local pr_head_replay_publish_exec exposing compute_semantic_ambiguity via a real `git merge-tree --write-tree`, see adapted_source_tests); added 4 I-4-4A tests (oracle unavailable fail-closed, explicit ambiguity needs no oracle, fresh evidence needs no oracle, landing-evidence producer unavailable fail-closed)."
     },

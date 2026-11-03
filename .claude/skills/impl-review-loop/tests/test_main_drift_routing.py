@@ -236,8 +236,11 @@ class _OracleStandIn:
     a parity test of the source oracle (owner: I-4-4C).
     """
 
+    calls: list[tuple[str, str]] = []
+
     @staticmethod
     def compute_semantic_ambiguity(base_sha, candidate_sha, *, cwd, runner=None):
+        _OracleStandIn.calls.append((base_sha, candidate_sha))
         proc = subprocess.run(
             ["git", "merge-tree", "--write-tree", base_sha, candidate_sha],
             cwd=cwd,
@@ -252,6 +255,7 @@ class _OracleStandIn:
 def oracle_stand_in(monkeypatch):
     import types
 
+    _OracleStandIn.calls.clear()
     mod = types.ModuleType("pr_head_replay_publish_exec")
     mod.compute_semantic_ambiguity = _OracleStandIn.compute_semantic_ambiguity
     monkeypatch.setitem(sys.modules, "pr_head_replay_publish_exec", mod)
@@ -325,6 +329,8 @@ def test_given_real_conflicting_git_state_when_wrapper_resolves_ambiguity_then_i
     assert decision.route == ROUTE_FAIL_CLOSED
     assert decision.reason_code == "semantic_ambiguity"
     assert decision.selected_action is None
+    # the wrapper must hand the oracle (evidence base, current base) in that order
+    assert _OracleStandIn.calls == [(candidate_sha, current_sha)]
 
 
 def test_given_real_nonconflicting_git_state_when_wrapper_resolves_ambiguity_then_reconciliation_proceeds(tmp_path, oracle_stand_in):
@@ -429,6 +435,7 @@ def test_given_unmigrated_landing_evidence_producer_when_disposition_resolved_th
     disposition = resolve_pre_step1_landing_disposition({}, repo="squne121/agent-platform", issue_number=1)
     assert disposition["disposition"] == "reconciliation_required"
     assert disposition["reason_codes"] == ["implementation_landed_evidence_module_unavailable"]
+    assert disposition["candidate"] is None
     action = resolve_pre_step1_data_plane_action(disposition)
     assert action["start_data_plane"] is False
     assert action["action"] == "suppress_worker_worktree_new_pr"
