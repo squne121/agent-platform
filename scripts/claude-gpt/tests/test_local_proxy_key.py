@@ -33,6 +33,7 @@ def test_anonymous_models_probe_is_401_exit_7_without_key(tmp_path):
         proc = _check_only(tmp_path, srv)
     assert proc.returncode == 7
     assert "401" in proc.stdout + proc.stderr
+    assert "CLAUDE_GPT_PROXY_API_KEY" in proc.stdout + proc.stderr
 
 
 def test_valid_key_check_only_succeeds_and_never_prints_key(tmp_path):
@@ -65,6 +66,7 @@ def test_key_is_exported_to_claude_as_auth_token(tmp_path):
         )
     assert proc.returncode == 0, proc.stderr
     assert observed["env"]["ANTHROPIC_AUTH_TOKEN"] == DUMMY_KEY
+    assert "CLAUDE_GPT_PROXY_API_KEY" not in observed["env"]
     assert DUMMY_KEY not in proc.stdout + proc.stderr
 
 

@@ -490,7 +490,7 @@ claude_gpt_server_failure_json() {
     models_http_error)
       _cgt_sf_reason="connected_server_models_unavailable"
       _cgt_sf_cause="connected_server_models_endpoint_not_ok"
-      _cgt_sf_hint="the server at ANTHROPIC_BASE_URL answered but /v1/models was not HTTP 200; confirm that the endpoint is a claude-code-proxy"
+      _cgt_sf_hint="the server at ANTHROPIC_BASE_URL answered but /v1/models was not HTTP 200; if the status is 401/403 check that CLAUDE_GPT_PROXY_API_KEY is set to the proxy's local client key, otherwise confirm that the endpoint is a supported proxy"
       ;;
     non_loopback)
       _cgt_sf_reason="connected_server_not_loopback"
