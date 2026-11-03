@@ -167,13 +167,13 @@
   ],
   "live_acceptance": {
     "repo": "squne121/agent-platform",
-    "code_head": "76c7b8dac25964994b103805e10eea1ba4c32cf3",
+    "code_head": "1d7de7b75a7d060df48c992a9df1140f71220da9",
     "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
-    "verification_issue": 73,
-    "verification_issue_url": "https://github.com/squne121/agent-platform/issues/73",
-    "verification_issue_creation": "create_issue_txn.py without labels. Earlier disposable issues 70-72 were created in the same session and are kept as unused/intermediate evidence (70: body readback failed because the draft held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command; 72: intermediate acceptance, see intermediate_acceptance)",
-    "comment_id": 6596146458,
-    "comment_url": "https://github.com/squne121/agent-platform/issues/73#issuecomment-6596146458",
+    "verification_issue": 74,
+    "verification_issue_url": "https://github.com/squne121/agent-platform/issues/74",
+    "verification_issue_creation": "create_issue_txn.py without labels. Earlier disposable issues 70-73 were created in the same session and are kept as unused/intermediate evidence (70: body readback failed because the draft held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command; 72, 73: earlier acceptance runs, see intermediate_acceptance)",
+    "comment_id": 6596326846,
+    "comment_url": "https://github.com/squne121/agent-platform/issues/74#issuecomment-6596326846",
     "author": {
       "login": "squne121",
       "id": 63350259,
@@ -182,17 +182,17 @@
     },
     "post_status_first_run": "posted",
     "post_patch_observed": true,
-    "created_at": "2026-11-03T05:22:19Z",
-    "updated_at": "2026-11-03T05:22:21Z",
-    "comment_body_sha256": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1",
+    "created_at": "2026-11-03T05:36:19Z",
+    "updated_at": "2026-11-03T05:36:20Z",
+    "comment_body_sha256": "sha256:2bdcaaf1407b3beb9a935836b5658a41f067aa967f90b0b984e3f1832e83bd06",
     "comment_body_bytes": 4944,
-    "issue_body_sha256": "sha256:b59cbfc14dd3430583d52287d07424b322259de2a05ca2ca5f39fb18478bc744",
+    "issue_body_sha256": "sha256:736508595471d5f3074316997a16aa9c5537a7b3ada2a3b60f80fda0619d7e29",
     "fingerprint": {
-      "issue_number": 73,
+      "issue_number": 74,
       "contract_source_kind": "issue_comment",
-      "contract_source_id": "6596146458",
-      "contract_body_sha256": "sha256:b59cbfc14dd3430583d52287d07424b322259de2a05ca2ca5f39fb18478bc744",
-      "allowed_paths_normalized_sha256": "f375df85a1237637efc2718493df24e6162001eed231d6c048ec933268a4c74e",
+      "contract_source_id": "6596326846",
+      "contract_body_sha256": "sha256:736508595471d5f3074316997a16aa9c5537a7b3ada2a3b60f80fda0619d7e29",
+      "allowed_paths_normalized_sha256": "00e01577e43e029fae85c71f497d6a4e1b078e67c85ba51ee1f928107bce3809",
       "base_ref": "main",
       "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
     },
@@ -208,10 +208,10 @@
       "post_status": "not_requested",
       "snapshot_count_before": 1,
       "snapshot_count_after": 1,
-      "comment_updated_at_before": "2026-11-03T05:22:21Z",
-      "comment_updated_at_after": "2026-11-03T05:22:21Z",
-      "comment_body_sha256_before": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1",
-      "comment_body_sha256_after": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1"
+      "comment_updated_at_before": "2026-11-03T05:36:20Z",
+      "comment_updated_at_after": "2026-11-03T05:36:20Z",
+      "comment_body_sha256_before": "sha256:2bdcaaf1407b3beb9a935836b5658a41f067aa967f90b0b984e3f1832e83bd06",
+      "comment_body_sha256_after": "sha256:2bdcaaf1407b3beb9a935836b5658a41f067aa967f90b0b984e3f1832e83bd06"
     },
     "note": "Intermediate post-fix acceptance at code_head a9050179 (before the size/depth/surrogate bound was added after independent review). Superseded by the final acceptance.",
     "transport_findings": {
@@ -225,54 +225,106 @@
       "limit": "real control characters cannot be tested through a normal contract because VC source text cannot carry them; that path is covered by the focused live test and offline tests with a sanitizer model fitted to the measured behaviour"
     },
     "intermediate_acceptance": {
-      "repo": "squne121/agent-platform",
-      "code_head": "a9050179b33baf739632fc99f9b9c2bac977c106",
-      "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
-      "verification_issue": 72,
-      "verification_issue_url": "https://github.com/squne121/agent-platform/issues/72",
-      "verification_issue_creation": "create_issue_txn.py without labels; issues 70 and 71 were created earlier in the same session and left as unused evidence (70: body readback failed because the draft body held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command)",
-      "comment_id": 6595906802,
-      "comment_url": "https://github.com/squne121/agent-platform/issues/72#issuecomment-6595906802",
-      "author": {
-        "login": "squne121",
-        "id": 63350259,
-        "type": "User",
-        "association": "OWNER"
+      "candidate_before_dry_build_fix": {
+        "repo": "squne121/agent-platform",
+        "code_head": "76c7b8dac25964994b103805e10eea1ba4c32cf3",
+        "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
+        "verification_issue": 73,
+        "verification_issue_url": "https://github.com/squne121/agent-platform/issues/73",
+        "verification_issue_creation": "create_issue_txn.py without labels. Earlier disposable issues 70-72 were created in the same session and are kept as unused/intermediate evidence (70: body readback failed because the draft held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command; 72: intermediate acceptance, see intermediate_acceptance)",
+        "comment_id": 6596146458,
+        "comment_url": "https://github.com/squne121/agent-platform/issues/73#issuecomment-6596146458",
+        "author": {
+          "login": "squne121",
+          "id": 63350259,
+          "type": "User",
+          "association": "OWNER"
+        },
+        "post_status_first_run": "posted",
+        "post_patch_observed": true,
+        "created_at": "2026-11-03T05:22:19Z",
+        "updated_at": "2026-11-03T05:22:21Z",
+        "comment_body_sha256": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1",
+        "comment_body_bytes": 4944,
+        "issue_body_sha256": "sha256:b59cbfc14dd3430583d52287d07424b322259de2a05ca2ca5f39fb18478bc744",
+        "fingerprint": {
+          "issue_number": 73,
+          "contract_source_kind": "issue_comment",
+          "contract_source_id": "6596146458",
+          "contract_body_sha256": "sha256:b59cbfc14dd3430583d52287d07424b322259de2a05ca2ca5f39fb18478bc744",
+          "allowed_paths_normalized_sha256": "f375df85a1237637efc2718493df24e6162001eed231d6c048ec933268a4c74e",
+          "base_ref": "main",
+          "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
+        },
+        "canonical_parser": {
+          "status": "go",
+          "trusted": true,
+          "authoritative_go": true
+        },
+        "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
+        "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
+        "rerun": {
+          "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+          "post_status": "not_requested",
+          "snapshot_count_before": 1,
+          "snapshot_count_after": 1,
+          "comment_updated_at_before": "2026-11-03T05:22:21Z",
+          "comment_updated_at_after": "2026-11-03T05:22:21Z",
+          "comment_body_sha256_before": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1",
+          "comment_body_sha256_after": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1"
+        },
+        "note": "Final-code candidate at code_head 76c7b8da (before the dry build used a worst-case fingerprint after re-review). Superseded."
       },
-      "post_status_first_run": "posted",
-      "post_patch_observed": true,
-      "created_at": "2026-11-03T05:03:48Z",
-      "updated_at": "2026-11-03T05:03:49Z",
-      "comment_body_sha256": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
-      "comment_body_bytes": 4944,
-      "issue_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
-      "fingerprint": {
-        "issue_number": 72,
-        "contract_source_kind": "issue_comment",
-        "contract_source_id": "6595906802",
-        "contract_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
-        "allowed_paths_normalized_sha256": "8807a2bd8433069db29e1d50d2495e5b12079399ebe1b0ae9708c3449259153f",
-        "base_ref": "main",
-        "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
-      },
-      "canonical_parser": {
-        "status": "go",
-        "trusted": true,
-        "authoritative_go": true
-      },
-      "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
-      "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
-      "rerun": {
-        "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
-        "post_status": "not_requested",
-        "snapshot_count_before": 1,
-        "snapshot_count_after": 1,
-        "comment_updated_at_before": "2026-11-03T05:03:49Z",
-        "comment_updated_at_after": "2026-11-03T05:03:49Z",
-        "comment_body_sha256_before": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
-        "comment_body_sha256_after": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f"
-      },
-      "note": "Intermediate post-fix acceptance at code_head a9050179 (before the size/depth/surrogate bound was added after independent review). Superseded by the final acceptance."
+      "earlier": {
+        "repo": "squne121/agent-platform",
+        "code_head": "a9050179b33baf739632fc99f9b9c2bac977c106",
+        "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
+        "verification_issue": 72,
+        "verification_issue_url": "https://github.com/squne121/agent-platform/issues/72",
+        "verification_issue_creation": "create_issue_txn.py without labels; issues 70 and 71 were created earlier in the same session and left as unused evidence (70: body readback failed because the draft body held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command)",
+        "comment_id": 6595906802,
+        "comment_url": "https://github.com/squne121/agent-platform/issues/72#issuecomment-6595906802",
+        "author": {
+          "login": "squne121",
+          "id": 63350259,
+          "type": "User",
+          "association": "OWNER"
+        },
+        "post_status_first_run": "posted",
+        "post_patch_observed": true,
+        "created_at": "2026-11-03T05:03:48Z",
+        "updated_at": "2026-11-03T05:03:49Z",
+        "comment_body_sha256": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
+        "comment_body_bytes": 4944,
+        "issue_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
+        "fingerprint": {
+          "issue_number": 72,
+          "contract_source_kind": "issue_comment",
+          "contract_source_id": "6595906802",
+          "contract_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
+          "allowed_paths_normalized_sha256": "8807a2bd8433069db29e1d50d2495e5b12079399ebe1b0ae9708c3449259153f",
+          "base_ref": "main",
+          "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
+        },
+        "canonical_parser": {
+          "status": "go",
+          "trusted": true,
+          "authoritative_go": true
+        },
+        "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
+        "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
+        "rerun": {
+          "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+          "post_status": "not_requested",
+          "snapshot_count_before": 1,
+          "snapshot_count_after": 1,
+          "comment_updated_at_before": "2026-11-03T05:03:49Z",
+          "comment_updated_at_after": "2026-11-03T05:03:49Z",
+          "comment_body_sha256_before": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
+          "comment_body_sha256_after": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f"
+        },
+        "note": "Intermediate post-fix acceptance at code_head a9050179 (before the size/depth/surrogate bound was added after independent review). Superseded by the final acceptance."
+      }
     },
     "pre_fix_acceptance": {
       "repo": "squne121/agent-platform",
