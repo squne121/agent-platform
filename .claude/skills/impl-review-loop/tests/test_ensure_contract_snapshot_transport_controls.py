@@ -237,12 +237,12 @@ def test_size_is_measured_on_the_final_transport_representation():
     classifications = [{"ac": "AC1", "decision": "pass", "stdout_head": verbose}]
     original = json.dumps(classifications, ensure_ascii=False, separators=(",", ":"))
     assert len(original) <= ecs._MAX_CLASSIFICATIONS_TRANSPORT_CHARS
-    assert len(ecs._json_compact(classifications)) > ecs._MAX_CLASSIFICATIONS_TRANSPORT_CHARS
+    assert len(ecs._json_compact_measure(classifications)) > ecs._MAX_CLASSIFICATIONS_TRANSPORT_CHARS
     out, meta = ecs.compact_vc_preflight_classifications(classifications)
     assert meta["compact"] is True and meta["truncated"] is True
     assert out == [{"ac": "AC1", "decision": "pass"}]
     assert meta["original_payload_sha256"] == ecs.sha256_of(original)
-    assert len(ecs._json_compact(out)) <= ecs._MAX_CLASSIFICATIONS_TRANSPORT_CHARS
+    assert len(ecs._json_compact_measure(out)) <= ecs._MAX_CLASSIFICATIONS_TRANSPORT_CHARS
     body = build(classifications)
     assert gh_readback(body) == body
     assert parse_received(body)["checks"]["vc_preflight"]["classifications"] == out
@@ -261,3 +261,30 @@ def test_unrepresentable_value_stops_before_any_post(monkeypatch):
     with pytest.raises(ValueError):
         build([{"ac": "AC1", "raw_command": "x\x1by"}])
     assert calls == []
+
+
+def test_nested_key_with_real_control_in_authority_field_fails_closed():
+    with pytest.raises(ValueError, match="unrepresentable"):
+        build([{"ac": "AC1", "nested": {"\x1b": 1}}])
+
+
+def test_lone_surrogate_fails_closed_as_value_error():
+    with pytest.raises(ValueError):
+        build([{"ac": "AC1", "raw_command": "a\ud800"}])
+
+
+def test_unbounded_advisory_values_stop_before_post_not_after():
+    # parser caps one JSON collection at 16384 chars / 32 deep; GitHub caps a comment body
+    with pytest.raises(ValueError, match="too_large"):
+        build([{"ac": "AC1"}], overlap={"p": "'" * 20_000})
+    with pytest.raises(ValueError, match="too_large"):
+        build([{"ac": "AC1"}], spec={"decision": "pass", "s": "x" * 30_000})
+    deep: dict = {}
+    cur = deep
+    for _ in range(40):
+        cur["d"] = {}
+        cur = cur["d"]
+    with pytest.raises(ValueError, match="too_deep"):
+        build([{"ac": "AC1", "pnpm_gate_evidence": deep}])
+    with pytest.raises(ValueError, match="too_deep"):
+        build([{"ac": "AC1", "raw_command": "x"}], overlap=deep)

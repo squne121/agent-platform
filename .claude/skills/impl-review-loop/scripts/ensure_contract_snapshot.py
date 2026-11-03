@@ -224,10 +224,25 @@ def _import_parser_module():
 #   * a real control character that JSON can only spell as \u00XX / raw is
 #     unrepresentable: verbose log values show it as the literal \xNN text, every
 #     other (authority-bearing) value is rejected instead of silently changed.
-_GH_UNSAFE_CONTROL_RE = re.compile("[\x00-\x07\x0e-\x1f\x80-\x9f]")
+_GH_UNSAFE_CONTROL_RE = re.compile("[\x00-\x07\x0e-\x1f\x80-\x9f\ud800-\udfff]")
 _GH_BACKSLASH_BEFORE_CTRL_ESCAPE_RE = re.compile(
     r"(\\\\)(?=u00(?:[01][0-9a-fA-F]|[89][0-9a-fA-F]))|\\.", re.DOTALL
 )
+
+
+# Consumer bounds (contract_review_result_parser): one JSON flow collection is at most
+# 16384 chars and 32 deep; GitHub caps a comment body at 65536 chars.
+_PARSER_MAX_JSON_CHARS = 16_384
+_PARSER_MAX_JSON_DEPTH = 32
+_MAX_SNAPSHOT_BODY_CHARS = 60_000
+
+
+def _json_depth(value: Any) -> int:
+    if isinstance(value, dict):
+        return 1 + max((_json_depth(v) for v in value.values()), default=0)
+    if isinstance(value, list):
+        return 1 + max((_json_depth(v) for v in value), default=0)
+    return 0
 
 
 def _reject_gh_unsafe_control(value: Any) -> None:
@@ -243,20 +258,31 @@ def _reject_gh_unsafe_control(value: Any) -> None:
             _reject_gh_unsafe_control(item)
 
 
-def _json_compact(value: Any) -> str:
+def _json_compact_measure(value: Any) -> str:
     """Compact JSON that survives the `gh api` readback sanitizer byte-for-byte.
 
     Raises ValueError when ``value`` holds a control character that cannot be
     transported without changing its meaning.
     """
     _reject_gh_unsafe_control(value)
+    if _json_depth(value) > _PARSER_MAX_JSON_DEPTH:
+        raise ValueError("snapshot_transport_json_too_deep")
     encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
     # U+2028/2029 are str line breaks for the consumer's line-oriented YAML reader;
     # the JSON escape is equivalent and untouched by the gh sanitizer.
     encoded = encoded.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
-    return _GH_BACKSLASH_BEFORE_CTRL_ESCAPE_RE.sub(
+    encoded = _GH_BACKSLASH_BEFORE_CTRL_ESCAPE_RE.sub(
         lambda m: "\\u005c" if m.group(1) else m.group(0), encoded
     )
+    return encoded
+
+
+def _json_compact(value: Any) -> str:
+    """``_json_compact_measure`` bounded by the consumer parser's per-collection cap."""
+    encoded = _json_compact_measure(value)
+    if len(encoded) > _PARSER_MAX_JSON_CHARS:
+        raise ValueError("snapshot_transport_json_too_large")
+    return encoded
 
 
 def _gh_stable_verbose_text(text: str) -> str:
@@ -608,11 +634,11 @@ def compact_vc_preflight_classifications(
     # The size decision is made on the final transport representation (what the
     # parser's bounded reader measures), after the gh-stable normalization.
     normalized = _normalize_classifications_for_transport(classifications, omit_verbose=False)
-    if len(_json_compact(normalized)) <= _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
+    if len(_json_compact_measure(normalized)) <= _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
         return normalized, metadata
 
     compacted = _normalize_classifications_for_transport(classifications, omit_verbose=True)
-    if len(_json_compact(compacted)) > _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
+    if len(_json_compact_measure(compacted)) > _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
         raise ValueError("vc_preflight_classifications_compact_payload_too_large")
     metadata["compact"] = True
     metadata["truncated"] = True
@@ -2103,7 +2129,7 @@ CONTRACT_SNAPSHOT_MATERIALIZATION_PENDING_V1:
         + json_yaml_scalar(expected_contract_fingerprint)
     )
 
-    return f"""{idempotency_marker}
+    body = f"""{idempotency_marker}
 
 ## Contract Review Result
 
@@ -2127,6 +2153,9 @@ CONTRACT_REVIEW_RESULT_V1:
   source: ensure_contract_snapshot_auto{fingerprint_yaml}
 ```
 """
+    if len(body) > _MAX_SNAPSHOT_BODY_CHARS:
+        raise ValueError("snapshot_body_too_large")
+    return body
 
 
 # ---------------------------------------------------------------------------

@@ -56,7 +56,7 @@
     ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_wrapper_wiring.py": 18,
     ".claude/skills/pr-review-judge/tests/test_allowed_paths_matcher_v2.py": 12,
     ".claude/skills/pr-review-judge/tests/test_allowed_paths_review_gate.py": 68,
-    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py": 88,
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py": 91,
     "tests/stage_i4/test_i4_2_closure.py": 8,
     "tests/stage_i4/test_i4_2_negative_controls.py": 4
   },
@@ -71,7 +71,7 @@
     ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_wrapper_wiring.py": 18,
     ".claude/skills/pr-review-judge/tests/test_allowed_paths_matcher_v2.py": 12,
     ".claude/skills/pr-review-judge/tests/test_allowed_paths_review_gate.py": 68,
-    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py": 88,
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py": 91,
     "tests/stage_i4/test_i4_2_closure.py": 8,
     "tests/stage_i4/test_i4_2_negative_controls.py": 4
   },
@@ -79,9 +79,9 @@
   "source_parity": {
     ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py": {
       "source_sha256": "667d9e8af4c73d7cd43982f0863331cfb72ebe5572799fc652135dccb2403f87",
-      "moved_sha256": "1f657f478e495bcf6aaf358b25102c3ac74d5295b3b473603173e8ff80b54f28",
+      "moved_sha256": "e0d1894d5efb96a116a34350d9599139fcfa5ffe2c6b98955b39fb1d98629550",
       "verbatim": false,
-      "intentional_diff": "Functional legacy slug (_DEFAULT_REPO) and idempotency marker prefix 'loop-protocol:contract-snapshot' replaced by agent-platform equivalents; + gh-readback-stable transport (#66): _json_compact now spells a backslash before u00XX as \\\\u005c, escapes U+2028/2029, and rejects real control characters that the `gh api` response sanitizer rewrites (raw U+0001-0007/000E-001F/0080-009F); compact_vc_preflight_classifications normalizes first (verbose keys: real controls shown as literal \\\\xNN, non-verbose keys exact or rejected) and measures the cap on the final transport JSON; ensure_contract_snapshot validates a final-shaped body before the provisional POST (see live_acceptance.transport_findings)."
+      "intentional_diff": "Functional legacy slug (_DEFAULT_REPO) and idempotency marker prefix 'loop-protocol:contract-snapshot' replaced by agent-platform equivalents; + gh-readback-stable transport (#66): _json_compact now spells a backslash before u00XX as \\\\u005c, escapes U+2028/2029, and rejects real control characters that the `gh api` response sanitizer rewrites (raw U+0001-0007/000E-001F/0080-009F); compact_vc_preflight_classifications normalizes first (verbose keys: real controls shown as literal \\\\xNN, non-verbose keys exact or rejected) and measures the cap on the final transport JSON; ensure_contract_snapshot validates a final-shaped body before the provisional POST (see live_acceptance.transport_findings). Also bounds every embedded JSON value to the parser's 16384 chars / depth 32 and the body to 60000 chars, and rejects lone surrogates, all before the provisional POST."
     },
     ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py": {
       "source_sha256": "7201d8b31f6df9e4eda2f5c57cb0c86e2c851da28b68de33ee875a5a7d617fe5",
