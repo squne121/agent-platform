@@ -212,11 +212,12 @@ def _import_parser_module():
 # ---------------------------------------------------------------------------
 
 
-# I-4-2 (#66) live finding: GitHub rewrites C0/C1 control characters (U+0001..U+001F except
-# tab/LF/VT/FF/CR/BS, and U+0080..U+009F) into caret notation when it persists a comment.
-# json.dumps escapes C0 but leaves C1 and DEL raw, so a raw C1 in an embedded value would
-# make the persisted body differ from the posted body (binding_body_hash_mismatch). Escaping
-# DEL/C1 as \uXXXX is JSON-equivalent for every decoder and keeps the posted bytes stable.
+# I-4-2 (#66) live finding: GitHub stores control characters verbatim (REST API checked with
+# an unauthenticated curl), but the `gh api` CLI sanitizes its response and prints C1
+# (U+0080..U+009F) and most C0 as caret notation. The readback this module uses goes through
+# `gh api`, so a raw C1 in an embedded value would read back different from what was posted
+# (binding_body_hash_mismatch). json.dumps escapes C0 but leaves DEL/C1 raw; escaping them as
+# \uXXXX is JSON-equivalent for every decoder and keeps posted and read-back text identical.
 _TRANSPORT_UNSAFE_RE = re.compile("[\x7f-\x9f]")
 
 

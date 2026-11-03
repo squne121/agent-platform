@@ -79,9 +79,9 @@
   "source_parity": {
     ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py": {
       "source_sha256": "667d9e8af4c73d7cd43982f0863331cfb72ebe5572799fc652135dccb2403f87",
-      "moved_sha256": "960ec71f9da04b4f0b308958370c7141123e7c0ac5a5f2410cd7d53ed516c1d1",
+      "moved_sha256": "363414d8e79cf84d190457c42990bf240614f5d2417463582d7c3f23fa48ff16",
       "verbatim": false,
-      "intentional_diff": "Functional legacy slug (_DEFAULT_REPO) and idempotency marker prefix 'loop-protocol:contract-snapshot' replaced by agent-platform equivalents; + _json_compact/_TRANSPORT_UNSAFE_RE: DEL/C1 control characters embedded in the comment body are escaped as \\\\uXXXX because GitHub rewrites U+0080..U+009F to caret notation on persist (live finding, see live_acceptance.transport_findings)."
+      "intentional_diff": "Functional legacy slug (_DEFAULT_REPO) and idempotency marker prefix 'loop-protocol:contract-snapshot' replaced by agent-platform equivalents; + _json_compact/_TRANSPORT_UNSAFE_RE: DEL/C1 control characters embedded in the comment body are escaped as \\\\uXXXX because the gh CLI response sanitizer prints U+0080..U+009F as caret notation on readback while GitHub stores them verbatim (live finding, see live_acceptance.transport_findings)."
     },
     ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py": {
       "source_sha256": "7201d8b31f6df9e4eda2f5c57cb0c86e2c851da28b68de33ee875a5a7d617fe5",
@@ -211,8 +211,8 @@
       "probe_comment_id": 6593640566,
       "probe_route": "not a snapshot and not through the executor: one POST + one PATCH with the production post_comment()/patch_comment() functions (gh api --input -, patch failed closed on hash mismatch as designed), then one more PATCH with a raw `gh api --method PATCH --input -` for the charwise probe; plain comments on the disposable issue #67 only, kept as evidence",
       "probe_comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6593640566",
-      "summary": "GitHub rewrites control characters to caret notation on persist: U+0001,0002,0007,000E,001B,001F and U+0080,0085,009B,009F were changed (e.g. BEL -> ^G, ESC -> ^[ ); tab, LF, VT, FF, CR, BS, DEL, NBSP, U+2028/2029, ZWSP, BOM, emoji, CJK, backslashes, quotes, Markdown and shell metacharacters round-trip unchanged. The production verifier fails closed (binding_body_hash_mismatch) on the changed text.",
-      "mitigation": "snapshot body values pass through json.dumps (escapes C0); _json_compact additionally escapes DEL/C1 so no rewritten character can be emitted raw."
+      "summary": "GitHub stores control characters verbatim: an unauthenticated curl of the probe comment returns the raw U+0001..U+001F / U+0080..U+009F as JSON escapes. The `gh api` CLI response sanitizer prints U+0001,0002,0007,000E,001B,001F and U+0080,0085,009B,009F as caret notation (e.g. BEL -> ^G, ESC -> ^[ ) in its JSON output, while tab, LF, VT, FF, CR, BS, DEL, NBSP, U+2028/2029, ZWSP, BOM, emoji, CJK, backslashes, quotes, Markdown and shell metacharacters pass unchanged. Because the production readback goes through gh api, the verifier saw different text and failed closed (binding_body_hash_mismatch). The canonical snapshot comment compares byte-identical between curl and gh api.",
+      "mitigation": "snapshot body values pass through json.dumps (escapes C0); _json_compact additionally escapes DEL/C1 so no character that the gh readback would alter is emitted raw."
     }
   }
 }
