@@ -1,8 +1,8 @@
-# claude-gpt shared runtime(Issue #57 移管候補)
+# claude-gpt shared runtime(Issue #57 移管済み)
 
-> **状態: isolated migration candidate / OFF / 未配備。**
-> 本ファイルと `scripts/claude-gpt/` は、loop-protocol から agent-platform へ shared runtime を移すための
-> **候補**である。どの consumer もまだ本 launcher に切り替えておらず、live service・Remote Ops・Queue には
+> **状態: agent-platform へマージ済み(#57 / PR #58)/ consumer 未切替 / 本番未配備 / Remote Ops OFF。**
+> 本ファイルと `scripts/claude-gpt/` は agent-platform の shared runtime としてマージ済みである。
+> ただしどの consumer もまだ本 launcher に切り替えておらず、live service・Remote Ops・Queue には
 > 一切配備していない。公式サポートや production readiness を主張するものではない。
 
 ## 1. 出典(provenance)
@@ -48,7 +48,7 @@ shell 3 本は source から **byte-identical** で移す(本移管では一切�
 | Remote Ops | HOME / queue / session / worker の準備と lifecycle |
 
 - 採用後の launcher と model mapping の正本は agent-platform の `lib.sh` / `launch.sh` とする。
-  現在は未マージの候補であり、稼働中 consumer の正本はまだ切り替わっていない。Remote Ops 側や
+  agent-platform へはマージ済みだが、稼働中 consumer の正本はまだ切り替わっていない(consumer 切替・本番配備は未実施)。Remote Ops 側や
   生成 profile に launcher・model mapping を**複製しない**。
 - 現時点では loop-protocol 側に旧 source が残る。consumer の切り替えと旧 source の削除は、将来の
   **1 つの coordinated PR** で同時に行う。2 つの permanent owner を並存させる運用はしない。
@@ -59,12 +59,21 @@ shell 3 本は source から **byte-identical** で移す(本移管では一切�
 `launch.sh` は、既に起動している loopback `claude-code-proxy` へ Claude Code を向けるための env だけを追加し、
 指定された `claude` を `exec` する薄い wrapper である。
 
-- 追加する env(全て非 secret。`ANTHROPIC_AUTH_TOKEN` は固定 placeholder `unused`):
+- 追加する env(`ANTHROPIC_AUTH_TOKEN` は既定で placeholder `unused`。caller が `CLAUDE_GPT_PROXY_API_KEY` を設定した場合のみその値を使い、`--dry-run` 等の出力では `<redacted:...>` になる):
   `ANTHROPIC_BASE_URL` / `ANTHROPIC_AUTH_TOKEN` / `ANTHROPIC_MODEL` / `ANTHROPIC_SMALL_FAST_MODEL` /
   `ANTHROPIC_DEFAULT_{OPUS,SONNET,HAIKU}_MODEL` / `CLAUDE_CODE_AUTO_MODE_SERVER=0` /
   `CLAUDE_CODE_AUTO_COMPACT_WINDOW` / `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1` /
   `CLAUDE_CODE_DISABLE_NONSTREAMING_FALLBACK=1` / `LOOP_TASK_CONTEXT_RUNTIME_VARIANT=claude_gpt` /
   `CLAUDE_GPT_CLAUDE_BIN`。
+- ローカル proxy client key(Issue #64): CLIProxyAPI のように `/v1/models` に認証を要求する proxy では、
+  `CLAUDE_GPT_PROXY_API_KEY` を caller が export する。launcher はこれを `ANTHROPIC_AUTH_TOKEN` と
+  `/v1/models` 診断の `Authorization: Bearer`(curl config を stdin で渡し argv に出さない)に使う。
+  重複する環境変数 `CLAUDE_GPT_PROXY_API_KEY` は exec 前に unset されるが、認証に必要な同一のキーは
+  `ANTHROPIC_AUTH_TOKEN` として Claude Code(子プロセス)へ必ず渡る。標準の診断 stdout/stderr・JSON では
+  redact するが、`sh -x` やプロセスダンプ等への耐性は保証しない(追加の security wrapper は設けない)。許可文字は `[A-Za-z0-9._~+/=-]`、それ以外は exit 2。未設定なら従来どおり
+  認証ヘッダー無し。誤 key / 欠落 key は HTTP 401 → exit 7。
+- model 上書き: `CLAUDE_GPT_MODEL_{MAIN,SMALL_FAST,OPUS,SONNET,HAIKU}` / `CLAUDE_GPT_AUTO_COMPACT_WINDOW` で
+  明示選択できる(未設定なら下記の既定値)。
 - model alias(`gpt-6-sol[1m]` / `gpt-6-luna[1m]` の役割割当)は source の既存値を**そのまま保持**しているだけで、
   本文書は model の推奨をしない。
 - しないこと: caller の cwd 変更、HOME / XDG / `CLAUDE_CONFIG_DIR` / `GH_CONFIG_DIR` / `SSH_AUTH_SOCK` の隔離・変更、
@@ -111,7 +120,7 @@ GPT 経路の login・consent・推論・usage 計測を**一切行っていな�
 - Codex app-server は orchestration / tools / agents を置き換えるため、Claude harness の drop-in 代替ではない。
   公開されている SIWC 設定は app 自身が認可した access token、`env_key`、`requires_openai_auth=false`、
   `supports_websockets=false`、refresh / restart / thread-resume を前提とする。
-- 採用条件は API key / 従量課金への自動 fallback を行わないことである。現候補の launcher は
+- 採用条件は API key / 従量課金への自動 fallback を行わないことである。現状の launcher は
   ambient config を維持するため、任意の downstream proxy の課金方式まで強制・証明するものではない。
   実配備前に認証経路・利用枠・課金条件を別途検証する。
 
