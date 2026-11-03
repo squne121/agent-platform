@@ -167,10 +167,13 @@
   ],
   "live_acceptance": {
     "repo": "squne121/agent-platform",
-    "verification_issue": 67,
-    "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post)",
-    "comment_id": 6593625597,
-    "comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6593625597",
+    "code_head": "a9050179b33baf739632fc99f9b9c2bac977c106",
+    "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
+    "verification_issue": 72,
+    "verification_issue_url": "https://github.com/squne121/agent-platform/issues/72",
+    "verification_issue_creation": "create_issue_txn.py without labels; issues 70 and 71 were created earlier in the same session and left as unused evidence (70: body readback failed because the draft body held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command)",
+    "comment_id": 6595906802,
+    "comment_url": "https://github.com/squne121/agent-platform/issues/72#issuecomment-6595906802",
     "author": {
       "login": "squne121",
       "id": 63350259,
@@ -179,40 +182,90 @@
     },
     "post_status_first_run": "posted",
     "post_patch_observed": true,
-    "created_at": "2026-11-03T02:11:07Z",
-    "updated_at": "2026-11-03T02:11:09Z",
-    "comment_body_sha256": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6",
-    "issue_body_sha256": "sha256:199d7fd0c84d3016b0c01a6a957fd78e4155dc159fb7fe9be8a52f5facd8c358",
+    "created_at": "2026-11-03T05:03:48Z",
+    "updated_at": "2026-11-03T05:03:49Z",
+    "comment_body_sha256": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
+    "comment_body_bytes": 4944,
+    "issue_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
     "fingerprint": {
-      "issue_number": 67,
+      "issue_number": 72,
       "contract_source_kind": "issue_comment",
-      "contract_source_id": "6593625597",
-      "contract_body_sha256": "sha256:199d7fd0c84d3016b0c01a6a957fd78e4155dc159fb7fe9be8a52f5facd8c358",
-      "allowed_paths_normalized_sha256": "0538b4a7df7a15a21576452b8b2606506a3b41b86f0a837582552449a9ac841d",
+      "contract_source_id": "6595906802",
+      "contract_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
+      "allowed_paths_normalized_sha256": "8807a2bd8433069db29e1d50d2495e5b12079399ebe1b0ae9708c3449259153f",
       "base_ref": "main",
-      "base_sha_at_snapshot": "4698545aa7b5b5a1880cdd1d54d1a62705571b72"
+      "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
     },
     "canonical_parser": {
       "status": "go",
       "trusted": true,
       "authoritative_go": true
     },
+    "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
+    "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
     "rerun": {
       "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
       "post_status": "not_requested",
       "snapshot_count_before": 1,
       "snapshot_count_after": 1,
-      "comment_updated_at_before": "2026-11-03T02:11:09Z",
-      "comment_updated_at_after": "2026-11-03T02:11:09Z",
-      "comment_body_sha256_before": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6",
-      "comment_body_sha256_after": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6"
+      "comment_updated_at_before": "2026-11-03T05:03:49Z",
+      "comment_updated_at_after": "2026-11-03T05:03:49Z",
+      "comment_body_sha256_before": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
+      "comment_body_sha256_after": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f"
     },
     "transport_findings": {
-      "probe_comment_id": 6593640566,
-      "probe_route": "not a snapshot and not through the executor: one POST + one PATCH with the production post_comment()/patch_comment() functions (gh api --input -, patch failed closed on hash mismatch as designed), then one more PATCH with a raw `gh api --method PATCH --input -` for the charwise probe; plain comments on the disposable issue #67 only, kept as evidence",
-      "probe_comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6593640566",
-      "summary": "GitHub stores control characters verbatim: an unauthenticated curl of the probe comment returns the raw U+0001..U+001F / U+0080..U+009F as JSON escapes. The `gh api` CLI response sanitizer prints U+0001,0002,0007,000E,001B,001F and U+0080,0085,009B,009F as caret notation (e.g. BEL -> ^G, ESC -> ^[ ) in its JSON output, while tab, LF, VT, FF, CR, BS, DEL, NBSP, U+2028/2029, ZWSP, BOM, emoji, CJK, backslashes, quotes, Markdown and shell metacharacters pass unchanged. Because the production readback goes through gh api, the verifier saw different text and failed closed (binding_body_hash_mismatch). The canonical snapshot comment compares byte-identical between curl and gh api.",
-      "mitigation": "snapshot body values pass through json.dumps (escapes C0); _json_compact additionally escapes DEL/C1 so no character that the gh readback would alter is emitted raw."
+      "tool": "gh 2.102.0",
+      "probe_comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6595786055",
+      "probe_route": "plain probe comment on disposable issue 67, not a snapshot and not through the executor: one POST with production post_comment() and PATCHes with production patch_comment() (gh api --input -) / raw gh api for the charwise sweep; kept as evidence",
+      "cause": "GitHub stores the body verbatim. The gh api CLI sanitizes the JSON it prints: raw U+0001-0007, U+000E-001F, U+0080-009F and the JSON escape text u00XX for XX in 01-08, 0c, 0e-1f, 80-9f (any run of preceding backslashes) come back as caret notation; tab, LF, VT, FF, CR, BS, DEL and the spelling u005c come back unchanged. The earlier _json_compact (DEL/C1 -> u00XX) therefore could not work: the escape text it emitted is itself rewritten.",
+      "pre_fix_reproduction": "production patch_comment() with real ESC/BEL/C1, literal u001b/u0085, doubled/tripled backslash variants all failed binding_body_hash_mismatch; DEL, u005c spelling, plain backslashes, NBSP and U+2028 passed",
+      "fix": "literal backslash before u00XX is spelled u005c; U+2028/2029 escaped; real control characters that gh would rewrite are shown as literal xNN in verbose log fields only and rejected (before any POST) in every other field; the classification size cap is measured on the final transport JSON",
+      "post_fix_focused_live": "production patch_comment() on the probe comment: a final-shaped body carrying every lossless hostile string and a body with real control characters in verbose fields both read back with matching SHA-256 (binding verified)",
+      "limit": "real control characters cannot be tested through a normal contract because VC source text cannot carry them; that path is covered by the focused live test and offline tests with a sanitizer model fitted to the measured behaviour"
+    },
+    "pre_fix_acceptance": {
+      "repo": "squne121/agent-platform",
+      "verification_issue": 67,
+      "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post)",
+      "comment_id": 6593625597,
+      "comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6593625597",
+      "author": {
+        "login": "squne121",
+        "id": 63350259,
+        "type": "User",
+        "association": "OWNER"
+      },
+      "post_status_first_run": "posted",
+      "post_patch_observed": true,
+      "created_at": "2026-11-03T02:11:07Z",
+      "updated_at": "2026-11-03T02:11:09Z",
+      "comment_body_sha256": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6",
+      "issue_body_sha256": "sha256:199d7fd0c84d3016b0c01a6a957fd78e4155dc159fb7fe9be8a52f5facd8c358",
+      "fingerprint": {
+        "issue_number": 67,
+        "contract_source_kind": "issue_comment",
+        "contract_source_id": "6593625597",
+        "contract_body_sha256": "sha256:199d7fd0c84d3016b0c01a6a957fd78e4155dc159fb7fe9be8a52f5facd8c358",
+        "allowed_paths_normalized_sha256": "0538b4a7df7a15a21576452b8b2606506a3b41b86f0a837582552449a9ac841d",
+        "base_ref": "main",
+        "base_sha_at_snapshot": "4698545aa7b5b5a1880cdd1d54d1a62705571b72"
+      },
+      "canonical_parser": {
+        "status": "go",
+        "trusted": true,
+        "authoritative_go": true
+      },
+      "rerun": {
+        "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+        "post_status": "not_requested",
+        "snapshot_count_before": 1,
+        "snapshot_count_after": 1,
+        "comment_updated_at_before": "2026-11-03T02:11:09Z",
+        "comment_updated_at_after": "2026-11-03T02:11:09Z",
+        "comment_body_sha256_before": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6",
+        "comment_body_sha256_after": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6"
+      },
+      "note": "Superseded by the post-fix acceptance below. This run (before the gh-readback-stable transport fix) is kept as evidence of the earlier path; it did not exercise control characters or literal u00XX text."
     }
   }
 }
