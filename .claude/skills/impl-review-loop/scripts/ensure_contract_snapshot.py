@@ -212,18 +212,72 @@ def _import_parser_module():
 # ---------------------------------------------------------------------------
 
 
-# I-4-2 (#66) live finding: GitHub stores control characters verbatim (REST API checked with
-# an unauthenticated curl), but the `gh api` CLI sanitizes its response and prints C1
-# (U+0080..U+009F) and most C0 as caret notation. The readback this module uses goes through
-# `gh api`, so a raw C1 in an embedded value would read back different from what was posted
-# (binding_body_hash_mismatch). json.dumps escapes C0 but leaves DEL/C1 raw; escaping them as
-# \uXXXX is JSON-equivalent for every decoder and keeps posted and read-back text identical.
-_TRANSPORT_UNSAFE_RE = re.compile("[\x7f-\x9f]")
+# I-4-2 (#66) transport finding (measured with gh 2.102.0 against live GitHub):
+# GitHub stores the comment body unchanged.  The `gh api` CLI sanitizes the JSON it
+# *prints*: raw U+0001-0007, U+000E-001F and U+0080-009F, and the JSON escape text
+# \u00XX for XX in 01-08, 0c, 0e-1f, 80-9f (any number of preceding backslashes), become
+# caret notation.  Tab/LF/VT/FF/CR/BS/DEL, other text and the spelling \u005c all pass.
+# The readback this module hashes goes through `gh api`, so a body containing any of
+# those would read back different from what was posted (binding_body_hash_mismatch).
+# A body must therefore be a fixed point of that sanitizer:
+#   * a literal backslash directly before u00XX is spelled \u005c (JSON-equivalent);
+#   * a real control character that JSON can only spell as \u00XX / raw is
+#     unrepresentable: verbose log values show it as the literal \xNN text, every
+#     other (authority-bearing) value is rejected instead of silently changed.
+_GH_UNSAFE_CONTROL_RE = re.compile("[\x00-\x07\x0e-\x1f\x80-\x9f]")
+_GH_BACKSLASH_BEFORE_CTRL_ESCAPE_RE = re.compile(
+    r"(\\\\)(?=u00(?:[01][0-9a-fA-F]|[89][0-9a-fA-F]))|\\.", re.DOTALL
+)
+
+
+def _reject_gh_unsafe_control(value: Any) -> None:
+    if isinstance(value, str):
+        if _GH_UNSAFE_CONTROL_RE.search(value) is not None:
+            raise ValueError("snapshot_transport_control_char_unrepresentable")
+    elif isinstance(value, list):
+        for item in value:
+            _reject_gh_unsafe_control(item)
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            _reject_gh_unsafe_control(key)
+            _reject_gh_unsafe_control(item)
 
 
 def _json_compact(value: Any) -> str:
+    """Compact JSON that survives the `gh api` readback sanitizer byte-for-byte.
+
+    Raises ValueError when ``value`` holds a control character that cannot be
+    transported without changing its meaning.
+    """
+    _reject_gh_unsafe_control(value)
     encoded = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
-    return _TRANSPORT_UNSAFE_RE.sub(lambda m: f"\\u{ord(m.group()):04x}", encoded)
+    # U+2028/2029 are str line breaks for the consumer's line-oriented YAML reader;
+    # the JSON escape is equivalent and untouched by the gh sanitizer.
+    encoded = encoded.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
+    return _GH_BACKSLASH_BEFORE_CTRL_ESCAPE_RE.sub(
+        lambda m: "\\u005c" if m.group(1) else m.group(0), encoded
+    )
+
+
+def _gh_stable_verbose_text(text: str) -> str:
+    """Lossy display form (literal ``\\xNN``) of real control characters."""
+    return _GH_UNSAFE_CONTROL_RE.sub(lambda m: f"\\x{ord(m.group()):02x}", text)
+
+
+def _gh_stable_verbose_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return _gh_stable_verbose_text(value)
+    if isinstance(value, list):
+        return [_gh_stable_verbose_value(item) for item in value]
+    if isinstance(value, dict):
+        converted: dict[Any, Any] = {}
+        for key, item in value.items():
+            new_key = _gh_stable_verbose_value(key)
+            if new_key in converted:
+                raise ValueError("snapshot_transport_verbose_key_collision")
+            converted[new_key] = _gh_stable_verbose_value(item)
+        return converted
+    return value
 
 
 def sha256_of(text: str) -> str:
@@ -507,6 +561,31 @@ def is_go_current(go_result: object, expected_body_sha256: str) -> bool:
     )
 
 
+def _normalize_classifications_for_transport(
+    classifications: list[Any], *, omit_verbose: bool
+) -> list[Any]:
+    """Return a gh-sanitizer-stable copy: verbose keys lossy/omitted, rest exact."""
+    normalized: list[Any] = []
+    for item in classifications:
+        if not isinstance(item, dict):
+            if omit_verbose:
+                raise ValueError("vc_preflight_classifications_non_object_cannot_compact")
+            _reject_gh_unsafe_control(item)
+            normalized.append(item)
+            continue
+        record: dict[Any, Any] = {}
+        for key, value in item.items():
+            if key in _CLASSIFICATIONS_TRANSPORT_OMIT_KEYS:
+                if not omit_verbose:
+                    record[key] = _gh_stable_verbose_value(value)
+            else:
+                _reject_gh_unsafe_control(key)
+                _reject_gh_unsafe_control(value)
+                record[key] = value
+        normalized.append(record)
+    return normalized
+
+
 def compact_vc_preflight_classifications(
     classifications: list[Any],
 ) -> tuple[list[Any], dict[str, Any]]:
@@ -526,18 +605,14 @@ def compact_vc_preflight_classifications(
         "compact": False,
         "truncated": False,
     }
-    if len(original_json) <= _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
-        return classifications, metadata
+    # The size decision is made on the final transport representation (what the
+    # parser's bounded reader measures), after the gh-stable normalization.
+    normalized = _normalize_classifications_for_transport(classifications, omit_verbose=False)
+    if len(_json_compact(normalized)) <= _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
+        return normalized, metadata
 
-    compacted: list[Any] = []
-    for item in classifications:
-        if not isinstance(item, dict):
-            raise ValueError("vc_preflight_classifications_non_object_cannot_compact")
-        compacted.append(
-            {key: value for key, value in item.items() if key not in _CLASSIFICATIONS_TRANSPORT_OMIT_KEYS}
-        )
-    compacted_json = json.dumps(compacted, ensure_ascii=False, separators=(",", ":"))
-    if len(compacted_json) > _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
+    compacted = _normalize_classifications_for_transport(classifications, omit_verbose=True)
+    if len(_json_compact(compacted)) > _MAX_CLASSIFICATIONS_TRANSPORT_CHARS:
         raise ValueError("vc_preflight_classifications_compact_payload_too_large")
     metadata["compact"] = True
     metadata["truncated"] = True
@@ -1689,6 +1764,23 @@ def ensure_contract_snapshot(
     # comment id) cannot be known before POST. A comment lacking the
     # fingerprint is never treated as fingerprint-ready by parsers/gates
     # (fail-closed), so this window is safe even if read concurrently.
+    # I-4-2 (#66): the final body embeds review_result values that must survive
+    # the `gh api` readback unchanged.  Build a final-shaped body now so that an
+    # unrepresentable or oversized value stops before any provisional POST.
+    try:
+        _build_contract_review_comment(
+            issue_number=issue_number,
+            repo=repo,
+            review_result=review_result,
+            idempotency_marker=idempotency_marker,
+            body_sha256=body_sha256,
+            expected_contract_fingerprint={},
+        )
+    except ValueError as exc:
+        result["status"] = "runtime_error"
+        result["errors"].append(f"snapshot_transport_validation_failed:{exc}")
+        return result
+
     comment_body = _build_contract_review_comment(
         issue_number=issue_number,
         repo=repo,

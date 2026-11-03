@@ -3418,7 +3418,13 @@ class TestPatchCommentTransportAndReconciliation:
             parsed[0]["inner"], self._COMMENT_ID, _ISSUE_NUMBER
         )
         parsed_classification = parsed[0]["inner"]["checks"]["vc_preflight"]["classifications"][0]
-        assert parsed_classification == classifications[0]
+        # I-4-2 (#66): a real ESC in a verbose value cannot survive the `gh api`
+        # readback, so it is carried as the literal text \x1b; the literal
+        # ``\^[[2K`` stays distinct from it. Digest still binds the original.
+        assert parsed_classification == {
+            **classifications[0],
+            "stdout_head": [r"\^[[2K", r"\x1b[2K", r"path\foo\bar"],
+        }
         assert parsed[0]["inner"]["checks"]["vc_preflight"]["classifications_transport"] == {
             "schema": "vc_preflight_classifications_transport/v1",
             "classification_count": 1,
