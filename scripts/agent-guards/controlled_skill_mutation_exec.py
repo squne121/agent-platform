@@ -91,13 +91,15 @@ from repo_identity import load_trusted_repo_slug
 # RepositoryIdentityError at import, before any gh / git call can exist (fail-closed).
 TRUSTED_REPO = load_trusted_repo_slug()
 
-# Stage 2 approved live operations: Issue body update and Issue comment publish. Every other
-# command_id stays registered (inert data) but is refused before any git / gh call.
+# Approved live operations: Issue body update, Issue comment publish, and (I-4-2, #66)
+# Contract Snapshot publish. Every other command_id stays registered (inert data) but is
+# refused before any git / gh call.
 APPROVED_LIVE_COMMAND_IDS = frozenset(
     {
         COMMAND_ID_ISSUE_BODY_UPDATE,
         COMMAND_ID_ISSUE_CONTENT_UPDATE,
         COMMAND_ID_ISSUE_COMMENT_PUBLISH,
+        COMMAND_ID_CONTRACT_SNAPSHOT_PUBLISH,
     }
 )
 

@@ -1775,9 +1775,9 @@ def test_ac6_stage_1a_no_longer_defers_edit_issue_txn() -> None:
     assert "edit_issue_txn" not in {e["module"] for e in closure["deferred_imports"]}
     assert "edit_issue_txn.py" not in {e["script"] for e in closure["deferred_script_refs"]}
     # the other stages' deferrals are kept
-    assert {"run_contract_review_once", "materialize_issue_scope_snapshot"} <= {
-        e["module"] for e in closure["deferred_imports"]
-    }
+    deferred_modules = {e["module"] for e in closure["deferred_imports"]}
+    assert "materialize_issue_scope_snapshot" in deferred_modules
+    assert "run_contract_review_once" not in deferred_modules  # moved by I-4-2 (#66)
     stage21b = json.loads(
         (ROOT / "docs/dev/stage2-1b-exec-manifest.json").read_text(encoding="utf-8")
     )

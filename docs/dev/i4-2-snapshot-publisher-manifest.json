@@ -1,0 +1,374 @@
+{
+  "schema": "I4_2_SNAPSHOT_PUBLISHER_MANIFEST_V1",
+  "issue": "squne121/agent-platform#66",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "decisions": {
+    "scope_merge": "ensure_contract_snapshot.py --mode auto --post runs run_contract_review_once.py, which loads ensure_contract_snapshot.is_go_current (cycle) and runs check_blockers.sh; the four producers are therefore moved together (tracker #60 I-4-2 + I-4-3 producers merged) so a real publisher run is possible.",
+    "live_enablement": "contract_snapshot.publish added to APPROVED_LIVE_COMMAND_IDS (agent-platform only; human-approved). Registry, dispatch, repo identity binding, body freshness, comment id / author / body digest readback and duplicate prevention are the existing executor/publisher logic, unchanged.",
+    "dropped_live_tests": "test_ensure_contract_snapshot_fingerprint_patch.py (source) is not moved: its only tests create and close disposable issues with raw `gh issue create/close` (unapproved operations). Replaced by the controlled live acceptance recorded below.",
+    "native_blockers": "check_blockers.sh reads native blocked_by through gh api read-only; its handling stays verbatim and is not resolved here (#46).",
+    "evidence_boundary": "All tests except live_acceptance are fixture evidence. live_acceptance is a record of a real GitHub run; the closure tests only check that record's shape/consistency."
+  },
+  "required_files": [
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py",
+    ".claude/skills/impl-review-loop/scripts/evaluate_product_spec_gate.py",
+    ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py",
+    ".claude/skills/issue-contract-review/scripts/run_contract_review_once.py",
+    ".claude/skills/issue-contract-review/scripts/check_blockers.sh",
+    ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py",
+    ".claude/skills/issue-contract-review/scripts/declared_path_overlap.py",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/check_product_spec_contract.py",
+    "scripts/agent-guards/changed_file_matcher.py",
+    "scripts/agent-ops/allowed_paths_policy.py",
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "scripts/agent-guards/controlled_skill_mutation_policy.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot.py",
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_exit_code_contract.py",
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once.py",
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_delivery_rollup_skip.py",
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_implementation_still_blocked.py",
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_regression_matrix.py",
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_vc_presence_contract.py",
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_wrapper_wiring.py",
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_matcher_v2.py",
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_review_gate.py",
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py",
+    "tests/stage_i4/test_i4_2_closure.py",
+    "tests/stage_i4/test_i4_2_negative_controls.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot.py": 162,
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_exit_code_contract.py": 75,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once.py": 60,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_delivery_rollup_skip.py": 4,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_implementation_still_blocked.py": 3,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_regression_matrix.py": 21,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_vc_presence_contract.py": 5,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_wrapper_wiring.py": 18,
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_matcher_v2.py": 12,
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_review_gate.py": 68,
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py": 92,
+    "tests/stage_i4/test_i4_2_closure.py": 8,
+    "tests/stage_i4/test_i4_2_negative_controls.py": 4
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot.py": 162,
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_exit_code_contract.py": 75,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once.py": 60,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_delivery_rollup_skip.py": 4,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_implementation_still_blocked.py": 3,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_regression_matrix.py": 21,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_vc_presence_contract.py": 5,
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_wrapper_wiring.py": 18,
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_matcher_v2.py": 12,
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_review_gate.py": 68,
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_transport_controls.py": 92,
+    "tests/stage_i4/test_i4_2_closure.py": 8,
+    "tests/stage_i4/test_i4_2_negative_controls.py": 4
+  },
+  "deferred_tests": [],
+  "source_parity": {
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py": {
+      "source_sha256": "667d9e8af4c73d7cd43982f0863331cfb72ebe5572799fc652135dccb2403f87",
+      "moved_sha256": "4cbb3dda406c35267e679f1fce12c06efd53ee7138bc29c699e05316f5d126e9",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug (_DEFAULT_REPO) and idempotency marker prefix 'loop-protocol:contract-snapshot' replaced by agent-platform equivalents; + gh-readback-stable transport (#66): _json_compact now spells a backslash before u00XX as \\\\u005c, escapes U+2028/2029, and rejects real control characters that the `gh api` response sanitizer rewrites (raw U+0001-0007/000E-001F/0080-009F); compact_vc_preflight_classifications normalizes first (verbose keys: real controls shown as literal \\\\xNN, non-verbose keys exact or rejected) and measures the cap on the final transport JSON; ensure_contract_snapshot validates a final-shaped body before the provisional POST (see live_acceptance.transport_findings). Also bounds every embedded JSON value to the parser's 16384 chars / depth 32 and the body to 60000 chars, and rejects lone surrogates, all before the provisional POST."
+    },
+    ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py": {
+      "source_sha256": "7201d8b31f6df9e4eda2f5c57cb0c86e2c851da28b68de33ee875a5a7d617fe5",
+      "moved_sha256": "7201d8b31f6df9e4eda2f5c57cb0c86e2c851da28b68de33ee875a5a7d617fe5",
+      "verbatim": true
+    },
+    ".claude/skills/issue-contract-review/scripts/run_contract_review_once.py": {
+      "source_sha256": "be30a56c1054e7e8bf7c504fb29ae3b6b82bca5764043026888e93b1f869ba25",
+      "moved_sha256": "8761b4fb677db37e6d52bb95b7731eb7ba4cc34a3cc3b902fb9842579cabb360",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug (--repo default) and marker prefix 'loop-protocol:contract-review-once' replaced by agent-platform equivalents; comment URLs naming the legacy repo updated."
+    },
+    ".claude/skills/issue-contract-review/scripts/check_blockers.sh": {
+      "source_sha256": "260f3cb875882ecb01d0e6dd35f63e3885415f61d1a71f5885ea79b9196192e6",
+      "moved_sha256": "260f3cb875882ecb01d0e6dd35f63e3885415f61d1a71f5885ea79b9196192e6",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot.py": {
+      "source_sha256": "87f940690120f1b39bb34954d7be574e25da19b24671b3558b5f9ec1e3d2e2e8",
+      "moved_sha256": "7d56eab888bd90406b900ef29a941ce70affe0d34ac0e51ad7e873e2c20d3cb8",
+      "verbatim": false,
+      "intentional_diff": "Legacy slug/marker replaced; the build_intake_capsule and adjudicate_vc_result dependent assertions/tests are removed (those modules are unmigrated, owner I-4-4+); the escaping-values round-trip test expects a real ESC in a verbose value as the literal text \\\\x1b (gh readback cannot carry it) (#66)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_ensure_contract_snapshot_exit_code_contract.py": {
+      "source_sha256": "02737f228a1027bc5651c35e99b57d97ca2d35eeac080e66eb6e3a1788e68d5c",
+      "moved_sha256": "77f5250cdb40fa3110e775ebae37a4e91dd06bc25648a94dcfaa9022310571ee",
+      "verbatim": false,
+      "intentional_diff": "Legacy marker prefix replaced."
+    },
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once.py": {
+      "source_sha256": "ca870fd972df7cf3100d3e2ccba607a9bcb49ee90315cf96295eb514ade6629e",
+      "moved_sha256": "71aa2c8713ef3437040a388c8f55911d26e36bda4b3953b23155d94feea77cbc",
+      "verbatim": false,
+      "intentional_diff": "Legacy slug/marker replaced."
+    },
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_delivery_rollup_skip.py": {
+      "source_sha256": "0f62a3e03fc85d514e765d2601e65f50705729b100d09ab7f5e4a397ae67b758",
+      "moved_sha256": "dd2d5e8cec3f014f32fbe3db43ee187f24d271af742761d8b659ade024678183",
+      "verbatim": false,
+      "intentional_diff": "Legacy slug replaced."
+    },
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_implementation_still_blocked.py": {
+      "source_sha256": "0acf7e7be5c7f61ca3b0cfc66c9819798276cd3c13d28b62acfee3b04acbfebd",
+      "moved_sha256": "d0a526151207cb31c9e2a68f32c4cfed2ce75634ce7e4ff89a311feb3254b143",
+      "verbatim": false,
+      "intentional_diff": "Legacy slug replaced."
+    },
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_regression_matrix.py": {
+      "source_sha256": "7fd4a6d506fb206605bfe5721b4f66dda6497fbf6f3597216936492ecd2465d0",
+      "moved_sha256": "34541fdf5bc5d1fdc4571ef0fa92f9b662929233adf605e28c1f879adc9745d8",
+      "verbatim": false,
+      "intentional_diff": "Legacy slug replaced."
+    },
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_vc_presence_contract.py": {
+      "source_sha256": "41427441592710517bd883a73d5906532cb3a247148d3563640034bf2b324524",
+      "moved_sha256": "41427441592710517bd883a73d5906532cb3a247148d3563640034bf2b324524",
+      "verbatim": true
+    },
+    ".claude/skills/issue-contract-review/tests/test_run_contract_review_once_wrapper_wiring.py": {
+      "source_sha256": "96f117a7c4bd6ee593ac9fd2737f02c63a428d0f25dc7e9f7f29b051d27bc9f6",
+      "moved_sha256": "b4a0dfdf09bffca79a84578bf56659f9ef4246b368d4b5024e0f4fa82beb6701",
+      "verbatim": false,
+      "intentional_diff": "Legacy slug replaced."
+    },
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_matcher_v2.py": {
+      "source_sha256": "99c3115db616688e4e596d58139aaa04b12f2f2a45ce08a686c6408612f30df5",
+      "moved_sha256": "99c3115db616688e4e596d58139aaa04b12f2f2a45ce08a686c6408612f30df5",
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/tests/test_allowed_paths_review_gate.py": {
+      "source_sha256": "007946defad28b274642220c11fcdbb4b401a03d6b53f892a061277ea6a0b8a7",
+      "moved_sha256": "007946defad28b274642220c11fcdbb4b401a03d6b53f892a061277ea6a0b8a7",
+      "verbatim": true
+    }
+  },
+  "deferred_dependencies": [
+    {
+      "path": "build_intake_capsule.py / adjudicate_vc_result.py",
+      "owner_stage": "I-4-4+ (tracker #60)",
+      "reason": "consumers of the snapshot; their tests in test_ensure_contract_snapshot.py were removed, not skipped",
+      "rerun_condition": "when those modules are migrated"
+    }
+  ],
+  "live_acceptance": {
+    "repo": "squne121/agent-platform",
+    "code_head": "1d7de7b75a7d060df48c992a9df1140f71220da9",
+    "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
+    "verification_issue": 74,
+    "verification_issue_url": "https://github.com/squne121/agent-platform/issues/74",
+    "verification_issue_creation": "create_issue_txn.py without labels. Earlier disposable issues 70-73 were created in the same session and are kept as unused/intermediate evidence (70: body readback failed because the draft held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command; 72, 73: earlier acceptance runs, see intermediate_acceptance)",
+    "comment_id": 6596326846,
+    "comment_url": "https://github.com/squne121/agent-platform/issues/74#issuecomment-6596326846",
+    "author": {
+      "login": "squne121",
+      "id": 63350259,
+      "type": "User",
+      "association": "OWNER"
+    },
+    "post_status_first_run": "posted",
+    "post_patch_observed": true,
+    "created_at": "2026-11-03T05:36:19Z",
+    "updated_at": "2026-11-03T05:36:20Z",
+    "comment_body_sha256": "sha256:2bdcaaf1407b3beb9a935836b5658a41f067aa967f90b0b984e3f1832e83bd06",
+    "comment_body_bytes": 4944,
+    "issue_body_sha256": "sha256:736508595471d5f3074316997a16aa9c5537a7b3ada2a3b60f80fda0619d7e29",
+    "fingerprint": {
+      "issue_number": 74,
+      "contract_source_kind": "issue_comment",
+      "contract_source_id": "6596326846",
+      "contract_body_sha256": "sha256:736508595471d5f3074316997a16aa9c5537a7b3ada2a3b60f80fda0619d7e29",
+      "allowed_paths_normalized_sha256": "00e01577e43e029fae85c71f497d6a4e1b078e67c85ba51ee1f928107bce3809",
+      "base_ref": "main",
+      "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
+    },
+    "canonical_parser": {
+      "status": "go",
+      "trusted": true,
+      "authoritative_go": true
+    },
+    "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
+    "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
+    "rerun": {
+      "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+      "post_status": "not_requested",
+      "snapshot_count_before": 1,
+      "snapshot_count_after": 1,
+      "comment_updated_at_before": "2026-11-03T05:36:20Z",
+      "comment_updated_at_after": "2026-11-03T05:36:20Z",
+      "comment_body_sha256_before": "sha256:2bdcaaf1407b3beb9a935836b5658a41f067aa967f90b0b984e3f1832e83bd06",
+      "comment_body_sha256_after": "sha256:2bdcaaf1407b3beb9a935836b5658a41f067aa967f90b0b984e3f1832e83bd06"
+    },
+    "note": "Intermediate post-fix acceptance at code_head a9050179 (before the size/depth/surrogate bound was added after independent review). Superseded by the final acceptance.",
+    "transport_findings": {
+      "tool": "gh 2.102.0",
+      "probe_comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6595786055",
+      "probe_route": "plain probe comment on disposable issue 67, not a snapshot and not through the executor: one POST with production post_comment() and PATCHes with production patch_comment() (gh api --input -) / raw gh api for the charwise sweep; kept as evidence",
+      "cause": "GitHub stores the body verbatim. The gh api CLI sanitizes the JSON it prints: raw U+0001-0007, U+000E-001F, U+0080-009F and the JSON escape text u00XX for XX in 01-08, 0c, 0e-1f, 80-9f (any run of preceding backslashes) come back as caret notation; tab, LF, VT, FF, CR, BS, DEL and the spelling u005c come back unchanged. The earlier _json_compact (DEL/C1 -> u00XX) therefore could not work: the escape text it emitted is itself rewritten.",
+      "pre_fix_reproduction": "production patch_comment() with real ESC/BEL/C1, literal u001b/u0085, doubled/tripled backslash variants all failed binding_body_hash_mismatch; DEL, u005c spelling, plain backslashes, NBSP and U+2028 passed",
+      "fix": "literal backslash before u00XX is spelled u005c; U+2028/2029 escaped; real control characters that gh would rewrite are shown as literal xNN in verbose log fields only and rejected (before any POST) in every other field; the classification size cap is measured on the final transport JSON",
+      "post_fix_focused_live": "production patch_comment() on the probe comment: a final-shaped body carrying every lossless hostile string and a body with real control characters in verbose fields both read back with matching SHA-256 (binding verified)",
+      "limit": "real control characters cannot be tested through a normal contract because VC source text cannot carry them; that path is covered by the focused live test and offline tests with a sanitizer model fitted to the measured behaviour"
+    },
+    "intermediate_acceptance": {
+      "candidate_before_dry_build_fix": {
+        "repo": "squne121/agent-platform",
+        "code_head": "76c7b8dac25964994b103805e10eea1ba4c32cf3",
+        "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
+        "verification_issue": 73,
+        "verification_issue_url": "https://github.com/squne121/agent-platform/issues/73",
+        "verification_issue_creation": "create_issue_txn.py without labels. Earlier disposable issues 70-72 were created in the same session and are kept as unused/intermediate evidence (70: body readback failed because the draft held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command; 72: intermediate acceptance, see intermediate_acceptance)",
+        "comment_id": 6596146458,
+        "comment_url": "https://github.com/squne121/agent-platform/issues/73#issuecomment-6596146458",
+        "author": {
+          "login": "squne121",
+          "id": 63350259,
+          "type": "User",
+          "association": "OWNER"
+        },
+        "post_status_first_run": "posted",
+        "post_patch_observed": true,
+        "created_at": "2026-11-03T05:22:19Z",
+        "updated_at": "2026-11-03T05:22:21Z",
+        "comment_body_sha256": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1",
+        "comment_body_bytes": 4944,
+        "issue_body_sha256": "sha256:b59cbfc14dd3430583d52287d07424b322259de2a05ca2ca5f39fb18478bc744",
+        "fingerprint": {
+          "issue_number": 73,
+          "contract_source_kind": "issue_comment",
+          "contract_source_id": "6596146458",
+          "contract_body_sha256": "sha256:b59cbfc14dd3430583d52287d07424b322259de2a05ca2ca5f39fb18478bc744",
+          "allowed_paths_normalized_sha256": "f375df85a1237637efc2718493df24e6162001eed231d6c048ec933268a4c74e",
+          "base_ref": "main",
+          "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
+        },
+        "canonical_parser": {
+          "status": "go",
+          "trusted": true,
+          "authoritative_go": true
+        },
+        "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
+        "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
+        "rerun": {
+          "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+          "post_status": "not_requested",
+          "snapshot_count_before": 1,
+          "snapshot_count_after": 1,
+          "comment_updated_at_before": "2026-11-03T05:22:21Z",
+          "comment_updated_at_after": "2026-11-03T05:22:21Z",
+          "comment_body_sha256_before": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1",
+          "comment_body_sha256_after": "sha256:8589bd7a2e82de635849da74f20f5bf4043d2012002df80751e5cee196bc2cd1"
+        },
+        "note": "Final-code candidate at code_head 76c7b8da (before the dry build used a worst-case fingerprint after re-review). Superseded."
+      },
+      "earlier": {
+        "repo": "squne121/agent-platform",
+        "code_head": "a9050179b33baf739632fc99f9b9c2bac977c106",
+        "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post), run from the worktree at code_head with a clean tree",
+        "verification_issue": 72,
+        "verification_issue_url": "https://github.com/squne121/agent-platform/issues/72",
+        "verification_issue_creation": "create_issue_txn.py without labels; issues 70 and 71 were created earlier in the same session and left as unused evidence (70: body readback failed because the draft body held a literal u001b escape, which the same gh sanitizer rewrites; 71: bash VC blocked as unsafe_command)",
+        "comment_id": 6595906802,
+        "comment_url": "https://github.com/squne121/agent-platform/issues/72#issuecomment-6595906802",
+        "author": {
+          "login": "squne121",
+          "id": 63350259,
+          "type": "User",
+          "association": "OWNER"
+        },
+        "post_status_first_run": "posted",
+        "post_patch_observed": true,
+        "created_at": "2026-11-03T05:03:48Z",
+        "updated_at": "2026-11-03T05:03:49Z",
+        "comment_body_sha256": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
+        "comment_body_bytes": 4944,
+        "issue_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
+        "fingerprint": {
+          "issue_number": 72,
+          "contract_source_kind": "issue_comment",
+          "contract_source_id": "6595906802",
+          "contract_body_sha256": "sha256:2aa936733edd981c08dbcc10f0dfc12e5ad824627f52f49d3ac1d63cb8731541",
+          "allowed_paths_normalized_sha256": "8807a2bd8433069db29e1d50d2495e5b12079399ebe1b0ae9708c3449259153f",
+          "base_ref": "main",
+          "base_sha_at_snapshot": "6543d1549527e5f649c0be28a31e204efbfec8cb"
+        },
+        "canonical_parser": {
+          "status": "go",
+          "trusted": true,
+          "authoritative_go": true
+        },
+        "readback": "independent `gh api` GET of the comment list: one snapshot comment, id/issue/author/body SHA-256 match what the executor verified, canonical parser returns status go, trusted author, fingerprint-ready",
+        "gh_transport_exercised": "the contract's baseline VC (uv run --locked pytest -q on a missing path whose name holds a literal backslash-u001b) puts that literal escape text in stderr_head; before the fix this text made the PATCH readback fail binding_body_hash_mismatch. It now reads back byte-identical (parsed stderr_head holds the single-backslash literal; no caret notation in the body)",
+        "rerun": {
+          "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+          "post_status": "not_requested",
+          "snapshot_count_before": 1,
+          "snapshot_count_after": 1,
+          "comment_updated_at_before": "2026-11-03T05:03:49Z",
+          "comment_updated_at_after": "2026-11-03T05:03:49Z",
+          "comment_body_sha256_before": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f",
+          "comment_body_sha256_after": "sha256:451e1c4c04f7eb9c73763b5435c355f077bc9e7592caddf83858b088bc09be1f"
+        },
+        "note": "Intermediate post-fix acceptance at code_head a9050179 (before the size/depth/surrogate bound was added after independent review). Superseded by the final acceptance."
+      }
+    },
+    "pre_fix_acceptance": {
+      "repo": "squne121/agent-platform",
+      "verification_issue": 67,
+      "route": "controlled_skill_mutation_exec.py --command-id contract_snapshot.publish (ensure_contract_snapshot.py --mode auto --post)",
+      "comment_id": 6593625597,
+      "comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6593625597",
+      "author": {
+        "login": "squne121",
+        "id": 63350259,
+        "type": "User",
+        "association": "OWNER"
+      },
+      "post_status_first_run": "posted",
+      "post_patch_observed": true,
+      "created_at": "2026-11-03T02:11:07Z",
+      "updated_at": "2026-11-03T02:11:09Z",
+      "comment_body_sha256": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6",
+      "issue_body_sha256": "sha256:199d7fd0c84d3016b0c01a6a957fd78e4155dc159fb7fe9be8a52f5facd8c358",
+      "fingerprint": {
+        "issue_number": 67,
+        "contract_source_kind": "issue_comment",
+        "contract_source_id": "6593625597",
+        "contract_body_sha256": "sha256:199d7fd0c84d3016b0c01a6a957fd78e4155dc159fb7fe9be8a52f5facd8c358",
+        "allowed_paths_normalized_sha256": "0538b4a7df7a15a21576452b8b2606506a3b41b86f0a837582552449a9ac841d",
+        "base_ref": "main",
+        "base_sha_at_snapshot": "4698545aa7b5b5a1880cdd1d54d1a62705571b72"
+      },
+      "canonical_parser": {
+        "status": "go",
+        "trusted": true,
+        "authoritative_go": true
+      },
+      "rerun": {
+        "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
+        "post_status": "not_requested",
+        "snapshot_count_before": 1,
+        "snapshot_count_after": 1,
+        "comment_updated_at_before": "2026-11-03T02:11:09Z",
+        "comment_updated_at_after": "2026-11-03T02:11:09Z",
+        "comment_body_sha256_before": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6",
+        "comment_body_sha256_after": "sha256:9a8501322580e0d601b3bb8ce343de203deb80fc00573ab755b227c59c8f41c6"
+      },
+      "note": "Superseded by the post-fix acceptance below. This run (before the gh-readback-stable transport fix) is kept as evidence of the earlier path; it did not exercise control characters or literal u00XX text."
+    }
+  }
+}

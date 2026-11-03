@@ -105,6 +105,7 @@
       "scripts/agent-ops",
       "scripts/agent-guards",
       ".claude/skills/impl-review-loop/scripts",
+      ".claude/skills/pr-review-judge/scripts",
       ".claude/skills/review-issue/scripts",
       ".claude/skills/edit-issue/scripts"
     ],
@@ -116,15 +117,11 @@
       "scripts/agent-guards",
       ".claude/skills/impl-review-loop/scripts",
       "scripts/agent-ops/tests/fixtures",
+      ".claude/skills/pr-review-judge/scripts",
       ".claude/skills/review-issue/scripts",
       ".claude/skills/edit-issue/scripts"
     ],
     "deferred_imports": [
-      {
-        "module": "run_contract_review_once",
-        "reason": "contract-review-once path (ensure_contract_snapshot family): I-4 / Stage 2 dependent, not migrated; imported only by 2 deferred tests in test_product_spec_check.py (Issue #12 decision B)",
-        "owner_stage": "stage_2 / I-4"
-      },
       {
         "module": "materialize_issue_scope_snapshot",
         "reason": "lazily imported by the executor's issue_scope_snapshot.materialize handler; that lane is refused before execution and the handler fails closed without the module (Issue #31 decision: keep deferred)",
@@ -134,11 +131,6 @@
     "deferred_script_refs": [
       {
         "script": "owner_reaction_decision.py",
-        "reason": "mutation gate (Stage 2)",
-        "owner_stage": "stage_2"
-      },
-      {
-        "script": "allowed_paths_review_gate.py",
         "reason": "mutation gate (Stage 2)",
         "owner_stage": "stage_2"
       },
@@ -193,19 +185,9 @@
         "owner_stage": "stage_1b-1 (#12)"
       },
       {
-        "script": "ensure_contract_snapshot.py",
-        "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
-        "owner_stage": "I-4"
-      },
-      {
         "script": "materialize_issue_scope_snapshot.py",
         "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
         "owner_stage": "stage_2 (decided in #31)"
-      },
-      {
-        "script": "run_contract_review_once.py",
-        "reason": "module-path constant of the contract_snapshot.publish trust chain in the executor; I-4 asset, lane refused before execution",
-        "owner_stage": "I-4"
       },
       {
         "script": "task_contextctl.py",

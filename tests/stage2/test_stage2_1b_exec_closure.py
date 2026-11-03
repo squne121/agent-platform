@@ -46,11 +46,11 @@ APPROVED = {
     policy.COMMAND_ID_ISSUE_BODY_UPDATE,
     policy.COMMAND_ID_ISSUE_CONTENT_UPDATE,
     policy.COMMAND_ID_ISSUE_COMMENT_PUBLISH,
+    policy.COMMAND_ID_CONTRACT_SNAPSHOT_PUBLISH,  # approved by I-4-2 (#66)
 }
 UNAPPROVED = {
     policy.COMMAND_ID_ISSUE_RELATIONSHIP_UPDATE,
     policy.COMMAND_ID_ISSUE_DEPENDENCY_REMOVE,
-    policy.COMMAND_ID_CONTRACT_SNAPSHOT_PUBLISH,
     policy.COMMAND_ID_TEST_VERDICT_PUBLISH,
     policy.COMMAND_ID_ISSUE_SCOPE_SNAPSHOT_MATERIALIZE,
 }
@@ -792,7 +792,10 @@ def test_manifest_pins_files_and_honest_deferrals() -> None:
     # no ghost entries: every ref this manifest records is still deferred in the authoritative
     # stage1a manifest, and the two I-4 / scope-snapshot refs are present.
     assert set(refs) <= stage1a_refs
-    assert {"ensure_contract_snapshot.py", "materialize_issue_scope_snapshot.py"} <= set(refs)
+    assert {"materialize_issue_scope_snapshot.py"} <= set(refs)
+    assert not {"ensure_contract_snapshot.py", "run_contract_review_once.py"} & set(
+        refs
+    )  # I-4-2 (#66)
     assert "controlled_skill_mutation_exec.py" not in refs
     assert "controlled_skill_mutation_exec.py" not in m["dangling_refs"]
     assert m["live_operations"]["approved"] == sorted(APPROVED)
@@ -800,5 +803,8 @@ def test_manifest_pins_files_and_honest_deferrals() -> None:
     stage1a = json.loads((ROOT / "docs/dev/stage1a-core-manifest.json").read_text())
     listed = {d["script"] for d in stage1a["import_closure"]["deferred_script_refs"]}
     assert "controlled_skill_mutation_exec.py" not in listed
-    assert {"ensure_contract_snapshot.py", "materialize_issue_scope_snapshot.py"} <= listed
+    assert "materialize_issue_scope_snapshot.py" in listed
+    assert (
+        not {"ensure_contract_snapshot.py", "run_contract_review_once.py"} & listed
+    )  # I-4-2 (#66)
     assert "docs/dev/stage2-1b-exec-manifest.json" in stage1a["later_stage_test_manifests"]

@@ -29,12 +29,6 @@
   "deferred_tests": [],
   "deferred_script_refs": [
     {
-      "script": "ensure_contract_snapshot.py",
-      "reason": "publisher_script of the contract_snapshot.publish registry entry; I-4 impl-review-loop asset, never executed here",
-      "owner_stage": "I-4",
-      "rerun_condition": "I-4 migrates ensure_contract_snapshot"
-    },
-    {
       "script": "materialize_issue_scope_snapshot.py",
       "reason": "script of the issue_scope_snapshot.materialize registry entry; drags controlled_git_change_exec (1614 lines); only the executor's scope-snapshot lane uses it",
       "owner_stage": "stage_2 (follow-up; #31 decided: keep deferred, lane refused before execution)",
@@ -61,7 +55,6 @@
     ".github/workflows/ci.yml: job stage2-1a-policy"
   ],
   "dangling_refs": {
-    "ensure_contract_snapshot.py": "I-4",
     "materialize_issue_scope_snapshot.py": "Stage 2 follow-up (#31 decided: kept deferred, lane refused)",
     "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the executor's test_verdict lane; not referenced by the policy)"
   },

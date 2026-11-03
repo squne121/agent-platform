@@ -25,22 +25,22 @@
   "expected_collect": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 17,
     "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
-    "tests/stage2/test_stage2_1b_exec_closure.py": 102
+    "tests/stage2/test_stage2_1b_exec_closure.py": 109
   },
   "expected_ran": {
     "scripts/agent-guards/tests/test_controlled_skill_mutation_exec_env_parity.py": 17,
     "scripts/agent-guards/tests/test_human_history_controlled_publish.py": 3,
-    "tests/stage2/test_stage2_1b_exec_closure.py": 102
+    "tests/stage2/test_stage2_1b_exec_closure.py": 109
   },
   "deferred_tests": [],
   "live_operations": {
     "approved": [
+      "contract_snapshot.publish",
       "issue_body.update",
       "issue_comment.publish",
       "issue_content.update"
     ],
     "refused": [
-      "contract_snapshot.publish",
       "issue_dependency.remove",
       "issue_relationship.update",
       "issue_scope_snapshot.materialize",
@@ -50,18 +50,6 @@
   },
   "deferred_script_refs": [
     {
-      "script": "ensure_contract_snapshot.py",
-      "reason": "publisher_script of contract_snapshot.publish; I-4 impl-review-loop asset; the lane is refused before execution",
-      "owner_stage": "I-4",
-      "rerun_condition": "I-4 migrates ensure_contract_snapshot and a human approves the lane"
-    },
-    {
-      "script": "run_contract_review_once.py",
-      "reason": "module-path constant of the contract_snapshot.publish trust chain; I-4 asset; lane refused before execution",
-      "owner_stage": "I-4",
-      "rerun_condition": "I-4 migrates run_contract_review_once"
-    },
-    {
       "script": "materialize_issue_scope_snapshot.py",
       "reason": "materializer of issue_scope_snapshot.materialize, lazily imported by the executor; drags controlled_git_change_exec (1614 lines). Decision (#31): keep deferred; the lane is refused before execution and the dormant handler fails closed without the module (negative test)",
       "owner_stage": "stage_2 (follow-up, needs human approval of a live git/scope lane)",
@@ -69,8 +57,6 @@
     }
   ],
   "dangling_refs": {
-    "ensure_contract_snapshot.py": "I-4",
-    "run_contract_review_once.py": "I-4",
     "materialize_issue_scope_snapshot.py": "stage 2 follow-up (deferred, lane refused)",
     "schemas/test-verdict-producer-receipt.schema.json": "I-4 (read only by the test_verdict lane, which is refused before execution)"
   },
@@ -88,13 +74,14 @@
     "evidence_boundary": "every result in this lane is fixture evidence: an in-process fake gh / mocks / isolated subprocess that is refused before any gh. No real GitHub write and no network. Nothing here is live GitHub evidence.",
     "no_skip_policy": "0 skipped / 0 xfailed. The 2 deselected tests are the listed deferred_tests, each with owner_stage / reason / rerun_condition; nothing else is deselected.",
     "repository_identity": "TRUSTED_REPO = load_trusted_repo_slug() (config/repository_identity.v1.json) evaluated at import; the policy already does the same. An unusable config or layout shift raises RepositoryIdentityError at import (10 negative cases under python -I). main() additionally refuses a non-str TRUSTED_REPO and any --repo that is not exactly equal, before any subprocess (spy: 0 calls, not even git).",
-    "approval_gate": "APPROVED_LIVE_COMMAND_IDS = {issue_body.update, issue_content.update, issue_comment.publish}. The gate sits right after the unknown-command check in main() (the existing dispatch boundary): refused ids never reach the repo/git/gh checks or any handler (handlers spied in test).",
+    "approval_gate": "APPROVED_LIVE_COMMAND_IDS = {issue_body.update, issue_content.update, issue_comment.publish, contract_snapshot.publish (added by I-4-2 / #66)}. The gate sits right after the unknown-command check in main() (the existing dispatch boundary): refused ids never reach the repo/git/gh checks or any handler (handlers spied in test).",
     "gh_binary": "_find_gh_bin and _GH_TRUSTED_PATHS are unchanged; a decoy gh first on PATH is ignored (test). The fake gh is injected through the existing subprocess.run / _find_gh_bin patch seam only; no new seam was added.",
     "wire_identifiers": "the 'human-history' comment namespace marker (loop-protocol/human-history) is a wire identifier already embedded in published comments, not a repository identity; it is retained verbatim (decision for #31).",
     "lint_scope": "pyproject.toml is outside the Allowed Paths, so the migrated files are ruff-formatted/linted instead of excluded. Semantic lints on verbatim code (BLE001 broad except, PLW1510 subprocess check) are suppressed with line noqa, not rewritten.",
     "known_fixture_gap": "issue_comment.publish's update-an-existing-same-marker-comment branch (gh api user + PATCH comments/<id>) is not exercised by the closure fake (it records any such call as unexpected, so it cannot silently pass); its source tests move with #39."
   },
   "intentional_diffs": [
+    "I-4-2 (#66): contract_snapshot.publish moved from refused to approved in APPROVED_LIVE_COMMAND_IDS (human-approved, agent-platform only); ensure_contract_snapshot.py / run_contract_review_once.py are migrated, so their deferred_script_refs / dangling_refs entries and the stage1a-core-manifest deferred records are removed; expected_collect of test_stage2_1b_exec_closure.py 102 -> 109 (parametrized over the approved set)",
     "controlled_skill_mutation_exec.py: TRUSTED_REPO import from the policy -> load_trusted_repo_slug() from repo_identity (sys.path already holds the script directory)",
     "controlled_skill_mutation_exec.py: + APPROVED_LIVE_COMMAND_IDS and the refusal 'command_id_not_approved_for_live_execution' right after the unknown_command_id check; refused lanes also refuse --dry-run (the source let dry-run validate them); the gate lives in main() only, so it is a CLI-boundary guarantee (the handlers have no other caller, and the dormant handlers are not imported by anything else)",
     "controlled_skill_mutation_exec.py: repo gate also requires TRUSTED_REPO to be a str",
