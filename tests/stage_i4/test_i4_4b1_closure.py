@@ -261,3 +261,65 @@ def test_semantic_ambiguity_without_the_merge_tree_oracle_fails_closed(
         assert term["reason_code"] == "semantic_ambiguity_oracle_unavailable"
     finally:
         sys.modules.pop("terminal_tests_i4_4b1_closure", None)
+
+
+NON_REGRESSION_TESTS = f"{IRL}/tests/test_adjudicate_vc_result_non_regression_gate.py"
+
+
+def _receipt_case(adj: Any, nr: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    head = "d" * 40
+    command_hash = "sha256:" + "1" * 64
+    items = [{"ac": "AC1", "command_hash": command_hash}]
+    verdict = nr._manual_test_verdict(
+        items, head_sha=head, reviewed_head_sha=head, diff_head_sha=head
+    )
+    kwargs = {
+        "contract_snapshot": {"body_sha256": "sha256:" + "b" * 64},
+        "current_vc_result": {"issue": 1488, "head_sha": head, "reviewed_head_sha": head},
+        "diff_summary": {"pr_number": 1544, "head_sha": head},
+        "expected_keys": {("AC1", command_hash)},
+    }
+    return verdict, kwargs
+
+
+def test_require_producer_receipt_fails_closed_behaviourally(adj: Any) -> None:
+    """With the receipt opt-in a verdict never passes on a missing/invalid receipt or schema."""
+    nr = _load(NON_REGRESSION_TESTS, "non_regression_tests_i4_4b1_closure")
+    try:
+        verdict, kwargs = _receipt_case(adj, nr)
+        # legacy self-attested path is unchanged (no opt-in -> bound verdict is accepted)
+        assert adj._test_verdict_binding_error(verdict, **kwargs) is None
+        check = adj._test_verdict_binding_error
+        assert (
+            check(verdict, require_producer_receipt=True, **kwargs)
+            == "test_verdict_producer_receipt_missing"
+        )
+        verdict["producer_receipt"] = {}
+        assert (
+            check(verdict, require_producer_receipt=True, **kwargs)
+            == "test_verdict_producer_receipt_schema_invalid"
+        )
+        # schema file missing -> validator unavailable (never a pass)
+        adj._PRODUCER_RECEIPT_VALIDATOR = None
+        adj._PRODUCER_RECEIPT_SCHEMA_PATH = ROOT / "schemas" / "absent.schema.json"
+        reason = check(verdict, require_producer_receipt=True, **kwargs)
+        assert reason is not None
+        assert reason.startswith("test_verdict_producer_receipt_validator_unavailable:")
+    finally:
+        sys.modules.pop("non_regression_tests_i4_4b1_closure", None)
+
+
+def test_require_producer_receipt_without_jsonschema_fails_closed(
+    adj: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    nr = _load(NON_REGRESSION_TESTS, "non_regression_tests_i4_4b1_closure2")
+    try:
+        verdict, kwargs = _receipt_case(adj, nr)
+        verdict["producer_receipt"] = {}
+        adj._PRODUCER_RECEIPT_VALIDATOR = None
+        monkeypatch.setitem(sys.modules, "jsonschema", None)
+        reason = adj._test_verdict_binding_error(verdict, require_producer_receipt=True, **kwargs)
+        assert reason is not None
+        assert reason.startswith("test_verdict_producer_receipt_validator_unavailable:")
+    finally:
+        sys.modules.pop("non_regression_tests_i4_4b1_closure2", None)
