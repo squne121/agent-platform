@@ -1,0 +1,182 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "contract": {
+      "additionalProperties": false,
+      "properties": {
+        "command_manifest_sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "issue_body_sha256": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "linked_issue_number": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "linked_issue_number",
+        "issue_body_sha256",
+        "command_manifest_sha256"
+      ],
+      "type": "object"
+    },
+    "execution_artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_archive_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "artifact_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "artifact_url": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "artifact_url",
+        "artifact_archive_digest"
+      ],
+      "type": "object"
+    },
+    "execution_payload_sha256": {
+      "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "pass_eligible": {
+      "type": "boolean"
+    },
+    "producer": {
+      "additionalProperties": false,
+      "properties": {
+        "check_run_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "job_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "workflow_path": {
+          "pattern": "^\\.github/workflows/[A-Za-z0-9_.-]+\\.ya?ml$",
+          "type": "string"
+        },
+        "workflow_run_attempt": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "workflow_run_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "workflow_source_ref": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "workflow_source_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workflow_path",
+        "workflow_source_ref",
+        "workflow_source_sha",
+        "workflow_run_id",
+        "workflow_run_attempt",
+        "job_id",
+        "check_run_id"
+      ],
+      "type": "object"
+    },
+    "schema": {
+      "const": "TEST_VERDICT_PRODUCER_RECEIPT_V1"
+    },
+    "schema_version": {
+      "const": 1
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "commit_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "execution_job_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "execution_run_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "repository_full_name": {
+          "pattern": "^[^/\\s]+/[^/\\s]+$",
+          "type": "string"
+        },
+        "repository_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "tree_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_id",
+        "repository_full_name",
+        "commit_sha",
+        "tree_sha",
+        "execution_run_id",
+        "execution_job_id"
+      ],
+      "type": "object"
+    },
+    "subject": {
+      "additionalProperties": false,
+      "properties": {
+        "head_repository_id": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "pr_head_sha": {
+          "pattern": "^[0-9a-f]{40}$",
+          "type": "string"
+        },
+        "target_pr_number": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "target_pr_number",
+        "head_repository_id",
+        "pr_head_sha"
+      ],
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema",
+    "schema_version",
+    "execution_payload_sha256",
+    "execution_artifact",
+    "producer",
+    "subject",
+    "contract",
+    "source",
+    "pass_eligible"
+  ],
+  "title": "TEST_VERDICT_PRODUCER_RECEIPT_V1",
+  "type": "object"
+}
