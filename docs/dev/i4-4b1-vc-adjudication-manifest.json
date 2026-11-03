@@ -1,0 +1,163 @@
+{
+  "schema": "I4_4B1_VC_ADJUDICATION_MANIFEST_V1",
+  "issue": "squne121/agent-platform#77",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "decisions": {
+    "slice": "adjudicate_vc_result.py (Step 4 VC gate + step5-terminal-gate) and the existing producer receipt schema, with the core source tests. I-4-4B2 carries the remaining source tests.",
+    "fail_closed": "Unmigrated dependencies never yield approval: the real merge-tree oracle is absent -> fail_closed semantic_ambiguity_oracle_unavailable (asserted by the closure test; a stand-in is NOT used and no real-oracle evidence is claimed).",
+    "schema_dependency": "schemas/test-verdict-producer-receipt.schema.json is migrated byte-for-byte (no new schema was designed): adjudicate_vc_result.py reads it for the opt-in --require-producer-receipt path; without it that path would be permanently unusable (fail-closed producer_receipt_schema_unreadable). Source tests that exercise real receipts (test_step4_pr_review_only_canonical_path) are B2.",
+    "size": "script 3529 + tests ~4.9k lines + schema + manifest/closure tests < 10k lines; remaining source tests (~7.2k lines) are I-4-4B2."
+  },
+  "required_files": [
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    "schemas/test-verdict-producer-receipt.schema.json"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result.py",
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate.py",
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_runtime_only.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_requires_current_vc.py",
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py",
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result.py": 41,
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate.py": 23,
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_runtime_only.py": 7,
+    ".claude/skills/impl-review-loop/tests/test_step4_requires_current_vc.py": 9,
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": 6,
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": 32
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result.py": 41,
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate.py": 23,
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_runtime_only.py": 7,
+    ".claude/skills/impl-review-loop/tests/test_step4_requires_current_vc.py": 9,
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": 6,
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": 32
+  },
+  "deferred_tests": [],
+  "totals": {
+    "ran": 118,
+    "deferred_run_time": 0,
+    "skipped": 0
+  },
+  "source_parity": {
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py": {
+      "source_sha256": "4a6e6091c1d7470d3ce7ee22aa65673c8822b05b34fc02134c7c413043d1f755",
+      "moved_sha256": "4a6e6091c1d7470d3ce7ee22aa65673c8822b05b34fc02134c7c413043d1f755",
+      "verbatim": true
+    },
+    "schemas/test-verdict-producer-receipt.schema.json": {
+      "source_sha256": "bbbeb769d1d2c4de8867f77c6829be448f12a3b89394fa498423048c09e5faa0",
+      "moved_sha256": "bbbeb769d1d2c4de8867f77c6829be448f12a3b89394fa498423048c09e5faa0",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result.py": {
+      "source_sha256": "97a45483122959e3e79adba288fb60c6dadf2c010802bd9d0bfdbcd9ccd504c7",
+      "moved_sha256": "c3eff9275bbc959475b6f25c5aa72333589ed5f4e05074f687df3884fee6774b",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate.py": {
+      "source_sha256": "d94ce94f6242d6491338b4cdf5f36c89cd0525f6bc2ebf39dffa934760c5736c",
+      "moved_sha256": "742b729edf655357bde9237d89eb52f041e59f9e2a52f4eeafa77abbe0caf620",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_runtime_only.py": {
+      "source_sha256": "5915238733af37c6309ccd4d1d43cf760c302956ced218766c285d02ac436de2",
+      "moved_sha256": "5915238733af37c6309ccd4d1d43cf760c302956ced218766c285d02ac436de2",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_step4_requires_current_vc.py": {
+      "source_sha256": "dd4b8e74ad221f0ec23352481c87580d00096b10690d7161a760c7050521c02f",
+      "moved_sha256": "dd4b8e74ad221f0ec23352481c87580d00096b10690d7161a760c7050521c02f",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": {
+      "source_sha256": "d92674344c6d7d1dee91d02c1ef66887c28bf11e2ab6a11f14089cdfcc9fab92",
+      "moved_sha256": "ca5466798d300e6df12360df86f47056179aaa24e669f1a682d5579cb3a934ba",
+      "verbatim": false,
+      "intentional_diff": "1 source test removed (never skipped), recorded in deferred_source_tests: test_docs_use_parse_only_extractor_instead_of_baseline_executor reads unmigrated impl-review-loop/steps/*.md (owner I-4-4D)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": {
+      "source_sha256": "3c718111608bc13ae72a990b5e4ea449945b72df1f15e1d4b0a4e9e85a86d075",
+      "moved_sha256": "074774e85106e566acd85bf3270156c82752aaca5f3085f8f0d9b3ca1979db21",
+      "verbatim": false,
+      "intentional_diff": "4 source tests removed (never skipped), recorded in deferred_source_tests: 3 read unmigrated impl-review-loop/steps/*.md (owner I-4-4D) and test_terminal_gate_resolves_semantic_ambiguity needs the real git merge-tree oracle pr_head_replay_publish_exec.py (owner I-4-4C). tests/stage_i4/test_i4_4b1_closure.py asserts the fail-closed counterpart (semantic_ambiguity_oracle_unavailable)."
+    }
+  },
+  "deferred_source_tests": [
+    {
+      "id": "test_independent_vc_terminal_gate_regression.py::test_test_runner_documented_report_yields_certified_pass",
+      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-2-verification.md documented conversion block)",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/step-2-verification.md is migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_independent_vc_terminal_gate_regression.py::test_stage_a_b_reviewer_recovery_uses_same_gate",
+      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-4-pr-review.md)",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/step-4-pr-review.md is migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_independent_vc_terminal_gate_regression.py::test_documents_bind_the_canonical_entrances",
+      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-2/4/5 documents)",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_independent_vc_terminal_gate_regression.py::test_terminal_gate_resolves_semantic_ambiguity",
+      "reason": "needs the real git merge-tree oracle scripts/agent-ops/pr_head_replay_publish_exec.py (unmigrated; the file also mutates git state, so the read-only/mutation boundary needs an explicit decision)",
+      "owner_stage": "I-4-4C (tracker #60)",
+      "rerun_condition": "when the oracle is migrated, restore the source test verbatim and drop the fail-closed counterpart in tests/stage_i4/test_i4_4b1_closure.py"
+    },
+    {
+      "id": "test_extract_vc_metadata.py::test_docs_use_parse_only_extractor_instead_of_baseline_executor",
+      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-2-verification.md, step-4-pr-review.md)",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    }
+  ],
+  "reused_migrated_dependencies": [
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py (I-4-4A)",
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py (I-4-2)",
+    ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4-1)",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py"
+  ],
+  "deferred_dependencies": [
+    {
+      "path": "scripts/agent-ops/pr_head_replay_publish_exec.py",
+      "owner_stage": "I-4-4C (tracker #60)",
+      "reason": "git merge-tree oracle; unmigrated, so semantic-ambiguity branches fail closed",
+      "rerun_condition": "when migrated, restore test_terminal_gate_resolves_semantic_ambiguity"
+    },
+    {
+      "path": ".claude/skills/impl-review-loop/steps/*.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "reason": "documents read by 4 removed source tests",
+      "rerun_condition": "when migrated, restore the removed source tests"
+    },
+    {
+      "path": ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py (+4 more)",
+      "owner_stage": "I-4-4B2 (tracker #60)",
+      "reason": "split out to keep this PR under 10k lines",
+      "rerun_condition": "I-4-4B2 migrates them"
+    }
+  ],
+  "evidence_boundary": {
+    "kind": "fixture + temporary git repository only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "test_verdict_publish_enabled": false,
+    "merge_tree_oracle_real_evidence": false
+  }
+}
