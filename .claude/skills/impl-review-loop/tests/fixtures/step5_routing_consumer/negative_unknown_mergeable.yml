@@ -1,0 +1,14 @@
+description: mergeable=UNKNOWN is not a conflict -> fail_closed (caller retries)
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: UNKNOWN
+  merge_state_status: UNSTABLE
+test_verdict: null
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code: mergeability_unknown

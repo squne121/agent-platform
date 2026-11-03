@@ -1,0 +1,15 @@
+description: reviewed_head_sha != live head_sha -> route_stale_head_rereview (not
+  a hard stop)
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: def456abc789
+  mergeable: MERGEABLE
+  merge_state_status: CLEAN
+test_verdict: null
+expected:
+  route: route_stale_head_rereview
+  fail_closed: false
+  reason_code: stale_reviewed_head_sha

@@ -1,0 +1,13 @@
+description: merge_state_status=DIRTY -> conflict_hard_stop, regardless of verdict
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: UNKNOWN
+  merge_state_status: DIRTY
+expected:
+  route: conflict_hard_stop
+  fail_closed: false
+  reason_code_prefix: conflict_merge_state_status_DIRTY

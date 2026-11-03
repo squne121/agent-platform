@@ -1,0 +1,16 @@
+description: reviewer_verdict still carrying a legacy merge_ready field (old schema)
+  -> fail_closed
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+  merge_ready: true
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: CLEAN
+test_verdict: null
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code_prefix: schema_invalid_legacy_field_present

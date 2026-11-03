@@ -1,0 +1,16 @@
+description: >-
+  merge_state_status=BLOCKED is not a Git conflict (required checks/review
+  gate only) and is not a human escalation either -- the router defers to
+  the current-head required-CI / branch-protection evaluator.
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: BLOCKED
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code: merge_state_status_blocked_not_conflict_defer_to_ci_evaluator
