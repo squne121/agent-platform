@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import ast
 import hashlib
+import importlib
 import json
 import re
 import subprocess
@@ -86,8 +87,10 @@ def test_main_drift_policy_is_reused_not_duplicated() -> None:
     assert _defs(ROOT / ROUTER) == {}, "router must import, not re-define, the drift policy"
     sys.path.insert(0, str(ROOT / IRL / "scripts"))
     try:
-        import route_loop_verdict_v2 as router  # puts scripts/agent-ops on sys.path first
-        import main_drift_policy
+        import route_loop_verdict_v2 as router
+
+        # the router import puts scripts/agent-ops on sys.path; resolve the policy only after it
+        main_drift_policy = importlib.import_module("main_drift_policy")
     finally:
         sys.path.pop(0)
     assert router.classify_main_drift is main_drift_policy.classify_main_drift
