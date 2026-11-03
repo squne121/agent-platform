@@ -288,3 +288,21 @@ def test_unbounded_advisory_values_stop_before_post_not_after():
         build([{"ac": "AC1", "pnpm_gate_evidence": deep}])
     with pytest.raises(ValueError, match="too_deep"):
         build([{"ac": "AC1", "raw_command": "x"}], overlap=deep)
+
+
+def test_dry_build_placeholder_fingerprint_is_not_smaller_than_a_real_one():
+    real = {
+        "issue_number": 99999,
+        "contract_source_kind": "issue_comment",
+        "contract_source_id": "6596146458",
+        "contract_body_sha256": BODY_SHA,
+        "allowed_paths_normalized_sha256": "b" * 64,
+        "base_ref": "main",
+        "base_sha_at_snapshot": "c" * 40,
+    }
+    worst = ecs._worst_case_fingerprint(99999, BODY_SHA)
+    assert set(worst) == set(real)
+    assert len(ecs._json_compact(worst)) >= len(ecs._json_compact(real))
+    # boundary: a body that fits with the placeholder also fits with a real fingerprint
+    body = build([{"ac": "AC1"}], fingerprint=worst)
+    assert len(body) <= ecs._MAX_SNAPSHOT_BODY_CHARS

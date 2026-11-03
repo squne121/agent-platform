@@ -237,6 +237,22 @@ _PARSER_MAX_JSON_DEPTH = 32
 _MAX_SNAPSHOT_BODY_CHARS = 60_000
 
 
+def _worst_case_fingerprint(issue_number: int, body_sha256: str) -> dict[str, Any]:
+    """Fingerprint-shaped placeholder at least as large as any real one.
+
+    The pre-POST dry build must bound the *final* body, which embeds the real fingerprint.
+    """
+    return {
+        "issue_number": issue_number,
+        "contract_source_kind": "issue_comment",
+        "contract_source_id": "9" * 20,
+        "contract_body_sha256": body_sha256,
+        "allowed_paths_normalized_sha256": "f" * 64,
+        "base_ref": "x" * 255,
+        "base_sha_at_snapshot": "f" * 64,
+    }
+
+
 def _json_depth(value: Any) -> int:
     if isinstance(value, dict):
         return 1 + max((_json_depth(v) for v in value.values()), default=0)
@@ -1800,7 +1816,7 @@ def ensure_contract_snapshot(
             review_result=review_result,
             idempotency_marker=idempotency_marker,
             body_sha256=body_sha256,
-            expected_contract_fingerprint={},
+            expected_contract_fingerprint=_worst_case_fingerprint(issue_number, body_sha256),
         )
     except ValueError as exc:
         result["status"] = "runtime_error"
