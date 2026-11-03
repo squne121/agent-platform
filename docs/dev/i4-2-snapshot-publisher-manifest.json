@@ -198,6 +198,7 @@
       "authoritative_go": true
     },
     "rerun": {
+      "invocation": "same executor command; the executor always runs ensure_contract_snapshot.py --mode auto --post, and post_status not_requested means the existing trusted go snapshot was reused (no POST, no PATCH)",
       "post_status": "not_requested",
       "snapshot_count_before": 1,
       "snapshot_count_after": 1,
@@ -208,6 +209,7 @@
     },
     "transport_findings": {
       "probe_comment_id": 6593640566,
+      "probe_route": "not a snapshot and not through the executor: one POST + one PATCH with the production post_comment()/patch_comment() functions (gh api --input -, patch failed closed on hash mismatch as designed), then one more PATCH with a raw `gh api --method PATCH --input -` for the charwise probe; plain comments on the disposable issue #67 only, kept as evidence",
       "probe_comment_url": "https://github.com/squne121/agent-platform/issues/67#issuecomment-6593640566",
       "summary": "GitHub rewrites control characters to caret notation on persist: U+0001,0002,0007,000E,001B,001F and U+0080,0085,009B,009F were changed (e.g. BEL -> ^G, ESC -> ^[ ); tab, LF, VT, FF, CR, BS, DEL, NBSP, U+2028/2029, ZWSP, BOM, emoji, CJK, backslashes, quotes, Markdown and shell metacharacters round-trip unchanged. The production verifier fails closed (binding_body_hash_mismatch) on the changed text.",
       "mitigation": "snapshot body values pass through json.dumps (escapes C0); _json_compact additionally escapes DEL/C1 so no rewritten character can be emitted raw."

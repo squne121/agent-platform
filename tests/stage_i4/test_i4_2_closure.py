@@ -104,6 +104,9 @@ def test_live_evidence() -> None:
     fp = live["fingerprint"]
     assert fp["contract_source_id"] == str(live["comment_id"])
     assert fp["issue_number"] == live["verification_issue"]
+    assert f"/issues/{live['verification_issue']}#" in live["comment_url"]
+    assert live["updated_at"] > live["created_at"]  # the two-phase PATCH happened
+    assert live["comment_body_sha256"] != live["issue_body_sha256"]
     assert fp["contract_body_sha256"] == live["issue_body_sha256"]
     assert live["canonical_parser"] == {"status": "go", "trusted": True, "authoritative_go": True}
 
@@ -111,6 +114,7 @@ def test_live_evidence() -> None:
 def test_idempotent_evidence() -> None:
     rerun = _manifest()["live_acceptance"]["rerun"]
     assert rerun["post_status"] == "not_requested"
+    assert "--post" in rerun["invocation"]
     assert rerun["snapshot_count_before"] == rerun["snapshot_count_after"] == 1
     assert rerun["comment_updated_at_before"] == rerun["comment_updated_at_after"]
     assert rerun["comment_body_sha256_before"] == rerun["comment_body_sha256_after"]
