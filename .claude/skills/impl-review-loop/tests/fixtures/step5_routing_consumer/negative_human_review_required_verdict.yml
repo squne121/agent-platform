@@ -1,0 +1,15 @@
+description: reviewer verdict HUMAN_REVIEW_REQUIRED -> route_human_escalation
+reviewer_verdict:
+  verdict: HUMAN_REVIEW_REQUIRED
+  reviewed_head_sha: abc123def456
+  blockers:
+  - "ambiguous scope, needs human call"
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: CLEAN
+test_verdict: null
+expected:
+  route: route_human_escalation
+  fail_closed: false
+  reason_code: reviewer_human_review_required

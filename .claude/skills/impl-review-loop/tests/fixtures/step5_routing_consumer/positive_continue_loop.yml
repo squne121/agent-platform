@@ -1,0 +1,14 @@
+description: REQUEST_CHANGES -> continue_loop
+reviewer_verdict:
+  verdict: REQUEST_CHANGES
+  reviewed_head_sha: abc123def456
+  blockers:
+  - "missing test coverage for AC3"
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: CLEAN
+test_verdict: null
+expected:
+  route: continue_loop
+  fail_closed: false

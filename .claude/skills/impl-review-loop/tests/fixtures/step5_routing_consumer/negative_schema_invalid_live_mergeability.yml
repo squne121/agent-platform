@@ -1,0 +1,15 @@
+description: live_mergeability with an unknown merge_state_status value -> fail_closed
+  schema error
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: mergeStateStatusCamelCase
+test_verdict: null
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code_prefix: schema_invalid_merge_state_status_value

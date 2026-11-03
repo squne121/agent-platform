@@ -1,0 +1,17 @@
+description: >-
+  merge_state_status=DRAFT is not a Git conflict and must never trigger
+  automatic human escalation on its own (Issue #1873 Delivery Rule requires
+  the PR to stay Draft pending human final merge). The router defers to the
+  current-head required-CI evaluator.
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: DRAFT
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code: merge_state_status_draft_not_conflict_defer_to_ci_evaluator

@@ -1,0 +1,297 @@
+{
+  "schema": "I4_4A_ROUTER_CORE_MANIFEST_V1",
+  "issue": "squne121/agent-platform#75",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "decisions": {
+    "slice": "route_loop_verdict_v2.py (pure Step 5 routing) only. pr_head_replay_publish_exec.py is NOT migrated: it holds git replay / commit / ref-update mutation, which is not approved for a read-only merge-tree oracle.",
+    "fail_closed": "Unmigrated dependencies never yield approval, success, or a safe reconciliation: oracle missing -> fail_closed semantic_ambiguity_oracle_unavailable; landing evidence missing -> reconciliation_required (data plane suppressed)."
+  },
+  "required_files": [
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    "scripts/agent-ops/main_drift_policy.py"
+  ],
+  "required_fixtures": [
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_approve_with_blockers.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_conflicting_mergeable.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_dirty_merge_state.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_human_review_required_verdict.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_legacy_field_present.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_merge_state_status_conflicting_schema_invalid.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_schema_invalid_live_mergeability.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_schema_invalid_verdict.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_stale_head.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_unknown_merge_state_status.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_unknown_mergeable.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_approved.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_behind.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_blocked_defer_to_ci.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_continue_loop.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_draft_defer_to_ci.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_has_hooks_approved.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_unstable_defer_to_ci.yml",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_update_branch.yml"
+  ],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py",
+    ".claude/skills/impl-review-loop/tests/test_already_satisfied_routing.py",
+    ".claude/skills/impl-review-loop/tests/test_v2_routing_boundary_regression.py",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2.py",
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2_merge_state_status_only.py",
+    "tests/stage_i4/test_i4_4a_closure.py",
+    "tests/stage_i4/test_i4_4a_negative_controls.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": 26,
+    ".claude/skills/impl-review-loop/tests/test_already_satisfied_routing.py": 26,
+    ".claude/skills/impl-review-loop/tests/test_v2_routing_boundary_regression.py": 2,
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2.py": 45,
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2_merge_state_status_only.py": 2,
+    "tests/stage_i4/test_i4_4a_closure.py": 11,
+    "tests/stage_i4/test_i4_4a_negative_controls.py": 3
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": 26,
+    ".claude/skills/impl-review-loop/tests/test_already_satisfied_routing.py": 26,
+    ".claude/skills/impl-review-loop/tests/test_v2_routing_boundary_regression.py": 2,
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2.py": 45,
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2_merge_state_status_only.py": 2,
+    "tests/stage_i4/test_i4_4a_closure.py": 11,
+    "tests/stage_i4/test_i4_4a_negative_controls.py": 3
+  },
+  "deferred_tests": [],
+  "totals": {
+    "ran": 115,
+    "deferred_run_time": 0,
+    "skipped": 0
+  },
+  "main_drift_policy_reuse": {
+    "module": "scripts/agent-ops/main_drift_policy.py",
+    "source_router_ast_sha256": "c82e8c90f68235f8721af329bb3c9e1101d766458e3886f0ef55b37d0958fc38",
+    "note": "sha256 of json.dumps(dict name->ast.dump(node), sort_keys=True) over the 4 definitions; equal to the definitions embedded in the source router (verified at migration time)."
+  },
+  "source_parity": {
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py": {
+      "source_sha256": "82c9312f0cae3e9527bd8ce8524f0875ddc164e23280e2d1d96e8c8907763576",
+      "moved_sha256": "3665440211a7822315a3a80a775d64ac0471e501815e8138165db8392f884069",
+      "verbatim": false,
+      "intentional_diff": "(a) the embedded MainDriftDecision / classify_main_drift / DEFAULT_MAX_DRIFT_REBIND_ATTEMPTS / _MAIN_DRIFT_SHA (source lines 187-291) are replaced by an import from the already-migrated scripts/agent-ops/main_drift_policy.py (AST-identical, see main_drift_policy_reuse); `re` import dropped, `sys`/`Path` added for the sibling lookup. (b) resolve_pre_step1_landing_disposition(): a missing implementation_landed_evidence.py (unmigrated, owner I-4-4C) returns the documented fail-closed `reconciliation_required` / implementation_landed_evidence_module_unavailable disposition instead of raising FileNotFoundError. (c) route_loop_verdict_v2_resolve_semantic_ambiguity(): an unavailable merge-tree oracle (pr_head_replay_publish_exec, unmigrated, owner I-4-4C) returns fail_closed `semantic_ambiguity_oracle_unavailable` instead of falling through with semantic_ambiguity treated as False (fail-open). Side effect of (a): importing the router inserts <repo>/scripts/agent-ops at sys.path[0] (only if absent), the same pattern issue-refinement-loop/plan_refinement_loop.py already uses; tests must import the router before main_drift_policy."
+    },
+    ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": {
+      "source_sha256": "edac9e1a8ac94762dad9a273acaaa0023c2c42bb09735ce89babbb1b83b227e1",
+      "moved_sha256": "d56dd66ace2a2f7d69cb5fa7f03a7ded62ca6359361a2214343da1f31a0d229d",
+      "verbatim": false,
+      "intentional_diff": "removed test_given_normal_step5_when_documented_then_live_main_drift_facts_are_built_before_routing (reads unmigrated steps/step-5-mergeability-handling.md; listed in deferred_source_tests) and its STEP5_MERGEABILITY constant; the two real-git oracle tests take an `oracle_stand_in` fixture (a test-local pr_head_replay_publish_exec exposing compute_semantic_ambiguity via a real `git merge-tree --write-tree`, see adapted_source_tests); added 4 I-4-4A tests (oracle unavailable fail-closed, explicit ambiguity needs no oracle, fresh evidence needs no oracle, landing-evidence producer unavailable fail-closed)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_already_satisfied_routing.py": {
+      "source_sha256": "8082acb7fb2358410d5723603e57bf3547555f4f230fd1124d60f59c67b302c6",
+      "moved_sha256": "8082acb7fb2358410d5723603e57bf3547555f4f230fd1124d60f59c67b302c6",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_v2_routing_boundary_regression.py": {
+      "source_sha256": "3a4ff93892847960b38d43d9b7aee5ebe5ef9781436d33b32c8e18ddcb0fdf66",
+      "moved_sha256": "1f8c9289a9f80339397d1b6bbd3d1d746423f89d572751d526dd26dc68ec3679",
+      "verbatim": false,
+      "intentional_diff": "removed the two docs/dev/agent-skill-boundaries.md wording tests (the migrated doc is a #34 excerpt lacking those registered strings; listed in deferred_source_tests); the update_branch and legacy-field routing tests are unchanged."
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2.py": {
+      "source_sha256": "347f09aee7d99146896c6007cf7bebedeee2fe1606d318e178dc70cfb8db3c9d",
+      "moved_sha256": "347f09aee7d99146896c6007cf7bebedeee2fe1606d318e178dc70cfb8db3c9d",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/test_route_loop_verdict_v2_merge_state_status_only.py": {
+      "source_sha256": "836f9626f73e7757e9473d301ef7a1c8a499e6e4028afcb09a0e767ec643f532",
+      "moved_sha256": "836f9626f73e7757e9473d301ef7a1c8a499e6e4028afcb09a0e767ec643f532",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_approve_with_blockers.yml": {
+      "source_sha256": "1e91ea516143115cb5f4754662cc226bdf1b8fba0614a92da0f24412124f4230",
+      "moved_sha256": "1e91ea516143115cb5f4754662cc226bdf1b8fba0614a92da0f24412124f4230",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_conflicting_mergeable.yml": {
+      "source_sha256": "f76f7a81e0ddd2479e07dd0273c3b34bde4e41bc3de6469583279bc11dfb79b8",
+      "moved_sha256": "f76f7a81e0ddd2479e07dd0273c3b34bde4e41bc3de6469583279bc11dfb79b8",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_dirty_merge_state.yml": {
+      "source_sha256": "75afe518940f2eaf57461205ba29f5e3b6cc619e7b6cd2b4678b73bbbec9e80e",
+      "moved_sha256": "75afe518940f2eaf57461205ba29f5e3b6cc619e7b6cd2b4678b73bbbec9e80e",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_human_review_required_verdict.yml": {
+      "source_sha256": "d62fe6ead6854a22beaad4165b5f1a5778bfd34b87c5338045a862bd7baebd8d",
+      "moved_sha256": "d62fe6ead6854a22beaad4165b5f1a5778bfd34b87c5338045a862bd7baebd8d",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_legacy_field_present.yml": {
+      "source_sha256": "a3650d4f3955a346889177f41daff0ffeb02c8edf9fee2c27bccc838892d60a0",
+      "moved_sha256": "a3650d4f3955a346889177f41daff0ffeb02c8edf9fee2c27bccc838892d60a0",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_merge_state_status_conflicting_schema_invalid.yml": {
+      "source_sha256": "2b73f74aa0dc602c611bc84d8dd14555d2ac3723c282adbea3f70494fcf15921",
+      "moved_sha256": "2b73f74aa0dc602c611bc84d8dd14555d2ac3723c282adbea3f70494fcf15921",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_schema_invalid_live_mergeability.yml": {
+      "source_sha256": "b07dd9e5e5ed244b2a8e4dbc2a54e7d08fee9f6636db2108c604b3e77df8562f",
+      "moved_sha256": "b07dd9e5e5ed244b2a8e4dbc2a54e7d08fee9f6636db2108c604b3e77df8562f",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_schema_invalid_verdict.yml": {
+      "source_sha256": "a5456e5a5938657d8dcf7b528085c0734a53a8d49a1cd4439eb9f2f208e2cb61",
+      "moved_sha256": "a5456e5a5938657d8dcf7b528085c0734a53a8d49a1cd4439eb9f2f208e2cb61",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_stale_head.yml": {
+      "source_sha256": "df59583393d6df0cd0ab44d6f826f051365c865714c6dc528488d0c59e625ec2",
+      "moved_sha256": "df59583393d6df0cd0ab44d6f826f051365c865714c6dc528488d0c59e625ec2",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_unknown_merge_state_status.yml": {
+      "source_sha256": "798485ecd70985eaac62e375220e070f352345390d10ed77ee53b9c2966bc038",
+      "moved_sha256": "798485ecd70985eaac62e375220e070f352345390d10ed77ee53b9c2966bc038",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/negative_unknown_mergeable.yml": {
+      "source_sha256": "0afb9892e5fe1a5897e25bcd4c57916d857fd61e6a9348ba5deb07ff43f65227",
+      "moved_sha256": "0afb9892e5fe1a5897e25bcd4c57916d857fd61e6a9348ba5deb07ff43f65227",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_approved.yml": {
+      "source_sha256": "c3ee2e1eb4a4c5e5bc57070b729eb0f0ca2aefc4b8bdc92b62e1c4d4471df5fd",
+      "moved_sha256": "c3ee2e1eb4a4c5e5bc57070b729eb0f0ca2aefc4b8bdc92b62e1c4d4471df5fd",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_behind.yml": {
+      "source_sha256": "302c7c6dcae6fee5337fdd15d998b47cdb20c4a6c6087a02e3b0364e64827e70",
+      "moved_sha256": "302c7c6dcae6fee5337fdd15d998b47cdb20c4a6c6087a02e3b0364e64827e70",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_blocked_defer_to_ci.yml": {
+      "source_sha256": "9e5830db8240d5ed4f1b1dfdca4f15827be865ca121fbfc6a498dd562d49eb33",
+      "moved_sha256": "9e5830db8240d5ed4f1b1dfdca4f15827be865ca121fbfc6a498dd562d49eb33",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_continue_loop.yml": {
+      "source_sha256": "48e9f16892df823903474a37411c89b48f537763cdd658143abd583b6ec52763",
+      "moved_sha256": "48e9f16892df823903474a37411c89b48f537763cdd658143abd583b6ec52763",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_draft_defer_to_ci.yml": {
+      "source_sha256": "e3ca141f76b38c509c2a1ab769f725bda03632d16d60329938aa5dfc4651d765",
+      "moved_sha256": "e3ca141f76b38c509c2a1ab769f725bda03632d16d60329938aa5dfc4651d765",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_has_hooks_approved.yml": {
+      "source_sha256": "ff16c9fd4410bcf3af72af0e16f51c48220827b165f4a2fa68cccd5c6cfd9b74",
+      "moved_sha256": "ff16c9fd4410bcf3af72af0e16f51c48220827b165f4a2fa68cccd5c6cfd9b74",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_unstable_defer_to_ci.yml": {
+      "source_sha256": "858c7ac52e352fcdce43b85906af71c2a099d461aa53110c4aa6a8ec53009f2d",
+      "moved_sha256": "858c7ac52e352fcdce43b85906af71c2a099d461aa53110c4aa6a8ec53009f2d",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/step5_routing_consumer/positive_update_branch.yml": {
+      "source_sha256": "e3e6149d1ed79487506d83e6b63bb7d9ceaeb53264f57ce927c4c6489cc80e2c",
+      "moved_sha256": "e3e6149d1ed79487506d83e6b63bb7d9ceaeb53264f57ce927c4c6489cc80e2c",
+      "verbatim": true
+    }
+  },
+  "deferred_source_tests": [
+    {
+      "id": "test_main_drift_routing.py::test_given_normal_step5_when_documented_then_live_main_drift_facts_are_built_before_routing",
+      "reason": "asserts wording of impl-review-loop/steps/step-5-mergeability-handling.md, which is not migrated",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/step-5-mergeability-handling.md is migrated"
+    },
+    {
+      "id": "test_v2_routing_boundary_regression.py::test_given_boundary_doc_when_read_then_v2_routing_fields_are_registered",
+      "reason": "docs/dev/agent-skill-boundaries.md is an Issue #34 excerpt without the TEST_VERDICT_MACHINE/v1.branch_behind_main registration",
+      "owner_stage": "I-4-4D (boundary doc completion)",
+      "rerun_condition": "when the full boundary doc section is migrated"
+    },
+    {
+      "id": "test_v2_routing_boundary_regression.py::test_given_boundary_doc_when_read_then_stale_self_report_wording_is_marked_noncanonical",
+      "reason": "same excerpt lacks the self-report non-canonical wording",
+      "owner_stage": "I-4-4D (boundary doc completion)",
+      "rerun_condition": "when the full boundary doc section is migrated"
+    },
+    {
+      "id": "test_already_satisfied_early_exit_e2e_runtime_only.py::test_ac12_proceed_to_step_1_route_never_reaches_step1_dispatch_when_already_satisfied",
+      "reason": "file executes the unmigrated build_intake_capsule.py and preparation.md choke point",
+      "owner_stage": "I-4-4C (build_intake_capsule) / I-4-4D (steps)",
+      "rerun_condition": "when build_intake_capsule.py and preparation.md are migrated"
+    },
+    {
+      "id": "test_already_satisfied_early_exit_e2e_runtime_only.py::test_ac12_refresh_contract_snapshot_routing_action_never_reaches_step1_dispatch_when_already_satisfied",
+      "reason": "same file dependency",
+      "owner_stage": "I-4-4C / I-4-4D",
+      "rerun_condition": "same"
+    },
+    {
+      "id": "test_already_satisfied_early_exit_e2e_runtime_only.py::test_ac12_proceed_to_step_1_route_dispatches_step1_when_base_not_satisfied",
+      "reason": "same file dependency",
+      "owner_stage": "I-4-4C / I-4-4D",
+      "rerun_condition": "same"
+    },
+    {
+      "id": "test_already_satisfied_early_exit_e2e_runtime_only.py::test_ac12_refresh_contract_snapshot_routing_action_dispatches_step1_when_pr_already_exists",
+      "reason": "same file dependency",
+      "owner_stage": "I-4-4C / I-4-4D",
+      "rerun_condition": "same"
+    }
+  ],
+  "adapted_source_tests": [
+    {
+      "id": "test_main_drift_routing.py::test_given_real_conflicting_git_state_when_wrapper_resolves_ambiguity_then_it_hard_stops",
+      "adaptation": "runs against a test-local oracle stand-in (real git merge-tree), not the source pr_head_replay_publish_exec",
+      "owner_stage": "I-4-4C",
+      "rerun_condition": "re-run unchanged against the real oracle once it is migrated (drop the oracle_stand_in fixture)"
+    },
+    {
+      "id": "test_main_drift_routing.py::test_given_real_nonconflicting_git_state_when_wrapper_resolves_ambiguity_then_reconciliation_proceeds",
+      "adaptation": "same stand-in",
+      "owner_stage": "I-4-4C",
+      "rerun_condition": "same"
+    }
+  ],
+  "deferred_dependencies": [
+    {
+      "path": ".claude/skills/impl-review-loop/scripts/implementation_landed_evidence.py",
+      "owner_stage": "I-4-4C (tracker #60)",
+      "reason": "loaded at run time by resolve_pre_step1_landing_disposition(); absent -> fail-closed reconciliation_required",
+      "rerun_condition": "when the producer is migrated, add its disposition tests and remove the deferred_script_refs entry in stage1a-core-manifest.json"
+    },
+    {
+      "path": "scripts/agent-ops/pr_head_replay_publish_exec.py",
+      "owner_stage": "I-4-4C (tracker #60)",
+      "reason": "git merge-tree oracle (compute_semantic_ambiguity); the file also mutates git state, so the read-only/mutation boundary needs an explicit decision before migration",
+      "rerun_condition": "when the boundary is decided and the oracle is migrated, remove the deferred_imports entry in stage1a-core-manifest.json"
+    },
+    {
+      "path": "adjudicate_vc_result.py / build_intake_capsule.py / materialize_test_verdict_artifact.py / steps / Skill / Agent",
+      "owner_stage": "I-4-4B..D (tracker #60)",
+      "reason": "not part of the Step 5 routing core",
+      "rerun_condition": "their own slices"
+    },
+    {
+      "path": "source tests referencing the router but depending on unmigrated modules: impl-review-loop/tests/test_implementation_landed_evidence.py, test_implementation_landed_intake_integration.py, test_handoff_pr_hygiene_regression.py, test_termination_gate.py, test_step4_pr_review_only_canonical_path.py, test_independent_vc_terminal_gate_regression.py, test_body_only_repair_plan.py; tests/agent_ops/test_main_drift_update_branch.py",
+      "owner_stage": "I-4-4B..D (tracker #60)",
+      "reason": "depend on landing evidence, adjudicate_vc_result, steps or update_branch executors that are not migrated; not copied, not skipped",
+      "rerun_condition": "migrated together with the module each one exercises"
+    }
+  ],
+  "evidence_boundary": {
+    "kind": "fixture + temporary git repository only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "test_verdict_publish_enabled": false
+  }
+}

@@ -1,0 +1,13 @@
+description: APPROVE + HAS_HOOKS/MERGEABLE -> approved
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: HAS_HOOKS
+test_verdict: null
+expected:
+  route: approved
+  fail_closed: false

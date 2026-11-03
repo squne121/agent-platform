@@ -1,0 +1,14 @@
+description: APPROVE + matching head + CLEAN/MERGEABLE + no blockers -> approved
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: CLEAN
+test_verdict: null
+expected:
+  route: approved
+  fail_closed: false
+  reason_code: null

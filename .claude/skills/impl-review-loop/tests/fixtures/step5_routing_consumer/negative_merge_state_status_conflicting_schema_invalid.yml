@@ -1,0 +1,16 @@
+description: >-
+  merge_state_status=CONFLICTING is not a valid GitHub MergeStateStatus enum
+  member (that enum member does not exist on GitHub) -> schema_invalid, NOT
+  treated as a conflict signal.
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: CONFLICTING
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code_prefix: "schema_invalid_merge_state_status_value"

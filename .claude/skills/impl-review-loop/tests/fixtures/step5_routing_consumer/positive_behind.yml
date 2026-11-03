@@ -1,0 +1,21 @@
+description: >-
+  merge_state_status=BEHIND -> route_to_update_branch, with the update_branch
+  action synthesized by the router (Issue #1873; no longer supplied by the
+  reviewer).
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers: []
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: BEHIND
+expected:
+  route: route_to_update_branch
+  fail_closed: false
+  selected_action:
+    kind: update_branch
+    executor: implementation-worker
+    skill: implement-issue.update_branch
+    mechanical: true
+    expected_head_sha: abc123def456

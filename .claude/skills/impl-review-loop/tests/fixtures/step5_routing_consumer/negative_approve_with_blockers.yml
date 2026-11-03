@@ -1,0 +1,16 @@
+description: verdict=APPROVE but blockers non-empty is an inconsistent reviewer
+  result -> fail_closed
+reviewer_verdict:
+  verdict: APPROVE
+  reviewed_head_sha: abc123def456
+  blockers:
+  - "this should not co-occur with APPROVE"
+live_mergeability:
+  head_sha: abc123def456
+  mergeable: MERGEABLE
+  merge_state_status: CLEAN
+test_verdict: null
+expected:
+  route: fail_closed
+  fail_closed: true
+  reason_code: approve_with_blockers_inconsistent
