@@ -82,9 +82,9 @@
     },
     ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": {
       "source_sha256": "edac9e1a8ac94762dad9a273acaaa0023c2c42bb09735ce89babbb1b83b227e1",
-      "moved_sha256": "bfa00a7a78eb5a5921e5bbf7f64ae45dafc04b8ea13d9aeec1cb1ae792ef3580",
+      "moved_sha256": "b7e56079bfae0803534fd4137faec55b6963c7a561bbc8923c87ecb56151724f",
       "verbatim": false,
-      "intentional_diff": "removed test_given_normal_step5_when_documented_then_live_main_drift_facts_are_built_before_routing (reads unmigrated steps/step-5-mergeability-handling.md; listed in deferred_source_tests) and its STEP5_MERGEABILITY constant; the two real-git oracle tests take an `oracle_stand_in` fixture (a test-local pr_head_replay_publish_exec exposing compute_semantic_ambiguity via a real `git merge-tree --write-tree`, see adapted_source_tests); added 4 I-4-4A tests (oracle unavailable fail-closed, explicit ambiguity needs no oracle, fresh evidence needs no oracle, landing-evidence producer unavailable fail-closed). I-4-4C1 (#81): the last of those tests no longer asserts the producer is absent from the tree; it runs the same fail-closed assertions on a copied layout (router + main_drift_policy, producer deliberately missing) because the producer is now migrated.."
+      "intentional_diff": "removed test_given_normal_step5_when_documented_then_live_main_drift_facts_are_built_before_routing (reads unmigrated steps/step-5-mergeability-handling.md; listed in deferred_source_tests) and its STEP5_MERGEABILITY constant; the two real-git oracle tests take an `oracle_stand_in` fixture (a test-local pr_head_replay_publish_exec exposing compute_semantic_ambiguity via a real `git merge-tree --write-tree`, see adapted_source_tests); added 4 I-4-4A tests (oracle unavailable fail-closed, explicit ambiguity needs no oracle, fresh evidence needs no oracle, landing-evidence producer unavailable fail-closed). I-4-4C1 (#81): the last of those tests no longer asserts the producer is absent from the tree; it runs the same fail-closed assertions on a copied layout (router + main_drift_policy, producer deliberately missing) because the producer is now migrated."
     },
     ".claude/skills/impl-review-loop/tests/test_already_satisfied_routing.py": {
       "source_sha256": "8082acb7fb2358410d5723603e57bf3547555f4f230fd1124d60f59c67b302c6",

@@ -208,8 +208,8 @@ def gh_argv_problems(source: str) -> list[str]:
             if words[2:3] not in (["view"], ["list"]):
                 problems.append(f"non-read gh {words[1]} subcommand: {words}")
         elif words[1:2] == ["api"]:
-            write_flags = {"--method", "-X", "-f", "-F", "--field", "--raw-field", "--input"}
-            if write_flags & set(words):
+            write_flags = ("--method", "-X", "-f", "-F", "--field", "--raw-field", "--input")
+            if any(w.startswith(write_flags) for w in words):
                 problems.append(f"gh api write flag: {words}")
         else:
             problems.append(f"unexpected gh argv: {words}")

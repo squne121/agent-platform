@@ -425,7 +425,7 @@ def test_given_oracle_import_failure_when_fresh_evidence_then_oracle_is_not_cons
     assert decision.route == route_loop_verdict_v2(_verdict(), live).route
 
 
-def test_given_unmigrated_landing_evidence_producer_when_disposition_resolved_then_fail_closed(tmp_path):
+def test_given_unmigrated_landing_evidence_producer_when_disposition_resolved_then_fail_closed(tmp_path, monkeypatch):
     # I-4-4C1: the producer is now migrated, so the missing-producer branch is exercised on a
     # copied layout (router + drift policy only; the sibling producer is deliberately absent).
     import importlib.util
@@ -440,7 +440,8 @@ def test_given_unmigrated_landing_evidence_producer_when_disposition_resolved_th
     spec = importlib.util.spec_from_file_location("route_copy_without_producer", irl / "route_loop_verdict_v2.py")
     assert spec is not None and spec.loader is not None
     copy = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = copy
+    monkeypatch.setattr(sys, "path", list(sys.path))  # restored on teardown (router inserts agent-ops)
+    monkeypatch.setitem(sys.modules, spec.name, copy)
     spec.loader.exec_module(copy)
     resolve_pre_step1_data_plane_action = copy.resolve_pre_step1_data_plane_action
     resolve_pre_step1_landing_disposition = copy.resolve_pre_step1_landing_disposition
