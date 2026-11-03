@@ -1,0 +1,267 @@
+{
+  "schema": "I4_4B2_VC_STEP4_TESTS_MANIFEST_V1",
+  "issue": "squne121/agent-platform#79",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "decisions": {
+    "slice": "The five remaining I-4-4B source test files (tracker #60). No script, schema or router change: they exercise the adjudicate_vc_result.py and producer receipt schema migrated by I-4-4B1 (#77) through real CLI subprocesses, a fake gh shim and temporary git repositories.",
+    "fail_closed": "Source tests that need unmigrated steps documents are removed from the moved files (never skipped/xfailed) and recorded in deferred_source_tests with owner and rerun condition. No stand-in for the steps documents is used.",
+    "design_reference_fixture": "docs/dev/workflow.md does not exist here; the fixture only needs an existing design reference for contract_readiness_check, so it points at docs/dev/github-ops.md (intentional_diff). Expectations are unchanged.",
+    "size": "moved tests ~6.6k lines + manifest/closure tests < 10k lines.",
+    "no_I_4_4C_dependency": "None of the five files needs the merge-tree oracle, landing evidence, intake capsule or test verdict producer (measured); I-4-4C owns no deferred test of this slice."
+  },
+  "required_files": [
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    "schemas/test-verdict-producer-receipt.schema.json",
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py",
+    ".claude/skills/issue-refinement-loop/scripts/repair_issue_contract.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py",
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": 14,
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": 20,
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 83,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 112,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": 69
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": 14,
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": 20,
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 83,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 112,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": 69
+  },
+  "deferred_tests": [],
+  "totals": {
+    "ran": 298,
+    "deferred_run_time": 0,
+    "skipped": 0,
+    "source_collected_before_removal": 368,
+    "removed_to_deferred_source_tests_cases": 70,
+    "removed_functions": 22
+  },
+  "source_parity": {
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": {
+      "source_sha256": "ceba9a93fcc8c8c067fe5cf5a8e9b08471871239a625293d595475c47bb0a042",
+      "moved_sha256": "cb26c437d1f7c6006a4ce37874a900f96310e76ffa5abd1e09b6e75764466454",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": {
+      "source_sha256": "22f625e81e64cc469fe990e725f7271c69f62caff4d7ffb1439a7579f7eb693b",
+      "moved_sha256": "22f625e81e64cc469fe990e725f7271c69f62caff4d7ffb1439a7579f7eb693b",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": {
+      "source_sha256": "73af237b1de06b7279952eab0eb7b444890526cad97fad544df08e773ceec921",
+      "moved_sha256": "d2a8988163587176c1c7c324c6215e362eac5044b0101bf6964d047675d983fc",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). Also the fixture issue body's '## Required Design References' entry 'docs/dev/workflow.md' -> 'docs/dev/github-ops.md': contract_readiness_check requires the reference to exist in this repository, docs/dev/workflow.md is not migrated, and the real producer would otherwise return blocked_needs_refinement (68 of 84 tests fail or error, measured). github-ops.md is the existing issue-kind policy doc of the same checker; the fixture only needs one existing design reference, no assertion was weakened. 1 source test removed (never skipped), recorded in deferred_source_tests: test_step4_doc_names_the_new_handoff_arguments reads unmigrated impl-review-loop/steps/step-4-pr-review.md (owner I-4-4D)."
+    },
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": {
+      "source_sha256": "969145cb0411b4dd041dd7e2f7266e3924b0c48a821c35ad9767b1eadb62ce9b",
+      "moved_sha256": "8fba92f7dc652fafc5e926998354c3e5420172465a0f6b1d08f16699a83c135b",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). 21 source test functions (69 parametrized cases) removed (never skipped), recorded in deferred_source_tests: each reads unmigrated impl-review-loop/steps/step-2-verification.md / step-4-pr-review.md / step-5-feedback-and-termination.md (owner I-4-4D). The shared helpers they use are kept verbatim."
+    },
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": {
+      "source_sha256": "04b4feb202eebf0e8f2059a2866d04fb8974111106025d3bbf76f6621e439bfb",
+      "moved_sha256": "44928b35273deca2d6aba20498ce3b688bbbb167d1d513c6147cea728ac642ca",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs)."
+    }
+  },
+  "deferred_source_tests": [
+    {
+      "id": "test_step4_contract_snapshot_handoff.py::test_step4_doc_names_the_new_handoff_arguments",
+      "cases": 1,
+      "reason": "reads the wording of unmigrated impl-review-loop/steps/step-4-pr-review.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/step-4-pr-review.md is migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_delegation_template_passes_ac_command_command_hash_triplets_verbatim",
+      "cases": 1,
+      "reason": "reads the spawn_agent delegation template and wording of unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_duplicate_or_ambiguous_failure_invalidates_prior_pass",
+      "cases": 2,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_failure_invalidates_prior_pass_and_recovers",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_nonpass_delegation_invalid_report_stays_fail_closed",
+      "cases": 5,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_nonpass_delegation_keeps_facts_and_is_not_terminal_approval",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_aggregate_contradiction_not_repaired",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_ambiguous_raw_result_fails_closed",
+      "cases": 4,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_ambiguous_scalar_or_key_is_rejected",
+      "cases": 17,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_duplicate_key_failure_removes_stale_valid_output",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_duplicate_mapping_key_is_handoff_failure",
+      "cases": 5,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_fence_shape_fails_closed",
+      "cases": 4,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_four_backtick_fence_containing_triple_backtick_lines_is_accepted",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_missing_row_not_synthesized",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_nonpass_rows_preserved_and_rejected",
+      "cases": 7,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_pass_report_preserved_and_accepted",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_quoted_ambiguous_strings_and_optional_fields_are_preserved",
+      "cases": 7,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_top_level_type_violation_is_rejected",
+      "cases": 3,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_triple_backticks_in_command_and_notes_reach_adjudicate",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_unquoted_boolean_like_scalar_is_rejected",
+      "cases": 4,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_unquoted_timestamp_is_handoff_failure",
+      "cases": 1,
+      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step_docs_state_canonical_entrance",
+      "cases": 1,
+      "reason": "reads unmigrated impl-review-loop/steps/step-2-verification.md, step-4-pr-review.md and step-5-feedback-and-termination.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+    }
+  ],
+  "reused_migrated_dependencies": [
+    "adjudicate_vc_result.py + schemas/test-verdict-producer-receipt.schema.json (I-4-4B1, #77)",
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py (I-4-2)",
+    ".claude/skills/issue-contract-review/scripts/contract_review_result_parser.py (I-4-1)",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
+    ".claude/skills/issue-refinement-loop/scripts/repair_issue_contract.py"
+  ],
+  "deferred_dependencies": [
+    {
+      "path": ".claude/skills/impl-review-loop/steps/*.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "reason": "documents read by the 22 removed source test functions (and by the 4 removed in I-4-4B1)",
+      "rerun_condition": "when migrated, restore the removed source tests verbatim and drop their entries here"
+    }
+  ],
+  "evidence_boundary": {
+    "kind": "fixture + fake gh shim + temporary git repository only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "test_verdict_publish_enabled": false,
+    "merge_tree_oracle_real_evidence": false,
+    "github_live_operations": false
+  }
+}
