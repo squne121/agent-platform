@@ -241,3 +241,202 @@ def test_stale_head_closes_step4_and_reviewer_approve_cannot_reach_terminal_appr
 def test_terminal_approval_without_any_step4_gate_is_refused(terminal: Any) -> None:
     code, term = _terminal(terminal, {})
     assert code != 0 and term.get("route") != "approved", term
+
+
+# --- test_verdict / producer receipt binding and SKIP / FAIL non-promotion ----------------------
+# Mutation review of this slice showed the migrated source tests never reach `_test_verdict_binding_error`'s
+# receipt / artifact-digest / skip-count branches, so these are pinned here (positive control + one
+# mutation per binding).  Pure function calls on fixtures; no network.
+
+ADJUDICATOR = f"{IRL}/scripts/adjudicate_vc_result.py"
+NON_REGRESSION_TESTS = f"{TESTS}/test_adjudicate_vc_result_non_regression_gate.py"
+RECEIPT_HEAD = "d" * 40
+RECEIPT_HASH = "sha256:" + "1" * 64
+
+
+@pytest.fixture
+def adj() -> Any:
+    module = _load(ADJUDICATOR, "adjudicate_vc_result_i4_4b2_closure")
+    yield module
+    sys.modules.pop("adjudicate_vc_result_i4_4b2_closure", None)
+
+
+def _valid_case(adj: Any) -> tuple[dict[str, Any], dict[str, Any]]:
+    nr = _load(NON_REGRESSION_TESTS, "non_regression_tests_i4_4b2_closure")
+    try:
+        items = [{"ac": "AC1", "command_hash": RECEIPT_HASH}]
+        verdict = nr._manual_test_verdict(
+            items, head_sha=RECEIPT_HEAD, reviewed_head_sha=RECEIPT_HEAD, diff_head_sha=RECEIPT_HEAD
+        )
+    finally:
+        sys.modules.pop("non_regression_tests_i4_4b2_closure", None)
+    receipt = {
+        "schema": "TEST_VERDICT_PRODUCER_RECEIPT_V1",
+        "schema_version": 1,
+        "execution_payload_sha256": verdict["artifact_payload_sha256"],
+        "execution_artifact": {
+            "artifact_id": 1,
+            "artifact_url": verdict["artifact"]["url"],
+            "artifact_archive_digest": verdict["artifact"]["artifact_digest"],
+        },
+        "producer": {
+            "workflow_path": ".github/workflows/ci.yml",
+            "workflow_source_ref": "refs/heads/main",
+            "workflow_source_sha": "e" * 40,
+            "workflow_run_id": 1544,
+            "workflow_run_attempt": 1,
+            "job_id": 7,
+            "check_run_id": 15440,
+        },
+        "subject": {"target_pr_number": 1544, "head_repository_id": 1, "pr_head_sha": RECEIPT_HEAD},
+        "contract": {
+            "linked_issue_number": 1488,
+            "issue_body_sha256": verdict["contract_body_sha256"],
+            "command_manifest_sha256": "sha256:" + "2" * 64,
+        },
+        "source": {
+            "repository_id": 1,
+            "repository_full_name": "squne121/agent-platform",
+            "commit_sha": "f" * 40,
+            "tree_sha": "9" * 40,
+            "execution_run_id": 1544,
+            "execution_job_id": 7,
+        },
+        "pass_eligible": True,
+    }
+    verdict["producer_receipt"] = receipt
+    verdict["receipt_sha256"] = adj._sha256(adj._canonical_json(receipt))
+    kwargs = {
+        "contract_snapshot": {"body_sha256": verdict["contract_body_sha256"]},
+        "current_vc_result": {
+            "issue": 1488,
+            "head_sha": RECEIPT_HEAD,
+            "reviewed_head_sha": RECEIPT_HEAD,
+        },
+        "diff_summary": {"pr_number": 1544, "head_sha": RECEIPT_HEAD},
+        "expected_keys": {("AC1", RECEIPT_HASH)},
+        "require_producer_receipt": True,
+    }
+    return verdict, kwargs
+
+
+def _reseal_receipt(adj: Any, verdict: dict[str, Any]) -> None:
+    verdict["receipt_sha256"] = adj._sha256(adj._canonical_json(verdict["producer_receipt"]))
+
+
+def _reseal_payload(adj: Any, verdict: dict[str, Any]) -> None:
+    verdict["artifact_payload_sha256"] = adj._sha256(
+        adj._canonical_json(verdict["artifact_payload"])
+    )
+
+
+def test_receipt_positive_control_is_accepted(adj: Any) -> None:
+    verdict, kwargs = _valid_case(adj)
+    assert adj._test_verdict_binding_error(verdict, **kwargs) is None
+
+
+def _m_skip(adj: Any, v: dict[str, Any]) -> None:
+    v["verification_skipped_count"] = 1
+
+
+def _m_fail(adj: Any, v: dict[str, Any]) -> None:
+    v["result"] = "FAIL"
+
+
+def _m_fail_count(adj: Any, v: dict[str, Any]) -> None:
+    v["verification_commands_fail"] = 1
+
+
+def _m_row_skip(adj: Any, v: dict[str, Any]) -> None:
+    v["runtime_ac_results"][0]["status"] = "skip"
+
+
+def _m_row_fallback(adj: Any, v: dict[str, Any]) -> None:
+    v["runtime_ac_results"][0]["fallback_detected"] = True
+
+
+def _m_coverage(adj: Any, v: dict[str, Any]) -> None:
+    v["runtime_ac_results"][0]["command_hash"] = "sha256:" + "3" * 64
+
+
+def _m_payload_head(adj: Any, v: dict[str, Any]) -> None:
+    v["artifact_payload"]["head_sha"] = "c" * 40
+    _reseal_payload(adj, v)
+
+
+def _m_payload_hashes(adj: Any, v: dict[str, Any]) -> None:
+    v["artifact_payload"]["command_hashes"] = ["sha256:" + "4" * 64]
+    _reseal_payload(adj, v)
+
+
+def _m_payload_tamper(adj: Any, v: dict[str, Any]) -> None:
+    v["artifact_payload"]["pr_number"] = 1  # sha left stale: the digest no longer matches
+
+
+def _m_receipt_sha(adj: Any, v: dict[str, Any]) -> None:
+    v["receipt_sha256"] = "sha256:" + "5" * 64
+
+
+def _m_receipt_schema(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["unexpected"] = True
+    _reseal_receipt(adj, v)
+
+
+def _m_receipt_ineligible(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["pass_eligible"] = False
+    _reseal_receipt(adj, v)
+
+
+def _m_receipt_head(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["subject"]["pr_head_sha"] = "c" * 40
+    _reseal_receipt(adj, v)
+
+
+def _m_receipt_pr(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["subject"]["target_pr_number"] = 99
+    _reseal_receipt(adj, v)
+
+
+def _m_receipt_issue(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["contract"]["linked_issue_number"] = 99
+    _reseal_receipt(adj, v)
+
+
+def _m_receipt_body(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["contract"]["issue_body_sha256"] = "sha256:" + "6" * 64
+    _reseal_receipt(adj, v)
+
+
+def _m_receipt_digest(adj: Any, v: dict[str, Any]) -> None:
+    v["producer_receipt"]["execution_artifact"]["artifact_archive_digest"] = "sha256:" + "7" * 64
+    _reseal_receipt(adj, v)
+
+
+RECEIPT_MUTATIONS = [
+    (_m_skip, "test_verdict_skip_count_nonzero"),
+    (_m_fail, "test_verdict_result_not_pass"),
+    (_m_fail_count, "test_verdict_fail_count_nonzero"),
+    (_m_row_skip, "test_verdict_runtime_ac_not_executed_pass:AC1"),
+    (_m_row_fallback, "test_verdict_runtime_ac_not_executed_pass:AC1"),
+    (_m_coverage, "test_verdict_runtime_ac_coverage_mismatch"),
+    (_m_payload_head, "test_verdict_artifact_head_sha_mismatch"),
+    (_m_payload_hashes, "test_verdict_artifact_command_hashes_mismatch"),
+    (_m_payload_tamper, "test_verdict_artifact_digest_mismatch"),
+    (_m_receipt_sha, "test_verdict_receipt_sha256_mismatch"),
+    (_m_receipt_schema, "test_verdict_producer_receipt_schema_invalid"),
+    (_m_receipt_ineligible, "test_verdict_receipt_not_pass_eligible"),
+    (_m_receipt_head, "test_verdict_receipt_subject_head_sha_mismatch"),
+    (_m_receipt_pr, "test_verdict_receipt_subject_pr_number_mismatch"),
+    (_m_receipt_issue, "test_verdict_receipt_contract_issue_number_mismatch"),
+    (_m_receipt_body, "test_verdict_receipt_contract_body_sha256_mismatch"),
+    (_m_receipt_digest, "test_verdict_receipt_artifact_digest_mismatch"),
+]
+
+
+@pytest.mark.parametrize(
+    ("mutate", "reason"), RECEIPT_MUTATIONS, ids=[m.__name__ for m, _ in RECEIPT_MUTATIONS]
+)
+def test_receipt_and_verdict_bindings_fail_closed(adj: Any, mutate: Any, reason: str) -> None:
+    verdict, kwargs = _valid_case(adj)
+    mutate(adj, verdict)
+    assert adj._test_verdict_binding_error(verdict, **kwargs) == reason
