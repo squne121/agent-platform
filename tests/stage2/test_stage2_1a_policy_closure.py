@@ -251,10 +251,9 @@ def test_manifest_pins_files_and_honest_deferrals() -> None:
     refs = {d["script"]: d["owner_stage"] for d in m["deferred_script_refs"]}
     # controlled_skill_mutation_exec.py was resolved by Stage 2-1b (#31): it exists, so it must
     # no longer be recorded as deferred (check_import_closure fails on a stale entry).
-    assert set(refs) == {"ensure_contract_snapshot.py", "materialize_issue_scope_snapshot.py"}
+    assert set(refs) == {"materialize_issue_scope_snapshot.py"}  # ensure_* moved by I-4-2 (#66)
     assert "controlled_skill_mutation_exec.py" not in m["dangling_refs"]
     assert (GUARDS / "controlled_skill_mutation_exec.py").is_file()
-    assert refs["ensure_contract_snapshot.py"].startswith("I-4")
     stage1a = json.loads((ROOT / "docs/dev/stage1a-core-manifest.json").read_text())
     listed = {d["script"] for d in stage1a["import_closure"]["deferred_script_refs"]}
     assert set(refs) <= listed
