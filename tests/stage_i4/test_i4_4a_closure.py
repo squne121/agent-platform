@@ -86,8 +86,8 @@ def test_main_drift_policy_is_reused_not_duplicated() -> None:
     assert _defs(ROOT / ROUTER) == {}, "router must import, not re-define, the drift policy"
     sys.path.insert(0, str(ROOT / IRL / "scripts"))
     try:
+        import route_loop_verdict_v2 as router  # puts scripts/agent-ops on sys.path first
         import main_drift_policy
-        import route_loop_verdict_v2 as router
     finally:
         sys.path.pop(0)
     assert router.classify_main_drift is main_drift_policy.classify_main_drift

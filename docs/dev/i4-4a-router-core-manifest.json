@@ -71,14 +71,14 @@
   "main_drift_policy_reuse": {
     "module": "scripts/agent-ops/main_drift_policy.py",
     "source_router_ast_sha256": "c82e8c90f68235f8721af329bb3c9e1101d766458e3886f0ef55b37d0958fc38",
-    "note": "sha256 over the sorted JSON of ast.dump() of the 4 definitions; equal to the definitions embedded in the source router (verified at migration time)."
+    "note": "sha256 of json.dumps(dict name->ast.dump(node), sort_keys=True) over the 4 definitions; equal to the definitions embedded in the source router (verified at migration time)."
   },
   "source_parity": {
     ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py": {
       "source_sha256": "82c9312f0cae3e9527bd8ce8524f0875ddc164e23280e2d1d96e8c8907763576",
       "moved_sha256": "3665440211a7822315a3a80a775d64ac0471e501815e8138165db8392f884069",
       "verbatim": false,
-      "intentional_diff": "(a) the embedded MainDriftDecision / classify_main_drift / DEFAULT_MAX_DRIFT_REBIND_ATTEMPTS / _MAIN_DRIFT_SHA (source lines 187-291) are replaced by an import from the already-migrated scripts/agent-ops/main_drift_policy.py (AST-identical, see main_drift_policy_reuse); `re` import dropped, `sys`/`Path` added for the sibling lookup. (b) resolve_pre_step1_landing_disposition(): a missing implementation_landed_evidence.py (unmigrated, owner I-4-4C) returns the documented fail-closed `reconciliation_required` / implementation_landed_evidence_module_unavailable disposition instead of raising FileNotFoundError. (c) route_loop_verdict_v2_resolve_semantic_ambiguity(): an unavailable merge-tree oracle (pr_head_replay_publish_exec, unmigrated, owner I-4-4C) returns fail_closed `semantic_ambiguity_oracle_unavailable` instead of falling through with semantic_ambiguity treated as False (fail-open)."
+      "intentional_diff": "(a) the embedded MainDriftDecision / classify_main_drift / DEFAULT_MAX_DRIFT_REBIND_ATTEMPTS / _MAIN_DRIFT_SHA (source lines 187-291) are replaced by an import from the already-migrated scripts/agent-ops/main_drift_policy.py (AST-identical, see main_drift_policy_reuse); `re` import dropped, `sys`/`Path` added for the sibling lookup. (b) resolve_pre_step1_landing_disposition(): a missing implementation_landed_evidence.py (unmigrated, owner I-4-4C) returns the documented fail-closed `reconciliation_required` / implementation_landed_evidence_module_unavailable disposition instead of raising FileNotFoundError. (c) route_loop_verdict_v2_resolve_semantic_ambiguity(): an unavailable merge-tree oracle (pr_head_replay_publish_exec, unmigrated, owner I-4-4C) returns fail_closed `semantic_ambiguity_oracle_unavailable` instead of falling through with semantic_ambiguity treated as False (fail-open). Side effect of (a): importing the router inserts <repo>/scripts/agent-ops at sys.path[0] (only if absent), the same pattern issue-refinement-loop/plan_refinement_loop.py already uses; tests must import the router before main_drift_policy."
     },
     ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": {
       "source_sha256": "edac9e1a8ac94762dad9a273acaaa0023c2c42bb09735ce89babbb1b83b227e1",
@@ -279,6 +279,12 @@
       "owner_stage": "I-4-4B..D (tracker #60)",
       "reason": "not part of the Step 5 routing core",
       "rerun_condition": "their own slices"
+    },
+    {
+      "path": "source tests referencing the router but depending on unmigrated modules: impl-review-loop/tests/test_implementation_landed_evidence.py, test_implementation_landed_intake_integration.py, test_handoff_pr_hygiene_regression.py, test_termination_gate.py, test_step4_pr_review_only_canonical_path.py, test_independent_vc_terminal_gate_regression.py, test_body_only_repair_plan.py; tests/agent_ops/test_main_drift_update_branch.py",
+      "owner_stage": "I-4-4B..D (tracker #60)",
+      "reason": "depend on landing evidence, adjudicate_vc_result, steps or update_branch executors that are not migrated; not copied, not skipped",
+      "rerun_condition": "migrated together with the module each one exercises"
     }
   ],
   "evidence_boundary": {
