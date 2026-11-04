@@ -198,11 +198,6 @@
         "script": "task_contextctl.py",
         "reason": "runtime subprocess target of publish_termination_report (best-effort refinement_approved signal); not migrated, the publisher degrades to deferred/ADAPTER_UNAVAILABLE (pinned in tests/stage2/test_stage2_2_comment_lane.py)",
         "owner_stage": "stage_3"
-      },
-      {
-        "script": "implementation_landed_evidence.py",
-        "reason": "route_loop_verdict_v2.resolve_pre_step1_landing_disposition() loads this sibling producer at run time; it is not migrated, so the function returns the fail-closed reconciliation_required disposition (implementation_landed_evidence_module_unavailable). Tracked by Issue #75 (I-4-4A).",
-        "owner_stage": "I-4-4C (tracker #60)"
       }
     ]
   },

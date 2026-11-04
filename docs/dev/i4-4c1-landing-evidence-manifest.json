@@ -1,0 +1,99 @@
+{
+  "schema": "I4_4C1_LANDING_EVIDENCE_MANIFEST_V1",
+  "issue": "squne121/agent-platform#81",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "decisions": {
+    "slice": "I-4-4C1 (tracker #60): the read-only implementation_landed_evidence.py producer and its source tests. The script is moved verbatim; no wrapper, schema or policy is added.",
+    "read_only": "The producer only reads GitHub through an injected runner (the source tests use a fake gh); no GitHub write, no git ref mutation, no replay/publish.",
+    "reuse": "allowed_paths_policy.is_no_path_marker and changed_file_matcher.AllowedPathsMatcher are imported from scripts/agent-ops and scripts/agent-guards; route_loop_verdict_v2.py and adjudicate_vc_result.py are loaded at run time. None of them is copied or changed.",
+    "router_integration": "route_loop_verdict_v2.resolve_pre_step1_landing_disposition() loads the producer by sibling path. Before this slice the file was absent and the router returned the fail-closed implementation_landed_evidence_module_unavailable; the closure tests pin both the positive (real producer loaded) and the negative (producer missing -> fail-closed) control.",
+    "c4_not_resolved": "pr_head_replay_publish_exec.py stays a deferred import (owner I-4-4C4): its read-only merge-tree oracle vs push-capable execute() boundary is an open decision in tracker #60 and is not decided here."
+  },
+  "required_files": [
+    ".claude/skills/impl-review-loop/scripts/implementation_landed_evidence.py",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    "scripts/agent-ops/allowed_paths_policy.py",
+    "scripts/agent-ops/main_drift_policy.py",
+    "scripts/agent-guards/changed_file_matcher.py"
+  ],
+  "required_fixtures": [],
+  "moved_scripts": [
+    ".claude/skills/impl-review-loop/scripts/implementation_landed_evidence.py"
+  ],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_implementation_landed_evidence.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_implementation_landed_evidence.py": 72
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_implementation_landed_evidence.py": 72
+  },
+  "deferred_tests": [],
+  "totals": {
+    "source_test_functions": 58,
+    "source_collected": 72,
+    "ran": 72,
+    "skipped": 0,
+    "xfailed": 0,
+    "deferred_run_time": 0
+  },
+  "source_parity": {
+    ".claude/skills/impl-review-loop/scripts/implementation_landed_evidence.py": {
+      "source_sha256": "de6215dbbd838174c8a22b73d6d9973a187c1b3ab52dedf99ba9c2dc25327b6a",
+      "moved_sha256": "de6215dbbd838174c8a22b73d6d9973a187c1b3ab52dedf99ba9c2dc25327b6a",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_implementation_landed_evidence.py": {
+      "source_sha256": "836dbb945d6e57eb88db042fab43cb11fe2bde173dfcb3521661f8288a7839ed",
+      "moved_sha256": "e01f35e89ab4051bc8fcb71c9b136265a3a88274fed7d5fb08022e49a42c9570",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced on one line: REPO = 'squne121/loop-protocol' -> 'squne121/agent-platform' (the repository identity used by every fixture and passed to derive_landing_disposition()). No assertion was changed, weakened, skipped or removed."
+    }
+  },
+  "deferred_source_tests": [],
+  "reused_migrated_dependencies": [
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py (I-4-4A)",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py (I-4-4B1)",
+    "scripts/agent-ops/allowed_paths_policy.py",
+    "scripts/agent-guards/changed_file_matcher.py"
+  ],
+  "deferred_dependencies": [
+    {
+      "path": "scripts/agent-ops/pr_head_replay_publish_exec.py",
+      "owner_stage": "I-4-4C4 (tracker #60)",
+      "reason": "git merge-tree oracle (compute_semantic_ambiguity) lives in a module that also fetches, applies, commits and force-pushes; the read-only/mutation boundary is an open decision. Its deferred_imports entry in stage1a-core-manifest.json is intentionally kept.",
+      "rerun_condition": "when the boundary is decided and the oracle is migrated, remove the deferred_imports entry"
+    },
+    {
+      "path": "build_intake_capsule.py / test_implementation_landed_intake_integration.py",
+      "owner_stage": "I-4-4C2 (tracker #60)",
+      "reason": "the capsule composes this producer with the router and live collection; not part of the read-only producer slice",
+      "rerun_condition": "migrated in the C2 slice"
+    },
+    {
+      "path": "materialize_test_verdict_artifact.py",
+      "owner_stage": "I-4-4C3 (tracker #60)",
+      "reason": "separate producer; live test_verdict.publish stays disabled",
+      "rerun_condition": "migrated in the C3 slice"
+    }
+  ],
+  "stale_records_synced": [
+    "docs/dev/stage1a-core-manifest.json import_closure.deferred_script_refs: implementation_landed_evidence.py entry removed (migrated); deferred_imports pr_head_replay_publish_exec kept",
+    "docs/dev/i4-4a-router-core-manifest.json deferred_dependencies: implementation_landed_evidence.py entry annotated as migrated by I-4-4C1 (source parity and test expectations untouched)"
+  ],
+  "evidence_boundary": {
+    "kind": "fixture + fake gh runner + temporary git repository only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "test_verdict_publish_enabled": false,
+    "merge_tree_oracle_real_evidence": false,
+    "github_live_operations": false
+  }
+}
