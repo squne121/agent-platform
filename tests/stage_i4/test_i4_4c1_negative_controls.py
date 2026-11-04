@@ -101,25 +101,56 @@ def test_non_verbatim_producer_is_rejected(tmp_path: Path, manifest: dict[str, A
     assert any("must be moved verbatim" in p for p in closure.parity_problems(manifest, tmp_path))
 
 
-def test_stale_deferred_ref_is_detected(stage1a: dict[str, Any]) -> None:
+def _tmp_root(tmp: Path, *, oracle: bool) -> Path:
+    producer = tmp / closure.PRODUCER
+    producer.parent.mkdir(parents=True, exist_ok=True)
+    producer.write_text("# migrated producer\n", encoding="utf-8")
+    if oracle:
+        o = tmp / closure.ORACLE
+        o.parent.mkdir(parents=True, exist_ok=True)
+        o.write_text("# C4 oracle\n", encoding="utf-8")
+    return tmp
+
+
+def _without_c4_import(stage1a: dict[str, Any]) -> dict[str, Any]:
+    out = copy.deepcopy(stage1a)
+    out["import_closure"]["deferred_imports"] = [
+        e
+        for e in out["import_closure"]["deferred_imports"]
+        if e["module"] != "pr_head_replay_publish_exec"
+    ]
+    return out
+
+
+def test_stale_deferred_ref_is_detected(stage1a: dict[str, Any], tmp_path: Path) -> None:
     assert closure.deferred_record_problems(stage1a, ROOT) == []
     stale = copy.deepcopy(stage1a)
     stale["import_closure"]["deferred_script_refs"].append(
         {"script": "implementation_landed_evidence.py", "reason": "x", "owner_stage": "I-4-4C"}
     )
-    assert any("still recorded" in p for p in closure.deferred_record_problems(stale, ROOT))
+    root = _tmp_root(tmp_path, oracle=False)
+    assert any("still recorded" in p for p in closure.deferred_record_problems(stale, root))
 
 
-def test_dropping_the_c4_deferred_import_is_detected(stage1a: dict[str, Any]) -> None:
-    broken = copy.deepcopy(stage1a)
-    broken["import_closure"]["deferred_imports"] = [
-        e
-        for e in broken["import_closure"]["deferred_imports"]
-        if e["module"] != "pr_head_replay_publish_exec"
-    ]
+def test_oracle_absent_requires_the_deferred_import(
+    stage1a: dict[str, Any], tmp_path: Path
+) -> None:
+    root = _tmp_root(tmp_path, oracle=False)
+    assert closure.deferred_record_problems(stage1a, root) == []  # positive
     assert any(
-        "deferred import was dropped" in p for p in closure.deferred_record_problems(broken, ROOT)
-    )
+        "deferred import was dropped" in p
+        for p in closure.deferred_record_problems(_without_c4_import(stage1a), root)
+    )  # negative
+
+
+def test_oracle_present_rejects_the_stale_deferred_import(
+    stage1a: dict[str, Any], tmp_path: Path
+) -> None:
+    root = _tmp_root(tmp_path, oracle=True)
+    assert closure.deferred_record_problems(_without_c4_import(stage1a), root) == []  # positive
+    assert any(
+        "stale deferred import record" in p for p in closure.deferred_record_problems(stage1a, root)
+    )  # negative
 
 
 def test_silent_deselection_is_detected(manifest: dict[str, Any]) -> None:

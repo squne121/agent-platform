@@ -22,6 +22,7 @@ MANIFEST = ROOT / "docs" / "dev" / "i4-4c1-landing-evidence-manifest.json"
 STAGE1A = ROOT / "docs" / "dev" / "stage1a-core-manifest.json"
 IRL = ".claude/skills/impl-review-loop"
 PRODUCER = f"{IRL}/scripts/implementation_landed_evidence.py"
+ORACLE = "scripts/agent-ops/pr_head_replay_publish_exec.py"
 ROUTER = f"{IRL}/scripts/route_loop_verdict_v2.py"
 SKIP_MARKERS = re.compile(r"pytest\.mark\.(skip|xfail)|pytest\.skip\(|pytest\.xfail\(")
 ALLOWED_DEFERRED_OWNERS = {"I-4-4C2", "I-4-4C3", "I-4-4C4"}
@@ -71,15 +72,21 @@ def parity_problems(m: dict[str, Any], root: Path) -> list[str]:
 
 
 def deferred_record_problems(stage1a: dict[str, Any], root: Path) -> list[str]:
-    """The migrated producer has no deferred record; the C4 oracle import keeps its record."""
+    """State-dependent: the C4 oracle import record must match whether the oracle exists.
+
+    - oracle absent: the deferred import record is required (C4 not done yet);
+    - oracle present: a stale deferred import record is an error (C4 migrated it);
+    - the migrated C1 producer never keeps a deferred record.
+    """
     closure = stage1a["import_closure"]
     refs = {e["script"] for e in closure["deferred_script_refs"]}
     imports = {e["module"]: e for e in closure["deferred_imports"]}
     problems: list[str] = []
     if (root / PRODUCER).exists() and "implementation_landed_evidence.py" in refs:
         problems.append("migrated producer still recorded in deferred_script_refs")
-    if (root / "scripts/agent-ops/pr_head_replay_publish_exec.py").exists():
-        problems.append("pr_head_replay_publish_exec.py is out of scope for C1 (owner I-4-4C4)")
+    if (root / ORACLE).exists():
+        if "pr_head_replay_publish_exec" in imports:
+            problems.append("stale deferred import record: oracle already exists (migrated by C4)")
     elif "pr_head_replay_publish_exec" not in imports:
         problems.append("pr_head_replay_publish_exec deferred import was dropped (C4 not done)")
     return problems
