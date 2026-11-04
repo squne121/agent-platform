@@ -59,6 +59,14 @@ def parity_problems(m: dict[str, Any], root: Path) -> list[str]:
     return problems
 
 
+def _function_source(path: Path, name: str) -> str | None:
+    text = path.read_text(encoding="utf-8")
+    for node in ast.walk(ast.parse(text)):
+        if isinstance(node, ast.FunctionDef) and node.name == name:
+            return ast.get_source_segment(text, node)
+    return None
+
+
 def deferred_problems(m: dict[str, Any], root: Path) -> list[str]:
     """Deferred ownership and state-dependence of the deselected tests."""
     problems: list[str] = []
@@ -85,6 +93,18 @@ def deferred_problems(m: dict[str, Any], root: Path) -> list[str]:
                     problems.append(f"stale deferred entry: {rel} now exists, restore {e['id']}")
         elif e.get("requires_missing_files"):
             problems.append(f"live canary must not claim a missing document: {e['id']}")
+    for e in deferred:
+        body = (
+            _function_source(root / e["file"], e["function"])
+            if (root / e["file"]).is_file()
+            else None
+        )
+        if body is None:
+            problems.append(f"deferred function not found: {e['id']}")
+        elif e.get("kind") == "unmigrated_document" and "read_text(" not in body:
+            problems.append(f"document entry does not read a document: {e['id']}")
+        elif e.get("kind") == "live_github_canary" and "_gh_unavailable_reason" not in body:
+            problems.append(f"live canary entry does not use gh: {e['id']}")
     if not any(e.get("kind") == "live_github_canary" for e in deferred):
         problems.append("the live GitHub canary must be an explicit deferred entry")
     t = m["totals"]
@@ -239,12 +259,26 @@ def test_manifest_counts() -> None:
     assert {e["id"] for e in m["deferred_tests"]} <= ids
 
 
+def ci_lane_problems(ci_text: str) -> list[str]:
+    import yaml
+
+    jobs = (yaml.safe_load(ci_text) or {}).get("jobs", {})
+    job = jobs.get(CI_JOB)
+    if not isinstance(job, dict):
+        return [f"job {CI_JOB} missing"]
+    runs = "\n".join(str(step.get("run", "")) for step in job.get("steps", []))
+    required = (
+        "run_stage1b1_tests.py docs/dev/i4-4c2-intake-capsule-manifest.json",
+        '(skipped|xfailed|xpassed)" runner.out',
+        '7 deselected" runner.out',
+        "7 deferred with reasons, 112 ran, 0 skipped",
+        "tests/stage_i4",
+    )
+    return [f"CI step missing: {frag}" for frag in required if frag not in runs]
+
+
 def test_ci_lane_is_wired_and_the_runner_passes() -> None:
-    ci = CI.read_text(encoding="utf-8")
-    assert f"  {CI_JOB}:" in ci
-    job = ci.split(f"  {CI_JOB}:", 1)[1]
-    assert "docs/dev/i4-4c2-intake-capsule-manifest.json" in job
-    assert "run_stage1b1_tests.py" in job
+    assert ci_lane_problems(CI.read_text(encoding="utf-8")) == []
     r = subprocess.run(
         [sys.executable, "-I", *RUNNER_ARGS], cwd=ROOT, capture_output=True, text=True, check=False
     )

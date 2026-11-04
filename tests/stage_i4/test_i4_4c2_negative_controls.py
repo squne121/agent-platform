@@ -25,6 +25,12 @@ sys.modules["closure_i4_4c2_for_negative_controls"] = closure
 _SPEC.loader.exec_module(closure)
 
 
+RUNNABLE_FILE = (
+    ".claude/skills/impl-review-loop/tests/test_build_intake_capsule_advisory_routing.py"
+)
+RUNNABLE_FUNCTION = "test_missing_go_routes_to_proceed_to_step_1"
+
+
 @pytest.fixture
 def manifest() -> dict[str, Any]:
     return copy.deepcopy(closure._manifest())
@@ -195,3 +201,22 @@ def test_functional_default_repo_is_not_the_legacy_slug() -> None:
     assert _capsule()._DEFAULT_REPO == "squne121/agent-platform"
     verifier = (ROOT / closure.VERIFIER).read_text(encoding="utf-8")
     assert 'REPO = "squne121/agent-platform"' in verifier
+
+
+def test_ci_lane_guard_removal_is_detected() -> None:
+    text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert closure.ci_lane_problems(text) == []
+    assert closure.ci_lane_problems(text.replace('7 deselected" runner.out', "x")) != []
+    assert closure.ci_lane_problems("jobs: {}") != []
+
+
+def test_deferred_entry_pointing_at_a_runnable_test_is_detected(manifest: dict[str, Any]) -> None:
+    missing = copy.deepcopy(manifest)
+    missing["deferred_tests"][0]["function"] = "test_does_not_exist"
+    assert any("deferred function not found" in p for p in closure.deferred_problems(missing, ROOT))
+    # a runnable test that reads no document cannot be passed off as a document-dependent deferral
+    runnable = copy.deepcopy(manifest)
+    entry = runnable["deferred_tests"][0]
+    entry["file"] = RUNNABLE_FILE
+    entry["function"] = RUNNABLE_FUNCTION
+    assert any("does not read a document" in p for p in closure.deferred_problems(runnable, ROOT))

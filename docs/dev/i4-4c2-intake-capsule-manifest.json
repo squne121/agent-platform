@@ -10,7 +10,7 @@
     "slice": "I-4-4C2 (tracker #60): build_intake_capsule.py, its direct dependency triage_contract_blockers.py, the read-only integration verifier verify_implementation_landed_intake_runtime.py and 7 source/integration test files. No wrapper, schema or permanent gate is added.",
     "direct_dependency": "build_intake_capsule._build_triage() loads triage_contract_blockers.py through _TRIAGE_PATH when the Contract Snapshot is blocked_needs_refinement / dry_run_would_post. Leaving it out would break the blocked-case contract, so it is part of the C2 closure. pnpm_gate_registry.py (already migrated) is reused.",
     "reuse": "implementation_landed_evidence.py (C1), route_loop_verdict_v2.py (4A), adjudicate_vc_result.py (B1), contract_review_result_parser.py, baseline_vc_preflight.py, allowed_paths_review_gate.py, pnpm_gate_registry.py and the Contract Snapshot producers are loaded from their migrated locations; none is copied or changed.",
-    "verifier": "verify_implementation_landed_intake_runtime.py is the runtime helper of the integration test. It only runs gh read commands and writes a local artifact; the tests drive it with a fake runner. It is never executed against live GitHub here.",
+    "verifier": "verify_implementation_landed_intake_runtime.py is the runtime helper of the integration test. It only runs gh read commands and writes a local artifact; the tests drive it with a fake runner. It is never executed against live GitHub here. Its ISSUE_NUMBER / PR_NUMBER constants still carry legacy-repository numbers (2119 / 2137); they must be replaced before any live run (I-4-4D).",
     "deferral": "Seven source tests cannot run in this repository: six read documents that are owned by I-4-4D (steps/preparation.md, steps/step-1-implementation.md, SKILL.md) and one is a live GitHub canary. They are listed in deferred_tests (explicitly deselected by the CI runner, never skipped or weakened). No placeholder document was added to make them pass."
   },
   "required_files": [
@@ -153,7 +153,7 @@
       "requires_missing_files": [],
       "reason": "calls the real GitHub API through gh for legacy-repository Issue 2587 / PR 2597 / comment 5612029072. Those fixtures do not exist in agent-platform, so it cannot pass here, and it skips silently when gh is unauthenticated. A fixture or fake-gh result must never stand in for it.",
       "owner_stage": "I-4-4D",
-      "rerun_condition": "live acceptance in I-4-4D with a known agent-platform Issue/PR/comment (replace _AC9_ISSUE_NUMBER / _AC9_PR_NUMBER / _AC9_COMMENT_ID), executed against real GitHub with an authenticated gh; report it as live evidence, never as fixture evidence",
+      "rerun_condition": "live acceptance in I-4-4D with a known agent-platform Issue/PR/comment (replace _AC9_ISSUE_NUMBER / _AC9_PR_NUMBER / _AC9_COMMENT_ID), executed against real GitHub with an authenticated gh; report it as live evidence, never as fixture evidence; also replace ISSUE_NUMBER / PR_NUMBER in verify_implementation_landed_intake_runtime.py (they still hold legacy-repository numbers 2119 / 2137, only the repository slug was migrated) before running that verifier against live GitHub",
       "deferred_by": "manifest deferred_tests (explicit --deselect by scripts/ci/run_stage1b1_tests.py); not skip, not xfail"
     }
   ],
@@ -284,7 +284,7 @@
       "kind": "live_github_canary",
       "reason": "calls the real GitHub API through gh for legacy-repository Issue 2587 / PR 2597 / comment 5612029072. Those fixtures do not exist in agent-platform, so it cannot pass here, and it skips silently when gh is unauthenticated. A fixture or fake-gh result must never stand in for it.",
       "owner_stage": "I-4-4D",
-      "rerun_condition": "live acceptance in I-4-4D with a known agent-platform Issue/PR/comment (replace _AC9_ISSUE_NUMBER / _AC9_PR_NUMBER / _AC9_COMMENT_ID), executed against real GitHub with an authenticated gh; report it as live evidence, never as fixture evidence"
+      "rerun_condition": "live acceptance in I-4-4D with a known agent-platform Issue/PR/comment (replace _AC9_ISSUE_NUMBER / _AC9_PR_NUMBER / _AC9_COMMENT_ID), executed against real GitHub with an authenticated gh; report it as live evidence, never as fixture evidence; also replace ISSUE_NUMBER / PR_NUMBER in verify_implementation_landed_intake_runtime.py (they still hold legacy-repository numbers 2119 / 2137, only the repository slug was migrated) before running that verifier against live GitHub"
     }
   ],
   "reused_migrated_dependencies": [
