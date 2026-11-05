@@ -42,6 +42,19 @@ ARGS: dict[str, Any] = {
 }
 
 
+# Every field the executor validates before it looks at `producer_receipt` is correct, so the
+# only defect of this request is the missing receipt.
+RECEIPTLESS_REQUEST: dict[str, Any] = {
+    "schema": REQUEST_SCHEMA,
+    "repo": ARGS["repo"],
+    "issue_number": ARGS["issue_number"],
+    "linked_issue_number": ARGS["issue_number"],
+    "target_pr_number": ARGS["current_pr_number"],
+    "expected_head_sha": ARGS["current_head_sha"],
+    "linked_issue_body_sha256": ARGS["current_issue_body_sha256"],
+}
+
+
 @pytest.fixture
 def manifest() -> dict[str, Any]:
     return copy.deepcopy(closure._manifest())
@@ -196,9 +209,19 @@ def test_missing_executor_in_a_copied_layout_is_blocked(tmp_path: Path) -> None:
     assert errors[0].startswith("controlled_skill_mutation_exec_import_failed:")
 
 
-def test_copied_layout_with_the_real_executor_is_the_positive_control(tmp_path: Path) -> None:
+def test_copied_layout_with_the_real_executor_is_the_positive_control(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Same layout, executor present: the import succeeds, so the block comes from the request."""
-    mod = _copied_layout(tmp_path, (ROOT / closure.EXECUTOR).read_text(encoding="utf-8"))
+    # The executor inserts its own directory on sys.path and imports siblings: isolate that.
+    monkeypatch.setattr(sys, "path", list(sys.path))
+    monkeypatch.setattr(sys, "modules", dict(sys.modules))
+    shutil.copytree(ROOT / "config", tmp_path / "config")
+    for sibling in (ROOT / "scripts" / "agent-guards").glob("*.py"):  # the executor imports these
+        dest = tmp_path / "scripts" / "agent-guards" / sibling.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(sibling, dest)
+    mod = _copied_layout(tmp_path, None)
     status, input_bundle, _private, errors = mod.materialize_test_verdict_artifact(
         publish_request={"schema": REQUEST_SCHEMA}, **ARGS
     )
@@ -238,13 +261,18 @@ def test_receipt_less_request_is_blocked_before_any_readback(
     _no_subprocess(monkeypatch)
     mod = _load(ROOT / closure.MATERIALIZER, "materializer_receiptless_c3")
     status, input_bundle, private_bundle, errors = mod.materialize_test_verdict_artifact(
-        publish_request={"schema": REQUEST_SCHEMA, "target_pr_number": 1}, **ARGS
+        publish_request=dict(RECEIPTLESS_REQUEST), **ARGS
     )
-    assert status == "blocked" and input_bundle is None and private_bundle is None and errors
+    assert status == "blocked" and input_bundle is None and private_bundle is None
+    assert errors == ["test_verdict_publish_receipt_invalid"]
+    # control: the same request with a wrong repo is rejected earlier, for a different reason
+    wrong = dict(RECEIPTLESS_REQUEST, repo="someone-else/other-repo")
+    _s, _i, _p, other = mod.materialize_test_verdict_artifact(publish_request=wrong, **ARGS)
+    assert other == ["test_verdict_publish_repo_mismatch"]
 
 
 def test_hand_written_verdict_never_produces_a_bundle(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     """A self-attested TEST_VERDICT with no receipt: blocked, no bundle, stale outputs removed."""
     _no_subprocess(monkeypatch)
@@ -275,8 +303,47 @@ def test_hand_written_verdict_never_produces_a_bundle(
         "--out-private-file", str(out_priv),
     ]  # fmt: skip
     assert mod.main(argv) == 1
+    assert capsys.readouterr().out.count("publish_request_schema_mismatch") == 1
     assert not out_in.exists() and not out_priv.exists()
     assert sorted(p.name for p in tmp_path.rglob("*") if p.is_file()) == [
         "hashes.json",
         "request.json",
     ]
+
+
+# --- per-execution PASS gate (the moved source tests do not cover fallback_detected alone) ---------
+
+
+def _record(**overrides: Any) -> dict[str, Any]:
+    execution = {
+        "execution_id": "e1",
+        "exit_code": 0,
+        "status": "pass",
+        "skipped": False,
+        "timed_out": False,
+        "fallback_detected": False,
+    }
+    execution.update(overrides)
+    return {"executions": [execution], "per_ac": [{"ac": "AC1", "execution_ids": ["e1"]}]}
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {"fallback_detected": True},
+        {"fallback_detected": None},
+        {"exit_code": 1},
+        {"status": "fail"},
+        {"skipped": True},
+        {"timed_out": True},
+    ],
+)
+def test_any_single_defective_execution_fails_its_ac(overrides: dict[str, Any]) -> None:
+    mod = _load(ROOT / closure.MATERIALIZER, "materializer_pass_gate_c3")
+    hashes = {"AC1": "sha256:" + "a" * 64}
+    good, errors = mod._build_runtime_ac_results(_record(), hashes)
+    assert errors == [] and good[0]["status"] == "pass"
+    bad, errors = mod._build_runtime_ac_results(_record(**overrides), hashes)
+    assert errors == [] and bad[0]["status"] == "fail"
+    if overrides.get("fallback_detected") is True:
+        assert bad[0]["fallback_detected"] is True
