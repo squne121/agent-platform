@@ -126,11 +126,6 @@
         "module": "materialize_issue_scope_snapshot",
         "reason": "lazily imported by the executor's issue_scope_snapshot.materialize handler; that lane is refused before execution and the handler fails closed without the module (Issue #31 decision: keep deferred)",
         "owner_stage": "stage_2 (follow-up; needs human approval of the lane)"
-      },
-      {
-        "module": "pr_head_replay_publish_exec",
-        "reason": "route_loop_verdict_v2_resolve_semantic_ambiguity() lazily imports compute_semantic_ambiguity() (git merge-tree oracle). The source file also holds git replay / commit / ref-update mutation, so it is not migrated for the oracle alone; without it the wrapper fails closed (semantic_ambiguity_oracle_unavailable). Tracked by Issue #75 (I-4-4A).",
-        "owner_stage": "I-4-4C (tracker #60): decide the read-only oracle / mutation boundary, then migrate"
       }
     ],
     "deferred_script_refs": [

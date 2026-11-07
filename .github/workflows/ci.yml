@@ -448,3 +448,26 @@ jobs:
           set -eo pipefail
           uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
           ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
+
+  i4-4c4-merge-tree-oracle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect/ran counts, 0 skipped / xfailed / deselected (real git merge-tree in tmp_path repositories only; the 11 push-capable executor source tests are not collected or run)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4c4-merge-tree-oracle-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 25 ran, 0 skipped" runner.out
+      - name: closure and negative controls (oracle-only surface, AST digests, no executor or ref mutation, stale deferred import, copied-layout fail-closed)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out

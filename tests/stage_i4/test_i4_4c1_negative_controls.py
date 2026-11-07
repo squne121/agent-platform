@@ -122,6 +122,19 @@ def _without_c4_import(stage1a: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _with_c4_import(stage1a: dict[str, Any]) -> dict[str, Any]:
+    """The pre-C4 state: the oracle is still a deferred import (C4 / #87 removed the real record)."""
+    out = _without_c4_import(stage1a)
+    out["import_closure"]["deferred_imports"].append(
+        {
+            "module": "pr_head_replay_publish_exec",
+            "reason": "pre-C4 record",
+            "owner_stage": "I-4-4C",
+        }
+    )
+    return out
+
+
 def test_stale_deferred_ref_is_detected(stage1a: dict[str, Any], tmp_path: Path) -> None:
     assert closure.deferred_record_problems(stage1a, ROOT) == []
     stale = copy.deepcopy(stage1a)
@@ -136,7 +149,7 @@ def test_oracle_absent_requires_the_deferred_import(
     stage1a: dict[str, Any], tmp_path: Path
 ) -> None:
     root = _tmp_root(tmp_path, oracle=False)
-    assert closure.deferred_record_problems(stage1a, root) == []  # positive
+    assert closure.deferred_record_problems(_with_c4_import(stage1a), root) == []  # positive
     assert any(
         "deferred import was dropped" in p
         for p in closure.deferred_record_problems(_without_c4_import(stage1a), root)
@@ -149,7 +162,8 @@ def test_oracle_present_rejects_the_stale_deferred_import(
     root = _tmp_root(tmp_path, oracle=True)
     assert closure.deferred_record_problems(_without_c4_import(stage1a), root) == []  # positive
     assert any(
-        "stale deferred import record" in p for p in closure.deferred_record_problems(stage1a, root)
+        "stale deferred import record" in p
+        for p in closure.deferred_record_problems(_with_c4_import(stage1a), root)
     )  # negative
 
 
