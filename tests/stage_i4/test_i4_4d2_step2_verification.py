@@ -178,22 +178,29 @@ def b2_sync_problems(
     hist = m["b2_counts"]["historical_pre_d2"]
     if any(hist.get(k) != v for k, v in B2_HISTORY.items()):
         problems.append("D2 historical record differs from the B2 measurement")
-    if f"0 deferred with reasons, {t['ran']} ran, 0 skipped" not in ci:
+    b2_runs = job_runs(ci, B2_CI_JOB)
+    if b2_runs is None or f"0 deferred with reasons, {t['ran']} ran, 0 skipped" not in b2_runs:
         problems.append("the B2 CI lane does not pin the current ran count")
     problems.extend(b2_closure.deferred_problems(b2_manifest, b1_manifest, root / b2_closure.TESTS))
     return problems
 
 
-def ci_lane_problems(ci_text: str) -> list[str]:
-    jobs = (yaml.safe_load(ci_text) or {}).get("jobs", {})
-    job = jobs.get(CI_JOB)
+def job_runs(ci_text: str, job_name: str) -> str | None:
+    """All `run` scripts of one CI job (None if the job is missing)."""
+    job = ((yaml.safe_load(ci_text) or {}).get("jobs") or {}).get(job_name)
     if not isinstance(job, dict):
+        return None
+    return "\n".join(str(step.get("run", "")) for step in job.get("steps", []))
+
+
+def ci_lane_problems(ci_text: str, m: dict[str, Any]) -> list[str]:
+    runs = job_runs(ci_text, CI_JOB)
+    if runs is None:
         return [f"job {CI_JOB} missing"]
-    runs = "\n".join(str(step.get("run", "")) for step in job.get("steps", []))
     required = (
         RUNNER_FRAGMENT,
         "(skipped|xfailed|xpassed|deselected)",
-        "0 deferred with reasons",
+        f"0 deferred with reasons, {m['totals']['ran']} ran, 0 skipped",
         "tests/stage_i4",
     )
     return [f"CI step missing: {frag}" for frag in required if frag not in runs]
@@ -457,12 +464,26 @@ def test_ac4_ci_count_tamper_and_lane_removal_are_detected(
     manifest: dict[str, Any], b2: dict[str, Any], b1: dict[str, Any]
 ) -> None:
     text = CI.read_text(encoding="utf-8")
-    assert ci_lane_problems(text) == []
-    assert ci_lane_problems(text.replace(RUNNER_FRAGMENT, "x")) != []
-    assert ci_lane_problems("jobs: {}") != []
+    assert ci_lane_problems(text, manifest) == []
+    assert ci_lane_problems(text.replace(RUNNER_FRAGMENT, "x"), manifest) != []
+    assert ci_lane_problems("jobs: {}", manifest) != []
+    # the D2 lane must pin exactly the manifest's ran count
+    ran = manifest["totals"]["ran"]
+    d2_tampered = text.replace(
+        f"0 deferred with reasons, {ran} ran", f"0 deferred with reasons, {ran - 1} ran"
+    )
+    assert d2_tampered != text
+    assert any("CI step missing" in p for p in ci_lane_problems(d2_tampered, manifest))
+    # the B2 lane must pin the B2 manifest's current ran count, inside the B2 job only
     stale_ci = text.replace("0 deferred with reasons, 366 ran", "0 deferred with reasons, 298 ran")
+    assert stale_ci != text
     assert any(
         "does not pin the current ran count" in p
         for p in b2_sync_problems(manifest, b2, b1, ROOT, stale_ci)
     )
-    assert B2_CI_JOB in (yaml.safe_load(text) or {}).get("jobs", {})
+    elsewhere = text.replace("0 deferred with reasons, 366 ran", "0 deferred with reasons, 1 ran")
+    elsewhere += "\n# 0 deferred with reasons, 366 ran, 0 skipped\n"
+    assert any(
+        "does not pin the current ran count" in p
+        for p in b2_sync_problems(manifest, b2, b1, ROOT, elsewhere)
+    )
