@@ -137,12 +137,6 @@
         "rerun_condition": "a dedicated Issue migrates the issue-reviewer agent definition"
       },
       {
-        "id": ".claude/skills/impl-review-loop/steps/preparation.md",
-        "owner_stage": "I-4",
-        "reason": "implementation review loop; I-4 is out of scope for #37",
-        "rerun_condition": "I-4 migrates impl-review-loop"
-      },
-      {
         "id": "docs/dev/workflow.md",
         "owner_stage": "unassigned (docs/dev general documentation)",
         "reason": "general development-flow document; a 'Related' link only, no script or test reads it",

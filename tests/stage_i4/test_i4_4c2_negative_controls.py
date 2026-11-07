@@ -206,7 +206,7 @@ def test_functional_default_repo_is_not_the_legacy_slug() -> None:
 def test_ci_lane_guard_removal_is_detected() -> None:
     text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert closure.ci_lane_problems(text) == []
-    assert closure.ci_lane_problems(text.replace('7 deselected" runner.out', "x")) != []
+    assert closure.ci_lane_problems(text.replace('2 deselected" runner.out', "x")) != []
     assert closure.ci_lane_problems("jobs: {}") != []
 
 
