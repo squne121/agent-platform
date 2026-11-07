@@ -33,24 +33,56 @@
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": 14,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": 20,
     ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 83,
-    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 112,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 180,
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": 69
   },
   "expected_ran": {
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": 14,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": 20,
     ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 83,
-    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 112,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 180,
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": 69
   },
   "deferred_tests": [],
   "totals": {
-    "ran": 298,
+    "ran": 366,
     "deferred_run_time": 0,
     "skipped": 0,
     "source_collected_before_removal": 368,
-    "removed_to_deferred_source_tests_cases": 70,
-    "removed_functions": 22
+    "removed_to_deferred_source_tests_cases": 2,
+    "removed_functions": 2
+  },
+  "historical_pre_d2": {
+    "totals": {
+      "source_collected_before_removal": 368,
+      "ran": 298,
+      "removed_to_deferred_source_tests_cases": 70,
+      "removed_functions": 22,
+      "canonical_path_ran": 112
+    },
+    "note": "368 source cases / 298 ran / 22 removed functions (70 cases) is the I-4-4B2 (#79) measurement before I-4-4D2 and stays a historical record. I-4-4D2 (#91) restored 20 functions / 68 cases that needed only steps/step-2-verification.md; the current state is 366 ran / 2 removed functions (2 cases). 366 + 2 = 368 source cases.",
+    "restored_by_d2": [
+      "test_step4_pr_review_only_canonical_path.py::test_step2_delegation_template_passes_ac_command_command_hash_triplets_verbatim",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_duplicate_or_ambiguous_failure_invalidates_prior_pass",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_failure_invalidates_prior_pass_and_recovers",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_nonpass_delegation_invalid_report_stays_fail_closed",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_nonpass_delegation_keeps_facts_and_is_not_terminal_approval",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_aggregate_contradiction_not_repaired",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_ambiguous_raw_result_fails_closed",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_ambiguous_scalar_or_key_is_rejected",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_duplicate_key_failure_removes_stale_valid_output",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_duplicate_mapping_key_is_handoff_failure",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_fence_shape_fails_closed",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_four_backtick_fence_containing_triple_backtick_lines_is_accepted",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_missing_row_not_synthesized",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_nonpass_rows_preserved_and_rejected",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_pass_report_preserved_and_accepted",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_quoted_ambiguous_strings_and_optional_fields_are_preserved",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_top_level_type_violation_is_rejected",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_triple_backticks_in_command_and_notes_reach_adjudicate",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_unquoted_boolean_like_scalar_is_rejected",
+      "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_unquoted_timestamp_is_handoff_failure"
+    ]
   },
   "source_parity": {
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": {
@@ -72,9 +104,9 @@
     },
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": {
       "source_sha256": "969145cb0411b4dd041dd7e2f7266e3924b0c48a821c35ad9767b1eadb62ce9b",
-      "moved_sha256": "8fba92f7dc652fafc5e926998354c3e5420172465a0f6b1d08f16699a83c135b",
+      "moved_sha256": "49c1314a2c98c60c076f4d41ddd51357fb0692b5382e740c955abf17a98d7bd9",
       "verbatim": false,
-      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). 21 source test functions (69 parametrized cases) removed (never skipped), recorded in deferred_source_tests: each reads unmigrated impl-review-loop/steps/step-2-verification.md / step-4-pr-review.md / step-5-feedback-and-termination.md (owner I-4-4D). The shared helpers they use are kept verbatim."
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). 1 source test function (1 case) removed (never skipped), recorded in deferred_source_tests: test_step_docs_state_canonical_entrance reads unmigrated impl-review-loop/steps/step-4-pr-review.md and step-5-feedback-and-termination.md (owner I-4-4D). The other 20 functions (68 cases) that needed only steps/step-2-verification.md were restored verbatim by I-4-4D2 (#91); the shared helpers are kept verbatim."
     },
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": {
       "source_sha256": "04b4feb202eebf0e8f2059a2866d04fb8974111106025d3bbf76f6621e439bfb",
@@ -92,151 +124,11 @@
       "rerun_condition": "when steps/step-4-pr-review.md is migrated, restore the source test verbatim"
     },
     {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_delegation_template_passes_ac_command_command_hash_triplets_verbatim",
-      "cases": 1,
-      "reason": "reads the spawn_agent delegation template and wording of unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_duplicate_or_ambiguous_failure_invalidates_prior_pass",
-      "cases": 2,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_failure_invalidates_prior_pass_and_recovers",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_nonpass_delegation_invalid_report_stays_fail_closed",
-      "cases": 5,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_nonpass_delegation_keeps_facts_and_is_not_terminal_approval",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_aggregate_contradiction_not_repaired",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_ambiguous_raw_result_fails_closed",
-      "cases": 4,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_ambiguous_scalar_or_key_is_rejected",
-      "cases": 17,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_duplicate_key_failure_removes_stale_valid_output",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_duplicate_mapping_key_is_handoff_failure",
-      "cases": 5,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_fence_shape_fails_closed",
-      "cases": 4,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_four_backtick_fence_containing_triple_backtick_lines_is_accepted",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_missing_row_not_synthesized",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_nonpass_rows_preserved_and_rejected",
-      "cases": 7,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_pass_report_preserved_and_accepted",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_quoted_ambiguous_strings_and_optional_fields_are_preserved",
-      "cases": 7,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_top_level_type_violation_is_rejected",
-      "cases": 3,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_triple_backticks_in_command_and_notes_reach_adjudicate",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_unquoted_boolean_like_scalar_is_rejected",
-      "cases": 4,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step2_lossless_handoff_unquoted_timestamp_is_handoff_failure",
-      "cases": 1,
-      "reason": "extracts and executes the step2-handoff-conversion-example code block documented in unmigrated impl-review-loop/steps/step-2-verification.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
-    {
       "id": "test_step4_pr_review_only_canonical_path.py::test_step_docs_state_canonical_entrance",
       "cases": 1,
-      "reason": "reads unmigrated impl-review-loop/steps/step-2-verification.md, step-4-pr-review.md and step-5-feedback-and-termination.md",
+      "reason": "reads unmigrated impl-review-loop/steps/step-4-pr-review.md and step-5-feedback-and-termination.md (steps/step-2-verification.md was migrated by I-4-4D2)",
       "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
+      "rerun_condition": "when steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md are migrated, restore the source test verbatim"
     }
   ],
   "reused_migrated_dependencies": [
@@ -249,9 +141,9 @@
   ],
   "deferred_dependencies": [
     {
-      "path": ".claude/skills/impl-review-loop/steps/*.md",
+      "path": ".claude/skills/impl-review-loop/steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md",
       "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "reason": "documents read by the 22 removed source test functions (and by the 4 removed in I-4-4B1)",
+      "reason": "documents read by the 2 remaining removed source test functions (and by the 3 still removed in I-4-4B1); steps/step-2-verification.md was migrated by I-4-4D2 (#91)",
       "rerun_condition": "when migrated, restore the removed source tests verbatim and drop their entries here"
     }
   ],

@@ -1,0 +1,231 @@
+{
+  "schema": "I4_4D2_STEP2_VERIFICATION_MANIFEST_V1",
+  "issue": "squne121/agent-platform#91",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "36165ee1cf38837d4fd1c0ed7298858f8c717d88",
+    "note": "D1 merge commit (PR #90)"
+  },
+  "decisions": {
+    "slice": "I-4-4D2: migrate steps/step-2-verification.md with a minimal recorded difference and restore the 20 B2 source test functions (68 cases) that need only that document. No wrapper, shared schema or permanent gate is added; the existing runner is reused.",
+    "no_placeholder": "The document is the migrated real file, not a fixture or placeholder. The restored tests read it and execute its step2-handoff-conversion-example code block directly.",
+    "references": "The document still names step-4-pr-review.md, step-5-feedback-and-termination.md, the test-runner Agent and body_only_repair_plan.py, none of which is migrated. They are not started as if they existed; each is classified in unmigrated_references with its owner.",
+    "legacy_content": "Legacy Issue/PR numbers remain as historical text inside the document; they are not resolvable here and are recorded rather than rewritten, to keep source parity reviewable.",
+    "b1_scope": "B1 (i4-4b1-vc-adjudication) also defers a test that needs only this document (test_independent_vc_terminal_gate_regression.py::test_test_runner_documented_report_yields_certified_pass). B1 manifest/closure are outside the Allowed Paths of #91, so it is left deferred and recorded here for a follow-up slice instead of widening the scope."
+  },
+  "documents": {
+    ".claude/skills/impl-review-loop/steps/step-2-verification.md": {
+      "source_blob_sha1": "6dbe34b903ff851f372f69bfa2fc88a3e1f86001",
+      "source_sha256": "ebd17ba090118fc39732b99fc554d69e2cc119c77e3e5d887f9d1f279a9941f8",
+      "source_lines": 347,
+      "moved_sha256": "85d18f490f8893653fe0a2ac35ff4695f9ed2d89be2bee898af63181a35f60ba",
+      "moved_lines": 349,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D2)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d2-step2-verification-manifest.json` の `intentional_diff` に記録している。本書が参照する `step-4-pr-review.md`・他の steps・Agent 定義 (`test-runner` 等)・`body_only_repair_plan.py` 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。\n\n",
+          "source": "",
+          "what": "insert a migration-status blockquote directly after the title"
+        }
+      ]
+    }
+  },
+  "migrated_dependencies": [
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py"
+  ],
+  "test_files": [
+    "tests/stage_i4/test_i4_4d2_step2_verification.py"
+  ],
+  "required_files": [
+    ".claude/skills/impl-review-loop/steps/step-2-verification.md",
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py",
+    "docs/dev/i4-4b2-vc-step4-tests-manifest.json",
+    "docs/dev/i4-4b1-vc-adjudication-manifest.json"
+  ],
+  "required_fixtures": [],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d2_step2_verification.py": 18
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d2_step2_verification.py": 18
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 18,
+    "ran": 18,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "restored_functions": 20,
+    "restored_cases": 68
+  },
+  "restored_b2_tests": [
+    {
+      "function": "test_step2_delegation_template_passes_ac_command_command_hash_triplets_verbatim",
+      "cases": 1,
+      "body_sha256": "e488f3812ea3b22ea970b63bec4eabd4018f284901493c82fe12bb0664a2a056"
+    },
+    {
+      "function": "test_step2_handoff_duplicate_or_ambiguous_failure_invalidates_prior_pass",
+      "cases": 2,
+      "body_sha256": "c153c6bfa7aafe9cf52b7e5097520b4d1342236dccff106dc27021bee1065ef0"
+    },
+    {
+      "function": "test_step2_handoff_failure_invalidates_prior_pass_and_recovers",
+      "cases": 1,
+      "body_sha256": "56e3d44d1b6c2bd9edc68ee9ec076f6f0ddc7b03bb9a4606ba682e294c025ce4"
+    },
+    {
+      "function": "test_step2_handoff_nonpass_delegation_invalid_report_stays_fail_closed",
+      "cases": 5,
+      "body_sha256": "3a15a068ed41cc798cc6ee8f420baa073e96d1f35d39e958e187ee1b1083977c"
+    },
+    {
+      "function": "test_step2_handoff_nonpass_delegation_keeps_facts_and_is_not_terminal_approval",
+      "cases": 1,
+      "body_sha256": "13f64c7041024121ab58aa35548091999786b389897cd890e112fde40751299c"
+    },
+    {
+      "function": "test_step2_lossless_handoff_aggregate_contradiction_not_repaired",
+      "cases": 1,
+      "body_sha256": "994efa7bd13eaef5f6b65f9ef9cd2ed94617611350449bdda76ea485de4f1261"
+    },
+    {
+      "function": "test_step2_lossless_handoff_ambiguous_raw_result_fails_closed",
+      "cases": 4,
+      "body_sha256": "a9f9bc98bafbff1b9752973d009a09535af21651275eb1ff179ca2648b3bcdaa"
+    },
+    {
+      "function": "test_step2_lossless_handoff_ambiguous_scalar_or_key_is_rejected",
+      "cases": 17,
+      "body_sha256": "bf02ab2654204290896df558097c7221f3a4f70732b497c69e270ba4a14f5432"
+    },
+    {
+      "function": "test_step2_lossless_handoff_duplicate_key_failure_removes_stale_valid_output",
+      "cases": 1,
+      "body_sha256": "95f36939df10fad3630efe91e14a1b2f4faaab58fdd2f189b15eae82873e48f5"
+    },
+    {
+      "function": "test_step2_lossless_handoff_duplicate_mapping_key_is_handoff_failure",
+      "cases": 5,
+      "body_sha256": "6731ee8dd900d891b492aa84a2f1195579c18e539f9473b8fecad09bf176ef75"
+    },
+    {
+      "function": "test_step2_lossless_handoff_fence_shape_fails_closed",
+      "cases": 4,
+      "body_sha256": "d8359a9988ef50fc3d469dd990d9a3bc5a86f0c18bbb68120e3293fd4d8b3feb"
+    },
+    {
+      "function": "test_step2_lossless_handoff_four_backtick_fence_containing_triple_backtick_lines_is_accepted",
+      "cases": 1,
+      "body_sha256": "8110c7848d2290ceacab5c7bba446334755cf8622f76a10198b6dd3ef0f58f92"
+    },
+    {
+      "function": "test_step2_lossless_handoff_missing_row_not_synthesized",
+      "cases": 1,
+      "body_sha256": "9ce4d234ed200857c979e4e09c81035a2147a3564af2e8605a2dd2b5bfce3232"
+    },
+    {
+      "function": "test_step2_lossless_handoff_nonpass_rows_preserved_and_rejected",
+      "cases": 7,
+      "body_sha256": "67c0d1721a6392ce7895a46d590678ed786d75be5dc5a74d1516e1303ac2f914"
+    },
+    {
+      "function": "test_step2_lossless_handoff_pass_report_preserved_and_accepted",
+      "cases": 1,
+      "body_sha256": "93baf91e3a5ffc7d1ee831f666c4a0d7b7afbae9960dba0df9b77a3972769aba"
+    },
+    {
+      "function": "test_step2_lossless_handoff_quoted_ambiguous_strings_and_optional_fields_are_preserved",
+      "cases": 7,
+      "body_sha256": "1b13d3deb3509cd1f0f285e3037237c6dd4b60ab25e88a850ff5aaf23dc74777"
+    },
+    {
+      "function": "test_step2_lossless_handoff_top_level_type_violation_is_rejected",
+      "cases": 3,
+      "body_sha256": "adcc69589335ab775341a2d5d400a4d8ecf086fbdd461a6dde500708cbbcf8d1"
+    },
+    {
+      "function": "test_step2_lossless_handoff_triple_backticks_in_command_and_notes_reach_adjudicate",
+      "cases": 1,
+      "body_sha256": "27b8cc400bdf620fe0326d7d8f7738c09ea3aeb180185e4fbbc0dd72de4dc6de"
+    },
+    {
+      "function": "test_step2_lossless_handoff_unquoted_boolean_like_scalar_is_rejected",
+      "cases": 4,
+      "body_sha256": "ccb7dbfd63ad2335de810cdd68883c29e917a8e16153a895b39bd3f4de861f56"
+    },
+    {
+      "function": "test_step2_lossless_handoff_unquoted_timestamp_is_handoff_failure",
+      "cases": 1,
+      "body_sha256": "7e13183a0642a69de8b79e162abe1280e27ef8ed6495d626d3c6667df2b20fe6"
+    }
+  ],
+  "remaining_b2_deferred": [
+    {
+      "id": "test_step4_contract_snapshot_handoff.py::test_step4_doc_names_the_new_handoff_arguments",
+      "reason": "reads the wording of unmigrated impl-review-loop/steps/step-4-pr-review.md",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/step-4-pr-review.md is migrated, restore the source test verbatim"
+    },
+    {
+      "id": "test_step4_pr_review_only_canonical_path.py::test_step_docs_state_canonical_entrance",
+      "reason": "reads unmigrated impl-review-loop/steps/step-4-pr-review.md and step-5-feedback-and-termination.md (steps/step-2-verification.md was migrated by I-4-4D2)",
+      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
+      "rerun_condition": "when steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md are migrated, restore the source test verbatim"
+    }
+  ],
+  "b2_counts": {
+    "current": {
+      "source_collected": 368,
+      "ran": 366,
+      "deferred_functions": 2,
+      "deferred_cases": 2,
+      "skipped": 0
+    },
+    "historical_pre_d2": {
+      "source_collected_before_removal": 368,
+      "ran": 298,
+      "removed_to_deferred_source_tests_cases": 70,
+      "removed_functions": 22
+    },
+    "note": "368/298/70/22 is the I-4-4B2 (#79) measurement before this slice and stays a historical record in the B2 manifest (historical_pre_d2). The current state, confirmed by running pytest, is 366 ran / 2 deferred functions (2 cases): 298 + 68 restored = 366, 70 - 68 = 2."
+  },
+  "unmigrated_references": {
+    "later_i_4_4d_slices": [
+      "steps/step-4-pr-review.md (Common Completion Protocol link, referenced repeatedly) and the other steps",
+      "steps/step-5-feedback-and-termination.md",
+      ".claude/agents/test-runner.md (test-runner SubAgent definition) and the pr-reviewer Agent",
+      "body_only_repair_plan.py",
+      "SKILL.md (impl-review-loop)"
+    ],
+    "legacy_repository_specific": [
+      "legacy Issue/PR numbers (for example #2837, #2912, #2971, #3033)",
+      "tmp/s4/... run-time output paths"
+    ]
+  },
+  "supersedes": {
+    "docs/dev/i4-4b2-vc-step4-tests-manifest.json": "deferred_source_tests / totals / expected_collect / expected_ran / source_parity (canonical path test file) / deferred_dependencies were edited in place by this slice because the B2 closure fails while a restored test is still listed as deferred. The previous measurement is kept there as historical_pre_d2. Other slice manifests (B1/C1-C4/D1) are not edited."
+  },
+  "rollback": "Revert the single D2 PR: it removes the Step 2 document, this manifest, the D2 test and CI lane, restores the 20 removed test functions' absence in the canonical path test file, and returns the B2 manifest and its CI lane to the 298 ran / 22 deferred state.",
+  "handoff": {
+    "next": "remaining I-4-4D slices: steps/step-4-pr-review.md and steps/step-5, Agent definitions (test-runner, pr-reviewer), SKILL.md, implement-issue/open-pr wiring, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance; the B1 test that needs only the Step 2 document"
+  },
+  "evidence_boundary": {
+    "kind": "document wording tests + the document's conversion code block + tmp_path only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "skill_entrypoint_published": false,
+    "subagent_lifecycle_runtime": false,
+    "github_live_operations": false
+  }
+}
