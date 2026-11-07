@@ -1,5 +1,4 @@
-#!/usr/bin/env python3
-"""Read-only Git merge-tree conflict oracle (I-4-4C4, oracle-only migration).
+"""Git merge-tree conflict oracle (I-4-4C4, oracle-only migration; no ref, index or worktree writes).
 
 Migrated from the pre-split source repository's scripts/agent-ops/pr_head_replay_publish_exec.py
 (tag pre-split-agent-platform-20261020, commit 6fa07b6a0ab932a62f08db6a8d521c0dfded2075; the

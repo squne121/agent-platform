@@ -51,7 +51,7 @@
   "source_parity": {
     "scripts/agent-ops/pr_head_replay_publish_exec.py": {
       "source_sha256": "efcf027299ca81065bf9938f2b5ad00dda32fa5b774bbdb31f2e376cd868588a",
-      "moved_sha256": "19a8d33d82c763ab8238667ee7176ea9c50eb2f2e1d05281ee5cecb37e1f863a",
+      "moved_sha256": "b8536e3a621fd012265ccbb88be9a2be8d8aef2ef3f96a6ee50de7be9ab55902",
       "verbatim": false,
       "functions": {
         "_run": {
@@ -93,7 +93,8 @@
           "`if __name__ == '__main__'` entry",
           "imports: argparse, json, sys, uuid, allowed_paths_policy.is_no_path_marker",
           "sys.path insertion for _AGENT_OPS_DIR",
-          "constants SHA_LENGTH, PROTECTED_PREFIXES"
+          "constants SHA_LENGTH, PROTECTED_PREFIXES",
+          "shebang line (no entry point, file is not executable)"
         ],
         "added": "the dash-prefixed-ref guard in compute_semantic_ambiguity (see functions.compute_semantic_ambiguity) and the docstring"
       }
