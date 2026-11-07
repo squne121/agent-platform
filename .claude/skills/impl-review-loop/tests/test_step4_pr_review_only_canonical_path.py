@@ -1422,6 +1422,28 @@ def _step2_message_template() -> str:
     return block.group(1)
 
 
+def test_step2_delegation_template_passes_ac_command_command_hash_triplets_verbatim():
+    # Finding C (P1): test-runner must echo command_hash, so root passes (ac, raw_command, command_hash)
+    # triplets from extract-vc-metadata verbatim; test-runner never guesses / recomputes / inherits it.
+    template = _step2_message_template()
+    squashed_template = _squash(template)
+    assert _squash("Per-command inputs") in squashed_template
+    assert _squash("echo these values exactly") in squashed_template
+    for key in ("- ac:", "command:", "command_hash:"):
+        assert _squash(key) in squashed_template, key
+    # The old pair-only (label => command) shape must be gone from the template.
+    assert "=>" not in template
+
+    doc = _squash(STEP2_DOC.read_text(encoding="utf-8"))
+    for phrase in (
+        "`(ac, raw_command, command_hash)` の triplet",
+        "`extract-vc-metadata` の `commands[]` から",
+        "test-runner は `command_hash` を推測・再計算してはならず、親 context の暗黙継承に依存してはならない",
+    ):
+        assert _squash(phrase) in doc, phrase
+    assert _squash("`(ac label, literal command)` の組") not in doc
+
+
 # =============================================================================
 # Issue #3020: executed-fixture integration regression.
 #
@@ -2152,6 +2174,272 @@ def _handoff_ok(tmp_path: Path, report: dict[str, Any], tag: str) -> Path:
     return out_path
 
 
+def test_step2_lossless_handoff_pass_report_preserved_and_accepted(tmp_path, multi):
+    ws = Workspace(tmp_path, multi)
+    report = _report(
+        multi,
+        row_overrides={
+            0: {"test_count": {"subject": "tests/test_a.py -k handoff", "passed": 7}},
+            2: {"notes": '日本語の notes と "quote" を含む', "test_count": {"subject": "tests/b.py", "passed": 0}},
+        },
+        optional_top_level_field={"nested": [1, True, None, "x"]},
+    )
+    assert [row["ac"] for row in report["runtime_ac_results"]] == ["AC1", "AC1", "AC_UNKNOWN", "AC2,AC3"]
+
+    out_path = _handoff_ok(tmp_path, report, "pass")
+    handoff_bytes = out_path.read_bytes()
+    loaded = json.loads(handoff_bytes)
+    # Spot-check the facts that must never be re-created by the root.
+    assert loaded["generated_at"] == GENERATED_AT and loaded["result"] == "PASS"
+    assert [row["command_hash"] for row in loaded["runtime_ac_results"]] == multi.hashes
+    assert loaded["runtime_ac_results"][0]["test_count"] == {"subject": "tests/test_a.py -k handoff", "passed": 7}
+    exit_code = loaded["runtime_ac_results"][1]["exit_code"]
+    assert exit_code == 0 and type(exit_code) is int
+    assert loaded["runtime_ac_results"][1]["fallback_detected"] is False
+
+    rc, payload = ws.adjudicate(report_path=str(out_path))
+
+    assert rc == 0, payload
+    assert payload["invoke_pr_reviewer"] is True and payload["seq"] == 1 and payload["reason_code"] is None
+    assert out_path.read_bytes() == handoff_bytes  # the consumer never rewrites the handoff file
+    _approve_and_assert(ws, payload)
+
+
+@pytest.mark.parametrize("case", sorted(NON_PASS_ROWS), ids=sorted(NON_PASS_ROWS))
+def test_step2_lossless_handoff_nonpass_rows_preserved_and_rejected(tmp_path, single, case):
+    ws = Workspace(tmp_path, single)
+    report = _report(single, row_overrides={0: NON_PASS_ROWS[case]}, result="FAIL")
+
+    out_path = _handoff_ok(tmp_path, report, case)
+    loaded = json.loads(out_path.read_text(encoding="utf-8"))
+    # The failure facts survive the conversion verbatim; nothing is turned into PASS.
+    for key, value in NON_PASS_ROWS[case].items():
+        assert loaded["runtime_ac_results"][0][key] == value
+    assert loaded["result"] == "FAIL"
+
+    rc, payload = ws.adjudicate(report_path=str(out_path))
+
+    _assert_fail_closed_no_dispatch(ws, rc, payload, ["pr_review_only_current_execution_not_pass:AC1"])
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 1 and term["route"] != "approved", term
+
+
+def test_step2_lossless_handoff_missing_row_not_synthesized(tmp_path, multi):
+    ws = Workspace(tmp_path, multi)
+    report = _report(multi, drop=(1,))
+    assert len(report["runtime_ac_results"]) == len(multi.commands) - 1
+
+    out_path = _handoff_ok(tmp_path, report, "missing_row")
+    loaded = json.loads(out_path.read_text(encoding="utf-8"))
+    # The converter neither re-creates the dropped row from VC metadata nor from the aggregate count.
+    assert len(loaded["runtime_ac_results"]) == len(multi.commands) - 1
+    assert multi.hashes[1] not in [row["command_hash"] for row in loaded["runtime_ac_results"]]
+
+    rc, payload = ws.adjudicate(report_path=str(out_path))
+
+    assert rc == 1, payload
+    assert payload["invoke_pr_reviewer"] is False and payload["seq"] is None
+    assert payload["reason_code"] == "adjudication_missing_or_malformed"
+    assert payload["adjudication"]["errors"] and payload["adjudication"]["blocking"] is True
+    assert "dispatch" not in ws.state()
+
+
+def test_step2_lossless_handoff_aggregate_contradiction_not_repaired(tmp_path, single):
+    ws = Workspace(tmp_path, single)
+    # The row says FAIL while the aggregate counters and the final result claim an all-pass run.
+    report = _report(single, row_overrides={0: {"exit_code": 1, "status": "fail"}}, result="PASS")
+    assert report["verification_commands_pass"] == 1 and report["verification_commands_fail"] == 0
+
+    out_path = _handoff_ok(tmp_path, report, "contradiction")
+    loaded = json.loads(out_path.read_text(encoding="utf-8"))
+    # The contradiction is carried over as-is: the aggregate is NOT used to rewrite the row (nor vice versa).
+    assert loaded["runtime_ac_results"][0]["status"] == "fail" and loaded["runtime_ac_results"][0]["exit_code"] == 1
+    assert loaded["verification_commands_pass"] == 1 and loaded["verification_commands_fail"] == 0
+    assert loaded["result"] == "PASS"
+
+    rc, payload = ws.adjudicate(report_path=str(out_path))
+
+    _assert_fail_closed_no_dispatch(ws, rc, payload, ["pr_review_only_current_execution_not_pass:AC1"])
+
+
+def test_step2_lossless_handoff_unquoted_timestamp_is_handoff_failure(tmp_path, single):
+    raw = _raw_final_result(_report(single))
+    quoted = f"generated_at: '{GENERATED_AT}'"
+    assert quoted in raw, "safe_dump is expected to quote the RFC 3339 string"
+    unquoted_raw = raw.replace(quoted, f"generated_at: {GENERATED_AT}")
+    assert unquoted_raw != raw
+    # Sanity: YAML really resolves the unquoted value to a non-JSON type, so only a correction could make it pass.
+    block = re.search(r"```yaml\n(.*?)```", unquoted_raw, re.S).group(1)  # type: ignore[union-attr]
+    assert not isinstance(yaml.safe_load(block)["TEST_VERDICT"]["generated_at"], str)
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, unquoted_raw, "unquoted_ts")
+
+    assert rc != 0
+    assert not out_path.exists(), "a failed handoff must leave no output file behind"
+    # The known-field type check may fire before JSON encoding, so only the handoff-failure marker is pinned.
+    assert "handoff failed" in stderr
+
+    # A stale file at the SAME path is removed too, so it can never be mistaken for this attempt's output.
+    raw_path = tmp_path / "test_runner_final_unquoted_ts.txt"
+    out_path.write_text("{}", encoding="utf-8")
+    completed = subprocess.run(
+        [sys.executable, "-", str(raw_path), str(out_path)],
+        input=_step2_conversion_code(),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert completed.returncode != 0 and not out_path.exists()
+
+
+@pytest.mark.parametrize("shape", ["no_block", "other_yaml_only", "two_blocks", "not_a_mapping"])
+def test_step2_lossless_handoff_ambiguous_raw_result_fails_closed(tmp_path, single, shape):
+    good = _raw_final_result(_report(single), prose=False)
+    raws = {
+        "no_block": "テストを実行しましたが、機械可読な report は添付していません。\n",
+        "other_yaml_only": "```yaml\nOTHER:\n  a: 1\n```\n",
+        "two_blocks": good + "\n" + good,
+        "not_a_mapping": "```yaml\nTEST_VERDICT:\n  - 1\n  - 2\n```\n",
+    }
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, raws[shape], shape)
+
+    assert rc != 0
+    assert not out_path.exists()
+    assert "handoff failed" in stderr
+
+
+def test_step2_handoff_failure_invalidates_prior_pass_and_recovers(tmp_path, single):
+    ws = Workspace(tmp_path, single)
+    good_report = _report(single)
+
+    # (i) a good handoff stores a PASS and records dispatch seq 1.
+    first = _handoff_ok(tmp_path, good_report, "i0_a0")
+    rc, payload = ws.adjudicate(report_path=str(first), tag="a0")
+    assert rc == 0 and payload["seq"] == 1, payload
+    assert ws.binding_key() in ws.state()["vc_adjudication"]
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 0 and term["route"] == "approved", term
+
+    # (ii) a NEW handoff attempt fails to convert. Its (never created) attempt path goes to the ordinary
+    # step4-adjudicate (no --reuse-stored): the earlier PASS under the same binding is invalidated.
+    quoted_raw = _raw_final_result(good_report)
+    broken_raw = quoted_raw.replace(f"generated_at: '{GENERATED_AT}'", f"generated_at: {GENERATED_AT}")
+    assert broken_raw != quoted_raw
+    rc, failed_out, stderr = _run_step2_handoff(tmp_path, broken_raw, "i0_a1")
+    assert rc != 0 and not failed_out.exists() and "handoff failed" in stderr
+    assert failed_out != first
+
+    rc, payload = ws.adjudicate(report_path=str(failed_out), tag="a1")
+
+    assert rc == 1, payload
+    assert payload["invoke_pr_reviewer"] is False and payload["seq"] is None
+    assert payload["reason_code"] == "adjudication_missing_or_malformed"
+    assert payload["adjudication"]["errors"] == [f"input_file_not_found:{failed_out}"]
+    assert ws.binding_key() not in ws.state().get("vc_adjudication", {})
+
+    # (iii) neither the old dispatch seq nor a read-only step4-gate rerun can use the invalidated PASS.
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 1 and term["route"] != "approved", term
+    assert term["reason_code"] == "vc_gate_blocking"
+    rc, gate = ws.run(["step4-gate", *ws.binding_args(tag="gate")])
+    assert rc == 1 and gate["invoke_pr_reviewer"] is False, gate
+
+    # (iv) recovery: a correct report through a fresh attempt path and an ordinary adjudication.
+    recovered = _handoff_ok(tmp_path, good_report, "i0_a2")
+    assert recovered not in (first, failed_out)
+    rc, payload = ws.adjudicate(report_path=str(recovered), tag="a2")
+    assert rc == 0 and payload["invoke_pr_reviewer"] is True, payload
+    assert payload["seq"] == 2
+    assert ws.binding_key() in ws.state()["vc_adjudication"]
+    rc, term = ws.terminal_gate(dispatch_seq=2)
+    assert rc == 0 and term["route"] == "approved", term
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 1 and term["route"] != "approved" and term["reason_code"] == "dispatch_seq_mismatch", term
+
+
+def test_step2_handoff_nonpass_delegation_keeps_facts_and_is_not_terminal_approval(tmp_path, single):
+    delegate = ("--delegate-pr-review-only-nonpass",)
+    fail_row = {"exit_code": 1, "status": "fail"}
+    ws = Workspace(tmp_path, single)
+    # A delegable report carries a non-pass report-level result next to the failing row (the existing #2916 rule).
+    report = _report(single, row_overrides={0: fail_row}, result="FAIL")
+    out_path = _handoff_ok(tmp_path, report, "fail_row")
+    loaded_row = json.loads(out_path.read_text(encoding="utf-8"))["runtime_ac_results"][0]
+    assert (loaded_row["exit_code"], loaded_row["status"]) == (1, "fail")  # the conversion kept the FAIL fact
+
+    # (a) default: an executed non-pass is rejected, no dispatch.
+    rc, payload = ws.adjudicate(report_path=str(out_path), tag="default")
+    _assert_fail_closed_no_dispatch(ws, rc, payload, ["pr_review_only_current_execution_not_pass:AC1"])
+
+    # (b) the existing opt-in delegates the SAME handoff file, still as a failure fact (not PASS).
+    rc, payload = ws.adjudicate(report_path=str(out_path), extra_args=delegate, tag="delegate")
+    assert rc == 0, payload
+    assert payload["invoke_pr_reviewer"] is True and payload["seq"] == 1 and payload["reason_code"] is None
+    assert payload["adjudication"]["overall_status"] == "indeterminate"
+    assert payload["adjudication"]["blocking"] is True
+    assert payload["adjudication"]["pr_review_only_nonpass_delegated"] == ["AC1"]
+    stored = ws.state()["vc_adjudication"][ws.binding_key()]
+    assert stored["overall_status"] == "indeterminate" and stored["blocking"] is True
+    entry = stored["per_ac"][0]
+    assert entry["status"] == "indeterminate" and entry["blocking"] is True
+    assert entry["reason_code"] == "pr_review_only_nonpass_delegated_to_reviewer"
+    facts = {row["key"].partition("=")[0]: json.loads(row["key"].partition("=")[2]) for row in entry["failure_keys"]}
+    assert facts["exit_code"] == 1 and facts["status"] == "fail"
+    assert "pr_review_only_runtime_evidence_pass" not in json.dumps(stored)
+
+    # (c) dispatch permission is not terminal approval: a reviewer that has not approved never reaches it.
+    for verdict in ("REQUEST_CHANGES", "PENDING"):
+        rc, term = ws.terminal_gate(dispatch_seq=1, verdict=_reviewer_verdict(single.head, verdict, ["AC1 failed"]))
+        assert rc == 1 and term["route"] != "approved", (verdict, term)
+    # Only the reviewer's own APPROVE through step5-terminal-gate approves; the stored adjudication stays a non-pass.
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 0 and term["route"] == "approved", term
+    stored = ws.state()["vc_adjudication"][ws.binding_key()]
+    assert stored["overall_status"] == "indeterminate" and stored["blocking"] is True
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "missing_row",
+        "head_binding_mismatch",
+        "incoherent_pass_with_fallback",
+        "trust_marker_present",
+        "report_pass_over_failing_row",
+    ],
+)
+def test_step2_handoff_nonpass_delegation_invalid_report_stays_fail_closed(tmp_path, multi, case):
+    ws = Workspace(tmp_path, multi)
+    fail_row = {0: {"exit_code": 1, "status": "fail"}}
+    reports = {
+        "missing_row": _report(multi, row_overrides=fail_row, drop=(3,), result="FAIL"),
+        "head_binding_mismatch": _report(multi, row_overrides=fail_row, head="9" * 40, result="FAIL"),
+        # status pass + fallback true is an incoherent fact set, never a delegable failure.
+        "incoherent_pass_with_fallback": _report(multi, row_overrides={0: {"fallback_detected": True}}, result="FAIL"),
+        "trust_marker_present": _report(multi, row_overrides=fail_row, workflow_run_id=None, result="FAIL"),
+        # A report-level PASS dressed over a failing row is a contradiction, not a delegable failure.
+        "report_pass_over_failing_row": _report(multi, row_overrides=fail_row, result="PASS"),
+    }
+    out_path = _handoff_ok(tmp_path, reports[case], case)
+
+    rc, payload = ws.adjudicate(report_path=str(out_path), extra_args=("--delegate-pr-review-only-nonpass",))
+
+    assert rc == 1, payload
+    assert payload["invoke_pr_reviewer"] is False and payload["seq"] is None, payload
+    assert payload["reason_code"] == "adjudication_missing_or_malformed"
+    expected_errors = {
+        "missing_row": ["pr_review_only_coverage_mismatch"],
+        "head_binding_mismatch": ["pr_review_only_head_binding_mismatch"],
+        "incoherent_pass_with_fallback": ["pr_review_only_current_execution_not_pass:AC1"],
+        "trust_marker_present": ["pr_review_only_current_authorization_mismatch:AC1"],
+        "report_pass_over_failing_row": ["pr_review_only_nonpass_report_result_inconsistent"],
+    }
+    assert payload["adjudication"]["errors"] == expected_errors[case], payload
+    state = ws.state()
+    assert "dispatch" not in state and state.get("vc_adjudication", {}) == {}
+
+
 # --- Issue #3033 (OWNER fix_delta): raw-YAML information loss must fail closed -------------------------------------
 #
 # Duplicate mapping keys, Markdown fence mis-detection and YAML 1.1 implicit type conversion all lose information
@@ -2262,6 +2550,31 @@ def _duplicate_key_cases(scenario: Scenario) -> dict[str, str]:
     }
 
 
+@pytest.mark.parametrize(
+    "case", ["top_level_result", "top_level_runtime_ac_results", "row_status", "row_exit_code", "nested_optional_field"]
+)
+def test_step2_lossless_handoff_duplicate_mapping_key_is_handoff_failure(tmp_path, single, case):
+    yaml_text = _duplicate_key_cases(single)[case]
+    # Sanity: plain safe_load really accepts this text and silently keeps only the LAST duplicate, so only an
+    # explicit duplicate check can make the handoff fail.
+    assert isinstance(yaml.safe_load(yaml_text)["TEST_VERDICT"], dict)
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, _fenced(yaml_text), case)
+
+    _assert_handoff_rejected(rc, out_path, stderr, "duplicate mapping key")
+
+
+def test_step2_lossless_handoff_duplicate_key_failure_removes_stale_valid_output(tmp_path, single):
+    good_out = _handoff_ok(tmp_path, _report(single, descriptive=False), "stale")
+    assert good_out.exists() and json.loads(good_out.read_text(encoding="utf-8"))["result"] == "PASS"
+
+    # Same attempt path, but the raw result now has a duplicate key: the earlier valid output must not survive.
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, _fenced(_duplicate_key_cases(single)["row_status"]), "stale")
+
+    assert out_path == good_out
+    _assert_handoff_rejected(rc, out_path, stderr, "duplicate mapping key")
+
+
 BACKTICK_COMMAND = "rg -n '```' README.md"
 BACKTICK_NOTES = "first line\n```\n```yaml\nlast line"
 BACKTICK_ROW_YAML = {
@@ -2284,3 +2597,195 @@ def _backtick_report(scenario: Scenario) -> dict[str, Any]:
     report["runtime_ac_results"][0]["command"] = BACKTICK_COMMAND
     return report
 
+
+def test_step2_lossless_handoff_triple_backticks_in_command_and_notes_reach_adjudicate(tmp_path, single):
+    ws = Workspace(tmp_path, single)
+    expected = _backtick_report(single)
+    raw = _fenced(_backtick_report_yaml(single))
+    # Sanity: the old non-greedy regex fence scan would have cut the block at the first backticks of ``command``.
+    old_blocks = [
+        block
+        for block in re.findall(FENCE + r"ya?ml[ \t]*\n(.*?)" + FENCE, raw, re.S)
+        if re.search(r"^TEST_VERDICT:", block, re.M)
+    ]
+    assert len(old_blocks) == 1 and "last line" not in old_blocks[0]
+
+    out_path = _assert_literal_handoff_lossless(tmp_path, raw, expected, "backticks")
+    loaded_row = json.loads(out_path.read_text(encoding="utf-8"))["runtime_ac_results"][0]
+    assert loaded_row["command"] == BACKTICK_COMMAND and loaded_row["notes"] == BACKTICK_NOTES
+
+    rc, payload = ws.adjudicate(report_path=str(out_path))
+
+    assert rc == 0, payload
+    assert payload["invoke_pr_reviewer"] is True and payload["seq"] == 1 and payload["reason_code"] is None
+    _approve_and_assert(ws, payload)
+
+
+def test_step2_lossless_handoff_four_backtick_fence_containing_triple_backtick_lines_is_accepted(tmp_path, single):
+    raw = _fenced(_backtick_report_yaml(single), opening=LONG_FENCE)
+
+    _assert_literal_handoff_lossless(tmp_path, raw, _backtick_report(single), "long_fence")
+
+
+@pytest.mark.parametrize("shape", ["no_fence", "unterminated_fence", "closing_shorter_than_opening", "two_candidates"])
+def test_step2_lossless_handoff_fence_shape_fails_closed(tmp_path, single, shape):
+    yaml_text = _backtick_report_yaml(single)
+    raws = {
+        "no_fence": f"報告です。\n\n{yaml_text}\n以上。\n",
+        "unterminated_fence": _fenced(yaml_text, closing=""),
+        # A 4-backtick opening must NOT be closed by a 3-backtick line.
+        "closing_shorter_than_opening": _fenced(yaml_text, opening=LONG_FENCE, closing=FENCE),
+        "two_candidates": _fenced(yaml_text) + "\n" + _fenced(_literal_report(single)),
+    }
+    needles = {
+        "no_fence": "found 0",
+        "unterminated_fence": "unterminated markdown fence",
+        "closing_shorter_than_opening": "unterminated markdown fence",
+        "two_candidates": "found 2",
+    }
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, raws[shape], shape)
+
+    _assert_handoff_rejected(rc, out_path, stderr, needles[shape])
+
+
+@pytest.mark.parametrize("value", ["off", "on", "yes", "no"])
+def test_step2_lossless_handoff_unquoted_boolean_like_scalar_is_rejected(tmp_path, single, value):
+    raw = _fenced(_literal_report(single, rows="  runtime_ac_results:\n" + _literal_row(single, notes=value)))
+    # Sanity: PyYAML resolves it to a bool, so without the strict constructor the intent (the word) is lost.
+    assert yaml.safe_load(raw.split("yaml\n", 1)[1].split(FENCE, 1)[0])["TEST_VERDICT"]["runtime_ac_results"][0][
+        "notes"
+    ] in (True, False)
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, raw, f"bool_{value}")
+
+    _assert_handoff_rejected(rc, out_path, stderr, "ambiguous unquoted boolean-like scalar")
+
+
+@pytest.mark.parametrize(
+    ("label", "row_kwargs", "needle"),
+    [
+        ("octal_notes", {"notes": "010"}, "ambiguous unquoted numeric scalar"),
+        ("underscore_notes", {"notes": "1_000"}, "ambiguous unquoted numeric scalar"),
+        ("sexagesimal_field", {"extra": "    x: 1:30\n"}, "ambiguous unquoted numeric scalar"),
+        ("infinity_field", {"extra": "    x: .inf\n"}, "ambiguous unquoted numeric scalar"),
+        ("integer_mapping_key", {"extra": "    test_count:\n      1: a\n"}, "non-string mapping key"),
+        ("float_mapping_key", {"extra": "    test_count:\n      1.5: a\n"}, "non-string mapping key"),
+        ("null_mapping_key", {"extra": "    test_count:\n      null: a\n"}, "non-string mapping key"),
+        ("boolean_mapping_key", {"extra": "    test_count:\n      on: a\n"}, "ambiguous unquoted boolean-like scalar"),
+        # A known bool field written as ``no`` / ``yes`` would silently pass the type check as a real bool.
+        ("fallback_detected_no", {"fallback": "no"}, "ambiguous unquoted boolean-like scalar"),
+        ("fallback_detected_yes", {"fallback": "yes"}, "ambiguous unquoted boolean-like scalar"),
+        ("optional_nested_off", {"extra": "    test_count:\n      flag: off\n"}, "ambiguous unquoted boolean-like"),
+        ("exit_code_bool", {"exit_code": "true"}, "exit_code must be int, got bool"),
+        ("exit_code_string", {"exit_code": "'0'"}, "exit_code must be int, got str"),
+        ("exit_code_float", {"exit_code": "0.0"}, "exit_code must be int, got float"),
+        ("fallback_detected_string", {"fallback": "'false'"}, "fallback_detected must be bool, got str"),
+        ("fallback_detected_int", {"fallback": "0"}, "fallback_detected must be bool, got int"),
+        ("status_bool", {"status": "true"}, "status must be str, got bool"),
+    ],
+)
+def test_step2_lossless_handoff_ambiguous_scalar_or_key_is_rejected(tmp_path, single, label, row_kwargs, needle):
+    raw = _fenced(_literal_report(single, rows="  runtime_ac_results:\n" + _literal_row(single, **row_kwargs)))
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, raw, label)
+
+    _assert_handoff_rejected(rc, out_path, stderr, needle)
+
+
+@pytest.mark.parametrize(
+    ("label", "report_kwargs", "needle"),
+    [
+        ("result_bool", {"result": "true"}, "result must be a string"),
+        ("result_null", {"result": "null"}, "result must be a string"),
+        ("top_level_boolean_like", {"extra": "  flag: off\n"}, "ambiguous unquoted boolean-like scalar"),
+    ],
+)
+def test_step2_lossless_handoff_top_level_type_violation_is_rejected(tmp_path, single, label, report_kwargs, needle):
+    raw = _fenced(_literal_report(single, **report_kwargs))
+
+    rc, out_path, stderr = _run_step2_handoff(tmp_path, raw, label)
+
+    _assert_handoff_rejected(rc, out_path, stderr, needle)
+
+
+@pytest.mark.parametrize("word", ["off", "on", "yes", "no", "010", "1:30", "1_000"])
+def test_step2_lossless_handoff_quoted_ambiguous_strings_and_optional_fields_are_preserved(tmp_path, single, word):
+    ws = Workspace(tmp_path, single)
+    test_count = {
+        "subject": "tests/test_a.py -k handoff",
+        "passed": 7,
+        "failed": 0,
+        "ratio": 0.5,
+        "skipped": None,
+        "labels": [word, True, False, None, 3],
+    }
+    expected = _report(
+        single,
+        descriptive=False,
+        row_overrides={0: {"notes": word, "test_count": test_count}},
+        optional_note=word,
+    )
+    row_extra = (
+        "    test_count:\n"
+        "      subject: tests/test_a.py -k handoff\n"
+        "      passed: 7\n"
+        "      failed: 0\n"
+        "      ratio: 0.5\n"
+        "      skipped: null\n"
+        f'      labels: ["{word}", true, false, null, 3]\n'
+    )
+    raw = _fenced(
+        _literal_report(
+            single,
+            rows="  runtime_ac_results:\n" + _literal_row(single, notes=f'"{word}"', extra=row_extra),
+            extra=f"  optional_note: '{word}'\n",
+        )
+    )
+
+    out_path = _assert_literal_handoff_lossless(tmp_path, raw, expected, f"quoted_{word.replace(':', '_')}")
+    loaded = json.loads(out_path.read_text(encoding="utf-8"))
+    row = loaded["runtime_ac_results"][0]
+    assert row["notes"] == word and type(row["notes"]) is str
+    assert row["fallback_detected"] is False and row["human_review_required"] is False
+    assert row["exit_code"] == 0 and type(row["exit_code"]) is int
+    assert row["test_count"] == test_count and loaded["optional_note"] == word
+
+    rc, payload = ws.adjudicate(report_path=str(out_path))
+
+    assert rc == 0, payload
+    assert payload["invoke_pr_reviewer"] is True and payload["seq"] == 1
+    _approve_and_assert(ws, payload)
+
+
+@pytest.mark.parametrize("case", ["duplicate_status", "ambiguous_boolean_notes"])
+def test_step2_handoff_duplicate_or_ambiguous_failure_invalidates_prior_pass(tmp_path, single, case):
+    ws = Workspace(tmp_path, single)
+
+    # (i) a good handoff stores a PASS and records dispatch seq 1.
+    first = _handoff_ok(tmp_path, _report(single), "inv_a0")
+    rc, payload = ws.adjudicate(report_path=str(first), tag="a0")
+    assert rc == 0 and payload["seq"] == 1, payload
+    assert ws.binding_key() in ws.state()["vc_adjudication"]
+
+    # (ii) a new attempt whose raw result loses information fails to convert; its never-created path goes to the
+    # ordinary step4-adjudicate and the earlier PASS under the same binding is invalidated.
+    broken = {
+        "duplicate_status": _duplicate_key_cases(single)["row_status"],
+        "ambiguous_boolean_notes": _literal_report(
+            single, rows="  runtime_ac_results:\n" + _literal_row(single, notes="off")
+        ),
+    }[case]
+    rc, failed_out, stderr = _run_step2_handoff(tmp_path, _fenced(broken), "inv_a1")
+    assert rc != 0 and not failed_out.exists() and "handoff failed" in stderr
+    assert failed_out != first
+
+    rc, payload = ws.adjudicate(report_path=str(failed_out), tag="a1")
+
+    assert rc == 1, payload
+    assert payload["invoke_pr_reviewer"] is False and payload["seq"] is None
+    assert payload["reason_code"] == "adjudication_missing_or_malformed"
+    assert payload["adjudication"]["errors"] == [f"input_file_not_found:{failed_out}"]
+    assert ws.binding_key() not in ws.state().get("vc_adjudication", {})
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 1 and term["route"] != "approved", term
