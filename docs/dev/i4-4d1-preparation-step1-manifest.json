@@ -1,0 +1,147 @@
+{
+  "schema": "I4_4D1_PREPARATION_STEP1_MANIFEST_V1",
+  "issue": "squne121/agent-platform#89",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "43fd9701e484f096f41d3b537f128d66cb1f3886",
+    "note": "C4 merge commit (PR #88)"
+  },
+  "decisions": {
+    "slice": "I-4-4D1: migrate steps/preparation.md and steps/step-1-implementation.md with minimal recorded differences and restore the five C2 document-dependent tests. No wrapper, shared schema or permanent gate is added.",
+    "no_placeholder": "The documents are the migrated real files, not fixtures or placeholders. The restored tests read them directly.",
+    "references": "Documents still name SKILL.md, other steps, Agent definitions and implement-issue that are not migrated. They are not started as if they existed; each is classified in unmigrated_references with its owner.",
+    "legacy_content": "Game-repository examples (docs/playtest/m2-combat-mvp.md, docs/dev/workflow.md) and legacy Issue/PR numbers remain as historical text inside the document; they are not resolvable here and are recorded rather than rewritten, to keep source parity reviewable."
+  },
+  "documents": {
+    ".claude/skills/impl-review-loop/steps/preparation.md": {
+      "source_blob_sha1": "a2677ef168bdbd2b1624d4a6a15603eb7f7916af",
+      "source_sha256": "645c123779fb485940e442333877670a2508ea8afec1f4b918c381af0bf9f214",
+      "source_lines": 922,
+      "moved_sha256": "afc795b4076ec9108851998414ff2661e8b1e5e8e757e5f6d0b3d1b6830bd497",
+      "moved_lines": 924,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D1)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d1-preparation-step1-manifest.json` の `intentional_diff` に記録している。旧 repository の PR コメント URL は参照のみの来歴表記に置換した。本書が参照する `SKILL.md`・他の steps・Agent 定義・`implement-issue` 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。\n\n",
+          "source": "",
+          "what": "insert a migration-status blockquote directly after the title"
+        },
+        {
+          "moved": "(移管元の旧 repository PR #2282 上のコメント。URL は移管先では参照しない)\n",
+          "source": "https://github.com/squne121/loop-protocol/pull/2282#issuecomment-5371853364\n",
+          "what": "replace the legacy-repository comment URL with a provenance-only description"
+        }
+      ]
+    },
+    ".claude/skills/impl-review-loop/steps/step-1-implementation.md": {
+      "source_blob_sha1": "f14f62b96d12b3ad93c70741c50a2c977bbf6c40",
+      "source_sha256": "041ccc593eaa5a5b11d0fa9e89df8acb7d2507ede1aca5f4d27eea036f97429b",
+      "source_lines": 85,
+      "moved_sha256": "888cc5c6cb01aef0e595d08052a5fb4201421bee9db9b8871be7fa199085995d",
+      "moved_lines": 87,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D1)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d1-preparation-step1-manifest.json` の `intentional_diff` に記録している。本書が参照する `SKILL.md`・他の steps・Agent 定義・`implement-issue` 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。\n\n",
+          "source": "",
+          "what": "insert a migration-status blockquote directly after the title"
+        }
+      ]
+    }
+  },
+  "test_files": [
+    "tests/stage_i4/test_i4_4d1_preparation_step1.py"
+  ],
+  "required_files": [
+    ".claude/skills/impl-review-loop/steps/preparation.md",
+    ".claude/skills/impl-review-loop/steps/step-1-implementation.md",
+    "docs/dev/i4-4c2-intake-capsule-manifest.json"
+  ],
+  "required_fixtures": [],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d1_preparation_step1.py": 13
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d1_preparation_step1.py": 13
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 13,
+    "ran": 13,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0
+  },
+  "restored_c2_tests": [
+    ".claude/skills/impl-review-loop/tests/test_build_intake_capsule.py::test_ac6_preparation_refers_to_capsule_before_redundant_commands",
+    ".claude/skills/impl-review-loop/tests/test_implementation_landed_intake_integration.py::test_disposition_precedes_worker_worktree_and_new_pr",
+    ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_preparation_documents_context_inputs_lane_separation",
+    ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_step1_documents_technical_recommendation_and_evidence_references",
+    ".claude/skills/impl-review-loop/tests/test_triage_contract_blockers.py::test_preparation_summary"
+  ],
+  "remaining_c2_deferred": [
+    {
+      "id": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_skill_md_declares_provenance_inputs",
+      "reason": "reads impl-review-loop/SKILL.md, which is not migrated by D1",
+      "owner_stage": "I-4-4D (later slice)",
+      "rerun_condition": "when SKILL.md is migrated, restore the test and remove the entry from the C2 manifest"
+    },
+    {
+      "id": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_ac9_runtime_canary_known_pr_comment_resolves_against_real_github",
+      "reason": "live GitHub canary against legacy-repository fixtures; fixtures never stand in for it",
+      "owner_stage": "I-4-4D (live acceptance)",
+      "rerun_condition": "live acceptance with a known agent-platform Issue/PR/comment and an authenticated gh"
+    }
+  ],
+  "c2_counts": {
+    "current": {
+      "source_collected": 119,
+      "ran": 117,
+      "deferred": 2,
+      "skipped": 0
+    },
+    "historical_pre_d1": {
+      "source_collected": 119,
+      "ran": 112,
+      "deferred": 7,
+      "skipped": 0
+    },
+    "note": "119/112/7 is the C2 (#83) measurement before this slice and stays a historical record in the C2 manifest (historical_pre_d1); the current state is 117 ran / 2 deferred. The five restored tests were already part of the 119 collected, so dedupe is by test id and the 5 are counted once, as ran."
+  },
+  "unmigrated_references": {
+    "later_i_4_4d_slices": [
+      "SKILL.md",
+      "steps/step-4-pr-review.md (Common Completion Protocol link) and the other steps",
+      "implement-issue skill (.claude/skills/implement-issue/SKILL.md)",
+      "scope-rollup-runner agent and run_scope_rollup_preflight.py / plan_issue_scope_rollup.py / parse_scope_rollup_run_result.py / verify_scope_rollup_result.py",
+      "local_main_branch_guard.py"
+    ],
+    "legacy_repository_specific": [
+      "docs/playtest/m2-combat-mvp.md and docs/dev/workflow.md examples",
+      "legacy Issue/PR numbers",
+      "historical .codex scope-rollup-runner mention"
+    ]
+  },
+  "supersedes": {
+    "docs/dev/i4-4c2-intake-capsule-manifest.json": "deferred_tests / deferred_source_tests / totals / expected_ran / required_files were edited in place by this slice because the C2 closure fails while a deferred document exists. The previous measurement is kept there as historical_pre_d1. Other slice manifests (B1/B2/C1/C3/C4) are not edited."
+  },
+  "rollback": "Revert the single D1 PR: it removes the two steps documents, this manifest, the D1 test and CI lane, and restores the C2 manifest/tests/CI lane to the 7-deferred state.",
+  "handoff": {
+    "next": "remaining I-4-4D slices: SKILL.md and the dependent test, Agent definitions, implement-issue/open-pr wiring, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance"
+  },
+  "evidence_boundary": {
+    "kind": "document wording tests + tmp_path only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "skill_entrypoint_published": false,
+    "subagent_lifecycle_runtime": false,
+    "github_live_operations": false
+  }
+}

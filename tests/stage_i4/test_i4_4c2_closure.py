@@ -270,8 +270,8 @@ def ci_lane_problems(ci_text: str) -> list[str]:
     required = (
         "run_stage1b1_tests.py docs/dev/i4-4c2-intake-capsule-manifest.json",
         '(skipped|xfailed|xpassed)" runner.out',
-        '7 deselected" runner.out',
-        "7 deferred with reasons, 112 ran, 0 skipped",
+        '2 deselected" runner.out',
+        "2 deferred with reasons, 117 ran, 0 skipped",
         "tests/stage_i4",
     )
     return [f"CI step missing: {frag}" for frag in required if frag not in runs]
@@ -283,7 +283,7 @@ def test_ci_lane_is_wired_and_the_runner_passes() -> None:
         [sys.executable, "-I", *RUNNER_ARGS], cwd=ROOT, capture_output=True, text=True, check=False
     )
     assert r.returncode == 0, r.stdout + r.stderr
-    assert "7 deferred with reasons, 112 ran, 0 skipped" in r.stdout
+    assert "2 deferred with reasons, 117 ran, 0 skipped" in r.stdout
 
 
 def test_fixture_only_evidence_boundary() -> None:
