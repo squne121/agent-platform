@@ -401,9 +401,29 @@ def _drifted_live(sha_current: str, sha_evidence: str) -> dict[str, object]:
     )
 
 
-def test_given_unmigrated_oracle_when_ambiguity_unresolved_then_fail_closed(tmp_path, oracle_absent):
-    assert not (REPO_ROOT / "scripts" / "agent-ops" / "pr_head_replay_publish_exec.py").exists()
-    decision = route_loop_verdict_v2_resolve_semantic_ambiguity(
+def test_given_unmigrated_oracle_when_ambiguity_unresolved_then_fail_closed(tmp_path, oracle_absent, monkeypatch):
+    # I-4-4C4: the oracle is now migrated, so the missing-oracle branch is exercised on a copied
+    # layout (router + drift policy only; the sibling oracle is deliberately absent).
+    import importlib.util
+    import shutil
+
+    irl = tmp_path / ".claude/skills/impl-review-loop/scripts"
+    irl.mkdir(parents=True)
+    shutil.copy(SCRIPTS / "route_loop_verdict_v2.py", irl)
+    (tmp_path / "scripts/agent-ops").mkdir(parents=True)
+    shutil.copy(REPO_ROOT / "scripts/agent-ops/main_drift_policy.py", tmp_path / "scripts/agent-ops")
+    spec = importlib.util.spec_from_file_location("route_copy_without_oracle", irl / "route_loop_verdict_v2.py")
+    assert spec is not None and spec.loader is not None
+    copy = importlib.util.module_from_spec(spec)
+    # restored on teardown; drop every entry that could still resolve the real oracle
+    monkeypatch.setattr(
+        sys, "path", [p for p in sys.path if not (Path(p or ".") / "pr_head_replay_publish_exec.py").exists()]
+    )
+    monkeypatch.setitem(sys.modules, spec.name, copy)
+    spec.loader.exec_module(copy)
+
+    assert not (tmp_path / "scripts/agent-ops/pr_head_replay_publish_exec.py").exists()
+    decision = copy.route_loop_verdict_v2_resolve_semantic_ambiguity(
         _verdict(), _drifted_live(SHA_B, SHA_C), cwd=tmp_path
     )
     assert decision.route == ROUTE_FAIL_CLOSED

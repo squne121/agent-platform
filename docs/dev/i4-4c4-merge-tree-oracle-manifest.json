@@ -1,0 +1,183 @@
+{
+  "schema": "I4_4C4_MERGE_TREE_ORACLE_MANIFEST_V1",
+  "issue": "squne121/agent-platform#87",
+  "approval": "https://github.com/squne121/agent-platform/issues/60#issuecomment-6701867662 (plan A, oracle-only migration; recorded in the tracker, not treated as a trusted human anchor)",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "path": "scripts/agent-ops/pr_head_replay_publish_exec.py",
+    "blob_sha": "6c2baa8fb38487b8e5ecb58a3be45f5e9948d3b2",
+    "sha256": "efcf027299ca81065bf9938f2b5ad00dda32fa5b774bbdb31f2e376cd868588a",
+    "lines": 509
+  },
+  "decisions": {
+    "slice": "I-4-4C4 (tracker #60): ONLY the read-only git merge-tree conflict oracle. The router already imports compute_semantic_ambiguity from this exact path; no wrapper, second module or schema is added.",
+    "oracle_command": "The only Git command is `git merge-tree --write-tree BASE CANDIDATE`. Any non-zero exit is reported as ambiguity (True): a Git error is never read as 'no conflict'.",
+    "git_exit_codes": "git-scm.com/docs/git-merge-tree EXIT STATUS: 0 clean, 1 conflicts, other = error. Measured with git 2.55.0: conflict 1, clean 0, non-git directory 128, nonexistent ref / all-zero SHA 1 (so a conflict and an invalid ref share exit 1). The boolean API therefore keeps the source rule `returncode != 0` and adds no conflict-vs-error classification.",
+    "object_database": "merge-tree may write tree objects to the object database; it does not read or write the index, the worktree or any ref. This is NOT described as filesystem read-only. The tests use tmp_path repositories only and compare HEAD / branch / refs / status / index / worktree before and after.",
+    "runner_failure": "A runner exception (timeout, OSError) propagates exactly as in the source; it is never converted into 'no conflict'.",
+    "no_push_capable_code": "execute(), main(), argparse, GitHub PR/Issue reads, git ls-remote/fetch, replay, apply, commit, worktree create/cleanup and push / ref update are not migrated and there is no entry point.",
+    "byte_parity": "Whole-file SHA-256 parity is impossible by construction (the executor is intentionally dropped) and is not claimed. Parity is per function (AST digest) plus the recorded intentional_diff."
+  },
+  "moved_scripts": [
+    "scripts/agent-ops/pr_head_replay_publish_exec.py"
+  ],
+  "required_files": [
+    "scripts/agent-ops/pr_head_replay_publish_exec.py",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py",
+    "scripts/agent-ops/main_drift_policy.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "tests/stage_i4/test_i4_4c4_oracle.py"
+  ],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4c4_oracle.py": 25
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4c4_oracle.py": 25
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 25,
+    "ran": 25,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0
+  },
+  "source_parity": {
+    "scripts/agent-ops/pr_head_replay_publish_exec.py": {
+      "source_sha256": "efcf027299ca81065bf9938f2b5ad00dda32fa5b774bbdb31f2e376cd868588a",
+      "moved_sha256": "19a8d33d82c763ab8238667ee7176ea9c50eb2f2e1d05281ee5cecb37e1f863a",
+      "verbatim": false,
+      "functions": {
+        "_run": {
+          "source_lines": "34-43",
+          "ast_sha256": "8783acdce9cef6bf0c32cc8f0101ce8f10831212cea81e2604a0a3a5d25c0ee7",
+          "source_ast_sha256": "8783acdce9cef6bf0c32cc8f0101ce8f10831212cea81e2604a0a3a5d25c0ee7",
+          "ast_identical_to_source": true
+        },
+        "_merge_tree_conflicts": {
+          "source_lines": "172-182",
+          "ast_sha256": "a940af5c70cd3a60291655e337e4957456eaad7142fa80046caa5adb59bdcab9",
+          "source_ast_sha256": "a940af5c70cd3a60291655e337e4957456eaad7142fa80046caa5adb59bdcab9",
+          "ast_identical_to_source": true
+        },
+        "compute_semantic_ambiguity": {
+          "source_lines": "185-203",
+          "source_ast_sha256": "5fd2c249c93a60615496ccbe47b8bd8a9c238e9174f608559bce8a8c459f6c78",
+          "ast_sha256": "62f01c5392c93f15618d5eb41b99b1133ca1c0e6ebc9f74b05e031a50bf77995",
+          "ast_identical_to_source": false,
+          "intentional_diff": "one added guard: a base/candidate ref starting with '-' returns True without running Git (git merge-tree --write-tree --stdin exits 0 for any input, so an option-like ref would otherwise read as 'no conflict'). Everything else is unchanged."
+        }
+      },
+      "intentional_diff": {
+        "replaced": "module docstring rewritten for the oracle-only scope; `from typing import Callable, Sequence` -> `from collections.abc import Callable, Sequence` (ruff UP035, isort order); ruff format",
+        "removed_functions": [
+          "_error_code",
+          "_is_sha",
+          "_result",
+          "_read_pr",
+          "_allowed_paths",
+          "_parse_name_status",
+          "_path_allowed",
+          "_pr_matches",
+          "_live_ref_sha",
+          "execute",
+          "main"
+        ],
+        "removed_other": [
+          "`if __name__ == '__main__'` entry",
+          "imports: argparse, json, sys, uuid, allowed_paths_policy.is_no_path_marker",
+          "sys.path insertion for _AGENT_OPS_DIR",
+          "constants SHA_LENGTH, PROTECTED_PREFIXES"
+        ],
+        "added": "the dash-prefixed-ref guard in compute_semantic_ambiguity (see functions.compute_semantic_ambiguity) and the docstring"
+      }
+    }
+  },
+  "restored_source_tests": {
+    "B1 deferred test_independent_vc_terminal_gate_regression.py::test_terminal_gate_resolves_semantic_ambiguity": {
+      "restored_in": "tests/stage_i4/test_i4_4c4_oracle.py::test_terminal_gate_resolves_semantic_ambiguity",
+      "source_file_blob": "1580ae8d3bd78c9e9313950ad2ba378514ee7668",
+      "source_lines": "975-1052",
+      "ast_sha256": "c5e587e4e9d1a2f03a6df6bbdbf34d5f61db96162ae455cdfae4fa439ca69381",
+      "note": "AST-identical copy; helper names bind to the already-migrated B1 test module, whose file and manifest are unchanged. One `# noqa: C408` comment was added (no AST effect)."
+    }
+  },
+  "deferred_source_tests": [
+    {
+      "file": "scripts/agent-ops/tests/test_pr_head_replay_publish_exec.py",
+      "top_level_test_functions": 7,
+      "owner_stage": "unapproved follow-up (tracker #60)",
+      "reason": "drives execute(): PR read, remote fetch, replay, apply, commit, worktree and `git push --force-with-lease`",
+      "rerun_condition": "a human approves the push-capable executor scope in a separate Issue"
+    },
+    {
+      "file": "scripts/agent-ops/tests/test_main_drift_replay_publish.py",
+      "top_level_test_functions": 4,
+      "owner_stage": "unapproved follow-up (tracker #60)",
+      "reason": "same push-capable executor path",
+      "rerun_condition": "a human approves the push-capable executor scope in a separate Issue"
+    }
+  ],
+  "deferred_dependencies": [
+    {
+      "path": "scripts/agent-ops/pr_head_replay_publish_exec.py::execute / main (push-capable executor) and the 11 source tests above",
+      "owner_stage": "unapproved follow-up (tracker #60)",
+      "reason": "not approved; no live replay / publish is enabled",
+      "rerun_condition": "explicit human approval in a new Issue"
+    },
+    {
+      "path": "impl-review-loop Skill / Agent / steps, Final Gate, LOOP_HANDOFF_RESULT_V1, live GitHub acceptance",
+      "owner_stage": "I-4-4D (tracker #60)",
+      "reason": "nothing is wired into a step or Final Gate here",
+      "rerun_condition": "when I-4-4D wires the Skill and runs the approved acceptance"
+    }
+  ],
+  "reused_migrated_dependencies": [
+    "scripts/agent-ops/main_drift_policy.py (classification after the oracle result)",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py (unchanged importer)",
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py (helpers for the restored test; unchanged)",
+    "docs/dev/i4-4a-router-core-manifest.json (pin + note synced for the one converted test)"
+  ],
+  "closure_sync": [
+    "docs/dev/stage1a-core-manifest.json import_closure.deferred_imports: pr_head_replay_publish_exec entry removed (migrated); materialize_issue_scope_snapshot kept",
+    "docs/dev/i4-4a-router-core-manifest.json + test_main_drift_routing.py: converted oracle-unavailable test (copied layout)"
+  ],
+  "historical_deferred_records_unchanged": true,
+  "rollback": "Revert the single C4 PR: it removes the oracle module, this manifest, the C4 tests, the CI job and the stage1a deferred-import deletion. The router then fails closed with semantic_ambiguity_oracle_unavailable again. No previously migrated file is modified.",
+  "handoff": {
+    "push_capable_executor": "unapproved; not started",
+    "I-4-4D": "steps/SKILL/Agent migration, Final Gate and LOOP_HANDOFF_RESULT_V1 wiring, live acceptance"
+  },
+  "evidence_boundary": {
+    "kind": "temporary Git repositories under tmp_path + fixtures only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "test_verdict_publish_enabled": false,
+    "real_github_readback": false,
+    "merge_tree_oracle_real_evidence": true,
+    "merge_tree_oracle_evidence_scope": "real git merge-tree in temporary repositories; not an application to a real PR",
+    "github_live_operations": false,
+    "git_ref_mutation": false,
+    "historical_deferred_records_unchanged": true,
+    "runtime_verification_tag": "AC3 carries the runtime-verification tag and is satisfied by real git subprocesses through the real router and oracle; the extension-surface profile assertion is not_applicable (no SubAgent lifecycle code)."
+  },
+  "migrated_test_changes": {
+    ".claude/skills/impl-review-loop/tests/test_main_drift_routing.py": {
+      "changed": "test_given_unmigrated_oracle_when_ambiguity_unresolved_then_fail_closed only: copied layout (router + main_drift_policy, oracle deliberately absent) instead of asserting the oracle file is absent",
+      "reason": "the oracle now exists; the old assertion would fail the 4A lane",
+      "recorded_in": "docs/dev/i4-4a-router-core-manifest.json (moved_sha256, intentional_diff, deferred_dependencies.superseded)"
+    }
+  },
+  "supersedes": {
+    "docs/dev/i4-4a-router-core-manifest.json": "deferred_dependencies oracle entry carries a superseded note (edited by C4)",
+    "docs/dev/i4-4b1-vc-adjudication-manifest.json": "deferred_source_tests test_terminal_gate_resolves_semantic_ambiguity is restored in tests/stage_i4/test_i4_4c4_oracle.py (B1 file and manifest unchanged; the B1 record stays historically accurate)",
+    "docs/dev/i4-4c1-landing-evidence-manifest.json, i4-4c2-intake-capsule-manifest.json, i4-4c3-test-verdict-artifact-manifest.json": "their 'C4 deferred / merge_tree_oracle_real_evidence: false' records are historical snapshots and are intentionally not edited"
+  }
+}
