@@ -1,0 +1,94 @@
+{
+  "schema": "I4_4C3_TEST_VERDICT_ARTIFACT_MANIFEST_V1",
+  "issue": "squne121/agent-platform#85",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
+  },
+  "decisions": {
+    "slice": "I-4-4C3 (tracker #60): the receipt-aware materialize_test_verdict_artifact.py and its source tests. The script is moved verbatim; no wrapper, schema or policy is added.",
+    "reuse": "The materializer loads scripts/agent-guards/controlled_skill_mutation_exec.py by path (_CONTROLLED_EXEC_PATH) and reuses its _validate_test_verdict_publish_fields, _verify_producer_run_and_job, _verify_execution_artifact_metadata and _download_and_verify_artifact_archive (plus _find_gh_bin / _build_pr_review_gh_env). The source test drives adjudicate_vc_result.py (I-4-4B1). None of them is copied or changed.",
+    "no_publish": "test_verdict.publish is neither called nor enabled. The materializer has no subprocess import and no gh/git argv of its own: every GitHub read goes through the reused executor functions, and the source tests replace gh with a fake subprocess.",
+    "local_writes": "The materializer writes the local input/private bundle atomically and, when blocked, invalidates (unlinks) stale files at the caller-given output paths. The tests only use tmp_path, never a user artifact.",
+    "evidence": "Fake gh and real zip bytes built in the test; this is not a real GitHub readback and not a Final Gate result.",
+    "historical_records": "docs/dev/i4-4a-router-core-manifest.json and i4-4c1-landing-evidence-manifest.json still list materialize_test_verdict_artifact.py as a deferred dependency owned by I-4-4C3. They are historical snapshots of those slices and are intentionally not edited here (C3 Allowed Paths exclude them)."
+  },
+  "required_files": [
+    ".claude/skills/impl-review-loop/scripts/materialize_test_verdict_artifact.py",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    "scripts/agent-guards/controlled_skill_mutation_exec.py",
+    "schemas/test-verdict-producer-receipt.schema.json"
+  ],
+  "required_fixtures": [],
+  "moved_scripts": [
+    ".claude/skills/impl-review-loop/scripts/materialize_test_verdict_artifact.py"
+  ],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_materialize_test_verdict_artifact.py"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_materialize_test_verdict_artifact.py": 33
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_materialize_test_verdict_artifact.py": 33
+  },
+  "deferred_tests": [],
+  "deferred_source_tests": [],
+  "totals": {
+    "source_test_functions": 33,
+    "source_collected": 33,
+    "ran": 33,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0
+  },
+  "source_parity": {
+    ".claude/skills/impl-review-loop/scripts/materialize_test_verdict_artifact.py": {
+      "source_sha256": "58e0003cee8cd86c73e51dbc08768afa89a668112ae7bceaccf5468f812aaa57",
+      "moved_sha256": "58e0003cee8cd86c73e51dbc08768afa89a668112ae7bceaccf5468f812aaa57",
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_materialize_test_verdict_artifact.py": {
+      "source_sha256": "a7338bd98fe89119ef3fc9d2cf60902b981285778b8081bc51072aa93a03c1b0",
+      "moved_sha256": "6769d3877b8f11250b7bd941fc7854214c6722b3f29ce2adf7a0e6762ff95e36",
+      "verbatim": false,
+      "intentional_diff": "Functional legacy slug replaced on 5 lines: REPO = 'squne121/loop-protocol' -> 'squne121/agent-platform' (line 70) and the four run/artifact URLs (lines 160, 258, 783, 1099) so the fixture identity matches. No assertion was changed, weakened, skipped or removed; the foreign-repository rejection fixtures are untouched."
+    }
+  },
+  "reused_migrated_dependencies": [
+    "scripts/agent-guards/controlled_skill_mutation_exec.py (_validate_test_verdict_publish_fields, _verify_producer_run_and_job, _verify_execution_artifact_metadata, _download_and_verify_artifact_archive, plus _find_gh_bin and _build_pr_review_gh_env; all six are pinned by the closure test)",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py (I-4-4B1)",
+    "schemas/test-verdict-producer-receipt.schema.json (I-4-4B1)"
+  ],
+  "deferred_dependencies": [
+    {
+      "path": "scripts/agent-ops/pr_head_replay_publish_exec.py",
+      "owner_stage": "I-4-4C4 (tracker #60)",
+      "reason": "git merge-tree oracle vs push-capable execute() boundary is an open decision; not touched here",
+      "rerun_condition": "when C4 decides the boundary"
+    },
+    {
+      "path": "impl-review-loop Skill / Agent / steps, Final Gate, LOOP_HANDOFF_RESULT_V1, live GitHub acceptance of test_verdict.publish and of this materializer",
+      "owner_stage": "I-4-4D (tracker #60)",
+      "reason": "the materializer is not wired into any step or Final Gate here",
+      "rerun_condition": "when I-4-4D wires the Skill and runs the approved live acceptance"
+    }
+  ],
+  "rollback": "Revert the single C3 PR: it removes the script, the source test, this manifest, the closure tests and the CI job. No previously migrated file is modified, so no partial revert is needed.",
+  "handoff": {
+    "C4": "pr_head_replay_publish_exec.py oracle and push-capable execute() boundary; no Git ref mutation was introduced here",
+    "I-4-4D": "steps/SKILL/Agent migration, Final Gate and LOOP_HANDOFF_RESULT_V1 wiring, enabling test_verdict.publish only if approved, live GitHub acceptance"
+  },
+  "evidence_boundary": {
+    "kind": "fixture + fake gh subprocess + tmp_path only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "test_verdict_publish_enabled": false,
+    "real_github_readback": false,
+    "merge_tree_oracle_real_evidence": false,
+    "github_live_operations": false,
+    "historical_deferred_records_unchanged": true
+  }
+}

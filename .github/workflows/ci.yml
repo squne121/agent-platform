@@ -425,3 +425,26 @@ jobs:
           set -eo pipefail
           uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
           ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
+
+  i4-4c3-test-verdict-artifact:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect/ran counts, 0 skipped / xfailed / deselected (fake gh, real zip bytes and tmp_path only; not a real GitHub readback or Final Gate result)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4c3-test-verdict-artifact-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 33 ran, 0 skipped" runner.out
+      - name: closure and negative controls (parity, shared executor reuse, no publish operation, fail-closed inputs)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
