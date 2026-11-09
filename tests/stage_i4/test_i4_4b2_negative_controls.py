@@ -27,9 +27,39 @@ sys.modules["closure_i4_4b2_for_negative_controls"] = closure
 _SPEC.loader.exec_module(closure)
 
 
+def _synthetic_deferred(manifest: dict[str, Any]) -> None:
+    """Inject two well-formed synthetic deferred entries (the real manifest may have none).
+
+    The real B2 deferred list is empty once I-4-4D3 restores the last two source tests, so the
+    deferred-record detectors are exercised against synthetic, well-formed entries whose test
+    names are not defined in any moved file. Totals are kept consistent so the positive control
+    stays clean and every negative control isolates a single defect.
+    """
+    manifest["deferred_source_tests"] = [
+        {
+            "id": f"{Path(manifest['test_files'][2]).name}::test_synthetic_deferred_probe_{i}",
+            "cases": 1,
+            "reason": "synthetic negative-control entry",
+            "owner_stage": "I-4-4D (synthetic)",
+            "rerun_condition": "synthetic negative-control entry",
+        }
+        for i in range(2)
+    ]
+    t = manifest["totals"]
+    t["removed_functions"] = 2
+    t["removed_to_deferred_source_tests_cases"] = 2
+    t["source_collected_before_removal"] = t["ran"] + 2
+
+
 @pytest.fixture
 def manifest() -> dict[str, Any]:
     return copy.deepcopy(closure._manifest())
+
+
+@pytest.fixture
+def deferred_manifest(manifest: dict[str, Any]) -> dict[str, Any]:
+    _synthetic_deferred(manifest)
+    return manifest
 
 
 @pytest.fixture
@@ -49,6 +79,33 @@ def layout(tmp_path: Path, manifest: dict[str, Any]) -> Path:
 def test_positive_control(layout: Path, manifest: dict[str, Any], b1: dict[str, Any]) -> None:
     assert closure.parity_problems(manifest, layout) == []
     assert closure.deferred_problems(manifest, b1, layout / closure.TESTS) == []
+
+
+def test_positive_control_with_synthetic_deferred_entries(
+    layout: Path, deferred_manifest: dict[str, Any], b1: dict[str, Any]
+) -> None:
+    assert len(deferred_manifest["deferred_source_tests"]) == 2
+    assert closure.deferred_problems(deferred_manifest, b1, layout / closure.TESTS) == []
+
+
+def test_empty_deferred_list_is_valid_and_stays_consistent(
+    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+) -> None:
+    assert manifest["deferred_source_tests"] == []
+    assert manifest["totals"]["removed_functions"] == 0
+    assert manifest["totals"]["removed_to_deferred_source_tests_cases"] == 0
+    assert closure.deferred_problems(manifest, b1, layout / closure.TESTS) == []
+
+
+def test_empty_deferred_list_with_nonzero_totals_is_detected(
+    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+) -> None:
+    manifest["totals"]["removed_functions"] = 1
+    manifest["totals"]["removed_to_deferred_source_tests_cases"] = 1
+    manifest["totals"]["source_collected_before_removal"] = manifest["totals"]["ran"] + 1
+    problems = closure.deferred_problems(manifest, b1, layout / closure.TESTS)
+    assert "deferred function count != totals" in problems
+    assert "deferred case count != totals" in problems
 
 
 def test_drifted_moved_file_is_detected(layout: Path, manifest: dict[str, Any]) -> None:
@@ -77,51 +134,52 @@ def test_false_verbatim_claim_is_detected(layout: Path, manifest: dict[str, Any]
 
 
 def test_restored_test_that_is_still_deferred_is_detected(
-    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+    layout: Path, deferred_manifest: dict[str, Any], b1: dict[str, Any]
 ) -> None:
-    entry = manifest["deferred_source_tests"][0]
+    entry = deferred_manifest["deferred_source_tests"][0]
     rel_file, name = entry["id"].split("::")
     path = layout / closure.TESTS / rel_file
     path.write_text(
         path.read_text(encoding="utf-8") + f"\n\ndef {name}():\n    pass\n", encoding="utf-8"
     )
-    problems = closure.deferred_problems(manifest, b1, layout / closure.TESTS)
+    problems = closure.deferred_problems(deferred_manifest, b1, layout / closure.TESTS)
     assert any("still defined" in p for p in problems)
 
 
 def test_deferred_entry_without_owner_or_rerun_condition_is_detected(
-    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+    layout: Path, deferred_manifest: dict[str, Any], b1: dict[str, Any]
 ) -> None:
-    manifest["deferred_source_tests"][0]["owner_stage"] = ""
-    manifest["deferred_source_tests"][1]["rerun_condition"] = ""
-    problems = closure.deferred_problems(manifest, b1, layout / closure.TESTS)
+    deferred_manifest["deferred_source_tests"][0]["owner_stage"] = ""
+    deferred_manifest["deferred_source_tests"][1]["rerun_condition"] = ""
+    problems = closure.deferred_problems(deferred_manifest, b1, layout / closure.TESTS)
     assert sum("incomplete deferred entry" in p for p in problems) == 2
 
 
 def test_unknown_owner_is_detected(
-    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+    layout: Path, deferred_manifest: dict[str, Any], b1: dict[str, Any]
 ) -> None:
-    manifest["deferred_source_tests"][0]["owner_stage"] = "nobody"
+    deferred_manifest["deferred_source_tests"][0]["owner_stage"] = "nobody"
     assert any(
         "unknown owner" in p
-        for p in closure.deferred_problems(manifest, b1, layout / closure.TESTS)
+        for p in closure.deferred_problems(deferred_manifest, b1, layout / closure.TESTS)
     )
 
 
 def test_overlap_with_b1_deferred_is_detected(
-    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+    layout: Path, deferred_manifest: dict[str, Any], b1: dict[str, Any]
 ) -> None:
-    manifest["deferred_source_tests"][0]["id"] = b1["deferred_source_tests"][0]["id"]
+    deferred_manifest["deferred_source_tests"][0]["id"] = b1["deferred_source_tests"][0]["id"]
     assert any(
-        "duplicate" in p for p in closure.deferred_problems(manifest, b1, layout / closure.TESTS)
+        "duplicate" in p
+        for p in closure.deferred_problems(deferred_manifest, b1, layout / closure.TESTS)
     )
 
 
 def test_silently_dropped_deferred_entry_breaks_the_totals(
-    layout: Path, manifest: dict[str, Any], b1: dict[str, Any]
+    layout: Path, deferred_manifest: dict[str, Any], b1: dict[str, Any]
 ) -> None:
-    manifest["deferred_source_tests"].pop()
-    problems = closure.deferred_problems(manifest, b1, layout / closure.TESTS)
+    deferred_manifest["deferred_source_tests"].pop()
+    problems = closure.deferred_problems(deferred_manifest, b1, layout / closure.TESTS)
     assert any("!= totals" in p or "ran + removed" in p for p in problems)
 
 

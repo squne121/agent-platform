@@ -11,7 +11,8 @@
     "fail_closed": "Source tests that need unmigrated steps documents are removed from the moved files (never skipped/xfailed) and recorded in deferred_source_tests with owner and rerun condition. No stand-in for the steps documents is used.",
     "design_reference_fixture": "docs/dev/workflow.md does not exist here; the fixture only needs an existing design reference for contract_readiness_check, so it points at docs/dev/github-ops.md (intentional_diff). Expectations are unchanged.",
     "size": "moved tests ~6.6k lines + manifest/closure tests < 10k lines.",
-    "no_I_4_4C_dependency": "None of the five files needs the merge-tree oracle, landing evidence, intake capsule or test verdict producer (measured); I-4-4C owns no deferred test of this slice."
+    "no_I_4_4C_dependency": "None of the five files needs the merge-tree oracle, landing evidence, intake capsule or test verdict producer (measured); I-4-4C owns no deferred test of this slice.",
+    "d3_restore": "I-4-4D3 (#93) migrated steps/step-4-pr-review.md, step-5-feedback-and-termination.md and step-5-mergeability-handling.md and restored the last 2 removed source test functions verbatim; deferred_source_tests is now empty (0 deferred)."
   },
   "required_files": [
     ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
@@ -32,25 +33,25 @@
   "expected_collect": {
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": 14,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": 20,
-    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 83,
-    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 180,
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 84,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 181,
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": 69
   },
   "expected_ran": {
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py": 14,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate_runtime_only.py": 20,
-    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 83,
-    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 180,
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": 84,
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": 181,
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": 69
   },
   "deferred_tests": [],
   "totals": {
-    "ran": 366,
+    "ran": 368,
     "deferred_run_time": 0,
     "skipped": 0,
     "source_collected_before_removal": 368,
-    "removed_to_deferred_source_tests_cases": 2,
-    "removed_functions": 2
+    "removed_to_deferred_source_tests_cases": 0,
+    "removed_functions": 0
   },
   "historical_pre_d2": {
     "totals": {
@@ -60,7 +61,7 @@
       "removed_functions": 22,
       "canonical_path_ran": 112
     },
-    "note": "368 source cases / 298 ran / 22 removed functions (70 cases) is the I-4-4B2 (#79) measurement before I-4-4D2 and stays a historical record. I-4-4D2 (#91) restored 20 functions / 68 cases that needed only steps/step-2-verification.md; the current state is 366 ran / 2 removed functions (2 cases). 366 + 2 = 368 source cases.",
+    "note": "368 source cases / 298 ran / 22 removed functions (70 cases) is the I-4-4B2 (#79) measurement before I-4-4D2 and stays a historical record. I-4-4D2 (#91) restored 20 functions / 68 cases that needed only steps/step-2-verification.md; the current state is 366 ran / 2 removed functions (2 cases). 366 + 2 = 368 source cases. (D2-time statement; superseded by I-4-4D3 (#93): 368 ran / 0 deferred, see historical_pre_d3 and totals.)",
     "restored_by_d2": [
       "test_step4_pr_review_only_canonical_path.py::test_step2_delegation_template_passes_ac_command_command_hash_triplets_verbatim",
       "test_step4_pr_review_only_canonical_path.py::test_step2_handoff_duplicate_or_ambiguous_failure_invalidates_prior_pass",
@@ -98,15 +99,15 @@
     },
     ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py": {
       "source_sha256": "73af237b1de06b7279952eab0eb7b444890526cad97fad544df08e773ceec921",
-      "moved_sha256": "d2a8988163587176c1c7c324c6215e362eac5044b0101bf6964d047675d983fc",
+      "moved_sha256": "03c4e6f21a5c835e8d0258962feeb542737e430fc4cdd013b20f27f1ee1ad1a0",
       "verbatim": false,
-      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). Also the fixture issue body's '## Required Design References' entry 'docs/dev/workflow.md' -> 'docs/dev/github-ops.md': contract_readiness_check requires the reference to exist in this repository, docs/dev/workflow.md is not migrated, and the real producer would otherwise return blocked_needs_refinement (68 of 84 tests fail or error, measured). github-ops.md is the existing issue-kind policy doc of the same checker; the fixture only needs one existing design reference, no assertion was weakened. 1 source test removed (never skipped), recorded in deferred_source_tests: test_step4_doc_names_the_new_handoff_arguments reads unmigrated impl-review-loop/steps/step-4-pr-review.md (owner I-4-4D)."
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). Also the fixture issue body's '## Required Design References' entry 'docs/dev/workflow.md' -> 'docs/dev/github-ops.md': contract_readiness_check requires the reference to exist in this repository, docs/dev/workflow.md is not migrated, and the real producer would otherwise return blocked_needs_refinement (68 of 84 tests fail or error, measured). github-ops.md is the existing issue-kind policy doc of the same checker; the fixture only needs one existing design reference, no assertion was weakened. The 1 source test removed before I-4-4D3 (test_step4_doc_names_the_new_handoff_arguments) was restored verbatim by I-4-4D3 (#93) after steps/step-4-pr-review.md was migrated; nothing is removed any more."
     },
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py": {
       "source_sha256": "969145cb0411b4dd041dd7e2f7266e3924b0c48a821c35ad9767b1eadb62ce9b",
-      "moved_sha256": "49c1314a2c98c60c076f4d41ddd51357fb0692b5382e740c955abf17a98d7bd9",
+      "moved_sha256": "130f6d2e6299fe20bbeb1e78a1681cb68e91f812ec955810097d5f44096a3b22",
       "verbatim": false,
-      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). 1 source test function (1 case) removed (never skipped), recorded in deferred_source_tests: test_step_docs_state_canonical_entrance reads unmigrated impl-review-loop/steps/step-4-pr-review.md and step-5-feedback-and-termination.md (owner I-4-4D). The other 20 functions (68 cases) that needed only steps/step-2-verification.md were restored verbatim by I-4-4D2 (#91); the shared helpers are kept verbatim."
+      "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs). All source test functions are present: the 20 functions (68 cases) that needed only steps/step-2-verification.md were restored verbatim by I-4-4D2 (#91) and the last one (test_step_docs_state_canonical_entrance) by I-4-4D3 (#93) after steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md were migrated; the shared helpers are kept verbatim."
     },
     ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_nonpass_reviewer_route.py": {
       "source_sha256": "04b4feb202eebf0e8f2059a2866d04fb8974111106025d3bbf76f6621e439bfb",
@@ -115,22 +116,7 @@
       "intentional_diff": "Functional legacy slug replaced: 'squne121/loop-protocol' -> 'squne121/agent-platform' (the --repo passed to baseline_vc_preflight, whose repository identity check rejects the legacy slug, and fixture URLs)."
     }
   },
-  "deferred_source_tests": [
-    {
-      "id": "test_step4_contract_snapshot_handoff.py::test_step4_doc_names_the_new_handoff_arguments",
-      "cases": 1,
-      "reason": "reads the wording of unmigrated impl-review-loop/steps/step-4-pr-review.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/step-4-pr-review.md is migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_step4_pr_review_only_canonical_path.py::test_step_docs_state_canonical_entrance",
-      "cases": 1,
-      "reason": "reads unmigrated impl-review-loop/steps/step-4-pr-review.md and step-5-feedback-and-termination.md (steps/step-2-verification.md was migrated by I-4-4D2)",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md are migrated, restore the source test verbatim"
-    }
-  ],
+  "deferred_source_tests": [],
   "reused_migrated_dependencies": [
     "adjudicate_vc_result.py + schemas/test-verdict-producer-receipt.schema.json (I-4-4B1, #77)",
     ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py (I-4-2)",
@@ -139,14 +125,7 @@
     ".claude/skills/issue-contract-review/scripts/contract_readiness_check.py",
     ".claude/skills/issue-refinement-loop/scripts/repair_issue_contract.py"
   ],
-  "deferred_dependencies": [
-    {
-      "path": ".claude/skills/impl-review-loop/steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "reason": "documents read by the 2 remaining removed source test functions (and by the 3 still removed in I-4-4B1); steps/step-2-verification.md was migrated by I-4-4D2 (#91)",
-      "rerun_condition": "when migrated, restore the removed source tests verbatim and drop their entries here"
-    }
-  ],
+  "deferred_dependencies": [],
   "evidence_boundary": {
     "kind": "fixture + fake gh shim + temporary git repository only",
     "live_e2e": false,
@@ -155,5 +134,22 @@
     "test_verdict_publish_enabled": false,
     "merge_tree_oracle_real_evidence": false,
     "github_live_operations": false
+  },
+  "historical_pre_d3": {
+    "note": "Values after I-4-4D2 (#91) and before I-4-4D3 (#93): 366 ran, 2 removed source test functions (2 cases) that needed steps/step-4-pr-review.md and steps/step-5-feedback-and-termination.md. I-4-4D3 restored both verbatim: 366 + 2 = 368 ran, 0 deferred. The 368/298/70/22 record in historical_pre_d2 is unchanged.",
+    "totals": {
+      "ran": 366,
+      "source_collected_before_removal": 368,
+      "removed_to_deferred_source_tests_cases": 2,
+      "removed_functions": 2
+    },
+    "expected_collect": {
+      "test_step4_contract_snapshot_handoff.py": 83,
+      "test_step4_pr_review_only_canonical_path.py": 180
+    },
+    "restored_by_d3": [
+      "test_step4_contract_snapshot_handoff.py::test_step4_doc_names_the_new_handoff_arguments",
+      "test_step4_pr_review_only_canonical_path.py::test_step_docs_state_canonical_entrance"
+    ]
   }
 }

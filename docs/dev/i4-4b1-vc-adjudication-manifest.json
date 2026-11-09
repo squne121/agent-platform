@@ -10,7 +10,8 @@
     "slice": "adjudicate_vc_result.py (Step 4 VC gate + step5-terminal-gate) and the existing producer receipt schema, with the core source tests. I-4-4B2 carries the remaining source tests.",
     "fail_closed": "Unmigrated dependencies never yield approval: the real merge-tree oracle is absent -> fail_closed semantic_ambiguity_oracle_unavailable (asserted by the closure test; a stand-in is NOT used and no real-oracle evidence is claimed).",
     "schema_dependency": "schemas/test-verdict-producer-receipt.schema.json is migrated byte-for-byte (no new schema was designed): adjudicate_vc_result.py reads it for the opt-in --require-producer-receipt path; without it that path would be permanently unusable (fail-closed producer_receipt_schema_unreadable). Source tests that exercise real receipts (test_step4_pr_review_only_canonical_path) are B2.",
-    "size": "script 3529 + tests ~4.9k lines + schema + manifest/closure tests < 10k lines; remaining source tests (~7.2k lines) are I-4-4B2."
+    "size": "script 3529 + tests ~4.9k lines + schema + manifest/closure tests < 10k lines; remaining source tests (~7.2k lines) are I-4-4B2.",
+    "d3_restore": "I-4-4D3 (#93) migrated steps/step-4-pr-review.md, step-5-feedback-and-termination.md and step-5-mergeability-handling.md and restored the 4 document-dependent source tests verbatim (3 in test_independent_vc_terminal_gate_regression.py, 1 in test_extract_vc_metadata.py). test_terminal_gate_resolves_semantic_ambiguity stays deferred (oracle; owner I-4-4C)."
   },
   "required_files": [
     ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
@@ -30,20 +31,20 @@
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate.py": 23,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_runtime_only.py": 7,
     ".claude/skills/impl-review-loop/tests/test_step4_requires_current_vc.py": 9,
-    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": 6,
-    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": 32
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": 7,
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": 35
   },
   "expected_ran": {
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result.py": 41,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_non_regression_gate.py": 23,
     ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_runtime_only.py": 7,
     ".claude/skills/impl-review-loop/tests/test_step4_requires_current_vc.py": 9,
-    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": 6,
-    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": 32
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": 7,
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": 35
   },
   "deferred_tests": [],
   "totals": {
-    "ran": 118,
+    "ran": 122,
     "deferred_run_time": 0,
     "skipped": 0
   },
@@ -82,47 +83,22 @@
     },
     ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py": {
       "source_sha256": "d92674344c6d7d1dee91d02c1ef66887c28bf11e2ab6a11f14089cdfcc9fab92",
-      "moved_sha256": "ca5466798d300e6df12360df86f47056179aaa24e669f1a682d5579cb3a934ba",
-      "verbatim": false,
-      "intentional_diff": "1 source test removed (never skipped), recorded in deferred_source_tests: test_docs_use_parse_only_extractor_instead_of_baseline_executor reads unmigrated impl-review-loop/steps/*.md (owner I-4-4D)."
+      "moved_sha256": "d92674344c6d7d1dee91d02c1ef66887c28bf11e2ab6a11f14089cdfcc9fab92",
+      "verbatim": true
     },
     ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py": {
       "source_sha256": "3c718111608bc13ae72a990b5e4ea449945b72df1f15e1d4b0a4e9e85a86d075",
-      "moved_sha256": "074774e85106e566acd85bf3270156c82752aaca5f3085f8f0d9b3ca1979db21",
+      "moved_sha256": "ee349e885dce2897f777c2ebc83b0ba4466f49a52913d9157a18d77250747507",
       "verbatim": false,
-      "intentional_diff": "4 source tests removed (never skipped), recorded in deferred_source_tests: 3 read unmigrated impl-review-loop/steps/*.md (owner I-4-4D) and test_terminal_gate_resolves_semantic_ambiguity needs the real git merge-tree oracle pr_head_replay_publish_exec.py (owner I-4-4C). tests/stage_i4/test_i4_4b1_closure.py asserts the fail-closed counterpart (semantic_ambiguity_oracle_unavailable)."
+      "intentional_diff": "1 source test removed (never skipped), recorded in deferred_source_tests: test_terminal_gate_resolves_semantic_ambiguity needs the real git merge-tree oracle pr_head_replay_publish_exec.py (owner I-4-4C). tests/stage_i4/test_i4_4b1_closure.py asserts the fail-closed counterpart (semantic_ambiguity_oracle_unavailable). The other 3 source tests removed before I-4-4D3 were restored verbatim by I-4-4D3 (#93)."
     }
   },
   "deferred_source_tests": [
-    {
-      "id": "test_independent_vc_terminal_gate_regression.py::test_test_runner_documented_report_yields_certified_pass",
-      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-2-verification.md documented conversion block)",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/step-2-verification.md is migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_independent_vc_terminal_gate_regression.py::test_stage_a_b_reviewer_recovery_uses_same_gate",
-      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-4-pr-review.md)",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/step-4-pr-review.md is migrated, restore the source test verbatim"
-    },
-    {
-      "id": "test_independent_vc_terminal_gate_regression.py::test_documents_bind_the_canonical_entrances",
-      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-2/4/5 documents)",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
-    },
     {
       "id": "test_independent_vc_terminal_gate_regression.py::test_terminal_gate_resolves_semantic_ambiguity",
       "reason": "needs the real git merge-tree oracle scripts/agent-ops/pr_head_replay_publish_exec.py (unmigrated; the file also mutates git state, so the read-only/mutation boundary needs an explicit decision)",
       "owner_stage": "I-4-4C (tracker #60)",
       "rerun_condition": "when the oracle is migrated, restore the source test verbatim and drop the fail-closed counterpart in tests/stage_i4/test_i4_4b1_closure.py"
-    },
-    {
-      "id": "test_extract_vc_metadata.py::test_docs_use_parse_only_extractor_instead_of_baseline_executor",
-      "reason": "asserts/reads impl-review-loop/steps/*.md, which is not migrated (step-2-verification.md, step-4-pr-review.md)",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "rerun_condition": "when steps/*.md are migrated, restore the source test verbatim"
     }
   ],
   "reused_migrated_dependencies": [
@@ -140,12 +116,6 @@
       "rerun_condition": "when migrated, restore test_terminal_gate_resolves_semantic_ambiguity"
     },
     {
-      "path": ".claude/skills/impl-review-loop/steps/*.md",
-      "owner_stage": "I-4-4D (impl-review-loop Skill/Agent/steps)",
-      "reason": "documents read by 4 removed source tests",
-      "rerun_condition": "when migrated, restore the removed source tests"
-    },
-    {
       "path": ".claude/skills/impl-review-loop/tests/test_adjudicate_vc_result_e2e_runtime_only.py (+4 more)",
       "owner_stage": "I-4-4B2 (tracker #60)",
       "reason": "split out to keep this PR under 10k lines",
@@ -159,5 +129,20 @@
     "loop_handoff_result_v1_wired": false,
     "test_verdict_publish_enabled": false,
     "merge_tree_oracle_real_evidence": false
+  },
+  "historical_pre_d3": {
+    "note": "Values before I-4-4D3 (#93): the 4 document-dependent source tests were deferred because steps/*.md were not migrated.",
+    "ran": 118,
+    "deferred_source_tests": 5,
+    "expected_collect": {
+      "test_extract_vc_metadata.py": 6,
+      "test_independent_vc_terminal_gate_regression.py": 32
+    },
+    "restored_by_d3": [
+      "test_independent_vc_terminal_gate_regression.py::test_test_runner_documented_report_yields_certified_pass",
+      "test_independent_vc_terminal_gate_regression.py::test_stage_a_b_reviewer_recovery_uses_same_gate",
+      "test_independent_vc_terminal_gate_regression.py::test_documents_bind_the_canonical_entrances",
+      "test_extract_vc_metadata.py::test_docs_use_parse_only_extractor_instead_of_baseline_executor"
+    ]
   }
 }

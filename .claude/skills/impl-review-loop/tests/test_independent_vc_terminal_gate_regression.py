@@ -653,6 +653,37 @@ def test_missing_final_result_closes_gate(tmp_path):
 # --- AC1 producer contract / AC9 ------------------------------------------
 
 
+def test_test_runner_documented_report_yields_certified_pass(tmp_path):
+    doc = STEP2_DOC.read_text(encoding="utf-8")
+    section = doc.split("### 独立した実行事実", 1)[1].split("### GitHub 由来情報", 1)[0]
+    documented = set(re.findall(r"^\| `([a-z0-9_]+)(?:\[\])?`", section, flags=re.MULTILINE))
+    for pair in re.findall(r"^\| `([a-z0-9_]+)` / `([a-z0-9_]+)`", section, flags=re.MULTILINE):
+        documented.update(pair)
+    for triple in re.findall(r"^\| `([a-z0-9_]+)` / `([a-z0-9_]+)` / `([a-z0-9_]+)`", section, flags=re.MULTILINE):
+        documented.update(triple)
+    assert "generated_at" in documented and "command_hash" in section
+    # The documented set is exactly what the producer report below carries
+    # (top level), and it contains no GitHub-derived field.
+    report = _test_verdict(HEAD_A, BODY_A, False)
+    assert set(report) == documented
+    for github_only in ("producer_kind", "workflow_run_id", "check_run_id", "artifact", "producer_receipt"):
+        assert github_only not in report
+    assert "UTC" in section and "RFC 3339" in section
+
+    for runtime_only in (False, True):
+        ws = Workspace(tmp_path / f"runtime_{runtime_only}")
+        ws.dir.mkdir()
+        rc, payload = ws.adjudicate(runtime_only=runtime_only)
+        assert rc == 0, payload
+        assert payload["adjudication"]["blocking"] is False
+
+    # A report without generated_at never certifies (consumer stays strict).
+    ws = Workspace(tmp_path / "no_generated_at")
+    ws.dir.mkdir()
+    rc, payload = ws.adjudicate(verdict=_test_verdict(HEAD_A, BODY_A, False, generated_at=None))
+    assert rc == 1 and payload["adjudication"]["blocking"] is True
+
+
 def test_nonblocking_classifications_are_preserved():
     key_a = {"kind": "pytest_nodeid", "key": "tests/unrelated/test_x.py::test_a"}
     key_b = {"kind": "pytest_nodeid", "key": "tests/unrelated/test_x.py::test_b"}
@@ -887,6 +918,32 @@ def test_head_or_command_hash_change_after_dispatch_rejects_old_reviewer_result(
     # Unchanged binding still approves (control).
     rc, term = ws.terminal_gate(dispatch_seq=1)
     assert rc == 0 and term["route"] == "approved"
+
+
+def test_stage_a_b_reviewer_recovery_uses_same_gate(tmp_path):
+    ws = _dispatched(tmp_path)
+    before = ws.loop_state.read_bytes()
+
+    # Stage A / B recovery of an ALREADY dispatched reviewer does not call
+    # step4-adjudicate: the dispatch count stays 1, the original seq (saved
+    # when the reviewer was dispatched) goes to step5-terminal-gate, and the
+    # gate evaluation (and loop_state) stay untouched.
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 0 and term["route"] == "approved"
+    assert ws.invoke_count == 1
+    assert ws.loop_state.read_bytes() == before
+
+    # The same gate closes recovery when the VC evidence went stale.
+    state = ws.state()
+    state["vc_adjudication"] = {}
+    ws.write_state(state)
+    rc, term = ws.terminal_gate(dispatch_seq=1)
+    assert rc == 1 and term["reason_code"] == "vc_gate_blocking"
+    assert ws.invoke_count == 1
+
+    step4_doc = STEP4_DOC.read_text(encoding="utf-8")
+    assert "Stage A" in step4_doc and "step5-terminal-gate" in step4_doc
+    assert "同等の永続化" not in step4_doc
 
 
 def test_reuse_stored_pass_records_dispatch_without_test_runner(tmp_path):
@@ -1347,4 +1404,14 @@ def test_persist_failure_during_reuse_stored_does_not_record_dispatch(tmp_path, 
 
 
 # --- AC10 static / documentation binding ------------------------------------
+
+
+def test_documents_bind_the_canonical_entrances():
+    step4_doc = STEP4_DOC.read_text(encoding="utf-8")
+    step5_doc = STEP5_DOC.read_text(encoding="utf-8")
+    for token in ("step4-adjudicate", "--expected-issue-number", "--expected-pr-number", "--reuse-stored"):
+        assert token in step4_doc, token
+    for token in ("step5-terminal-gate", "--dispatch-seq"):
+        assert token in step5_doc, token
+    assert "同等の永続化" not in step4_doc
 
