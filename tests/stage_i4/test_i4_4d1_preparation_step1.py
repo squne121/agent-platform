@@ -162,7 +162,9 @@ def test_ac1_references_are_classified_with_an_owner(manifest: dict[str, Any]) -
     # every unmigrated Skill the documents link to is genuinely absent, never faked
     irl = ROOT / ".claude" / "skills" / "impl-review-loop"
     assert not (irl / "SKILL.md").exists()
-    assert not (irl / "steps" / "step-4-pr-review.md").exists()
+    # step-4-pr-review.md was migrated later by I-4-4D3 (#93); the classification above is the
+    # D1-time record and stays as history. SKILL.md and implement-issue are still genuinely absent.
+    assert (irl / "steps" / "step-4-pr-review.md").is_file()
     assert not (ROOT / ".claude" / "skills" / "implement-issue").exists()
 
 

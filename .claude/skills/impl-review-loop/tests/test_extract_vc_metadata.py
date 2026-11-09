@@ -211,3 +211,10 @@ def test_extract_cli_starts_no_subprocess(tmp_path):
     payload = json.loads(completed.stdout.strip().splitlines()[-1])
     assert [(r["ac"], r["raw_command"]) for r in payload["commands"]] == EXPECTED_ORDER
 
+
+def test_docs_use_parse_only_extractor_instead_of_baseline_executor():
+    step2 = STEP2_DOC.read_text(encoding="utf-8")
+    step4 = STEP4_DOC.read_text(encoding="utf-8")
+    for doc in (step2, step4):
+        assert "extract-vc-metadata" in doc
+        assert "baseline_vc_preflight.py --body-file <live body> --format json" not in doc

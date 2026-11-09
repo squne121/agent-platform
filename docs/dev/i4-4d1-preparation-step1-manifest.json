@@ -126,7 +126,8 @@
       "docs/playtest/m2-combat-mvp.md and docs/dev/workflow.md examples",
       "legacy Issue/PR numbers",
       "historical .codex scope-rollup-runner mention"
-    ]
+    ],
+    "note_i_4_4d3": "D1-time classification kept as history. steps/step-4-pr-review.md was migrated later by I-4-4D3 (#93); see docs/dev/i4-4d3-step4-step5-manifest.json."
   },
   "supersedes": {
     "docs/dev/i4-4c2-intake-capsule-manifest.json": "deferred_tests / deferred_source_tests / totals / expected_ran / required_files were edited in place by this slice because the C2 closure fails while a deferred document exists. The previous measurement is kept there as historical_pre_d1. Other slice manifests (B1/B2/C1/C3/C4) are not edited."

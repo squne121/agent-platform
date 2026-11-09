@@ -138,7 +138,9 @@ def test_deferred_source_tests_are_recorded_not_silenced() -> None:
     m = _manifest()
     b1 = json.loads(B1_MANIFEST.read_text(encoding="utf-8"))
     assert m["deferred_tests"] == [], "nothing is deselected/skipped at run time"
-    assert m["deferred_source_tests"], "unmigrated source tests must be listed"
+    # An empty list is valid (I-4-4D3 restored the last 2 source tests); any remaining entry
+    # must still pass deferred_problems (owner, rerun condition, absent from the moved files).
+    assert isinstance(m["deferred_source_tests"], list)
     assert deferred_problems(m, b1, ROOT / TESTS) == []
     for rel in m["test_files"]:
         text = (ROOT / rel).read_text(encoding="utf-8")

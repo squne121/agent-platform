@@ -1327,6 +1327,19 @@ def test_step_docs_state_canonical_entrance_checker_self_verifies():
     assert any("missing required" in problem for problem in _doc_problems(docs))
 
 
+def test_step_docs_state_canonical_entrance(tmp_path):
+    docs = {
+        "step-2": STEP2_DOC.read_text(encoding="utf-8"),
+        "step-4": STEP4_DOC.read_text(encoding="utf-8"),
+        "step-5": STEP5_DOC.read_text(encoding="utf-8"),
+    }
+
+    assert _doc_problems(docs) == []
+    # The retained, allowed texts are still present (they are outside the checked phrases).
+    assert "route_loop_verdict_v2_resolve_semantic_ambiguity()" in docs["step-5"]
+    assert "step-5-mergeability-handling.md" in docs["step-4"]
+
+
 # --- #2924 REQUEST_CHANGES fix_delta (A: ordinary status / B: raw report / C: Step 2 triplet) ---
 
 

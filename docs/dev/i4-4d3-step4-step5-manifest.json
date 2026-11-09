@@ -1,0 +1,290 @@
+{
+  "schema": "I4_4D3_STEP4_STEP5_MANIFEST_V1",
+  "issue": "squne121/agent-platform#93",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "53302dabe1e4617127d4836889220fc721f900ba",
+    "note": "D2 merge commit (PR #92)"
+  },
+  "decisions": {
+    "slice": "I-4-4D3: migrate steps/step-4-pr-review.md, step-5-feedback-and-termination.md and step-5-mergeability-handling.md with a minimal recorded difference and restore the 6 B1/B2 source test functions that need only documents. No wrapper, shared schema or permanent gate is added; the existing runner is reused.",
+    "no_placeholder": "The documents are the migrated real files, not fixtures or placeholders. The restored tests read them and run the real adjudicator CLI / local fixtures.",
+    "references": "The documents name Skill, Agent and script targets that are not migrated. They are not started as if they existed; each is classified in unmigrated_references with its owner. Live GitHub / Git operations in the documents are examples only and are never executed here.",
+    "legacy_content": "Legacy Issue/PR numbers and the legacy repository slug remain as historical text inside the documents; they are recorded rather than rewritten, to keep source parity reviewable.",
+    "oracle_boundary": "B1 test_terminal_gate_resolves_semantic_ambiguity needs the push-capable replay executor and real Git ref operations. It stays deferred (owner I-4-4C); D3 neither migrates nor runs that executor and mutates no Git ref.",
+    "production_claim": "Migrating these documents does not make production Step 4 / Step 5 or the Final Gate run; Skill entrypoint, Agents and wiring are later I-4-4D slices."
+  },
+  "documents": {
+    ".claude/skills/impl-review-loop/steps/step-4-pr-review.md": {
+      "source_blob_sha1": "7e293f06957ff2856644d8e3d7841ed69bcb8144",
+      "source_sha256": "48b520347b30c7330487c17bc6eec21acc504d14c0c559b88412e026dcfd373a",
+      "source_lines": 454,
+      "moved_sha256": "dfe33ac4a0fdf23192d2790ade742416f4efc61bc0d064e29a3a6aeab07e039d",
+      "moved_lines": 456,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D3)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d3-step4-step5-manifest.json` の `intentional_diff` に記録している。本書が参照する `SKILL.md`・Agent 定義 (`pr-reviewer` / `test-runner` / `implementation-worker`)・`implement-issue` / `open-pr` / `pr-review-judge`・他の steps・補助 script 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。本書の記述だけで Step 4 / Step 5 / Final Gate が本番稼働していると解釈してはならない。\n\n",
+          "source": "",
+          "what": "insert a migration-status blockquote directly after the title"
+        }
+      ]
+    },
+    ".claude/skills/impl-review-loop/steps/step-5-feedback-and-termination.md": {
+      "source_blob_sha1": "c7c486bb9d6f1e687b40d084791e570933ede7b6",
+      "source_sha256": "4f75a4ca3a862e5183819f85e67464d4e1e4a2d040899b3cdfed5ed781e3577c",
+      "source_lines": 746,
+      "moved_sha256": "1cc0a35c2a94000c6592427380a563ea8247d2f06150a7b7e5f7300620ceb1b7",
+      "moved_lines": 748,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D3)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d3-step4-step5-manifest.json` の `intentional_diff` に記録している。本書が参照する `SKILL.md`・Agent 定義 (`pr-reviewer` / `test-runner` / `implementation-worker`)・`implement-issue` / `open-pr` / `pr-review-judge`・他の steps・補助 script 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。本書の記述だけで Step 4 / Step 5 / Final Gate が本番稼働していると解釈してはならない。\n\n",
+          "source": "",
+          "what": "insert a migration-status blockquote directly after the title"
+        }
+      ]
+    },
+    ".claude/skills/impl-review-loop/steps/step-5-mergeability-handling.md": {
+      "source_blob_sha1": "a60c45c1b1975b143dcb4e511134b2afda921d43",
+      "source_sha256": "963819e0cb1a66dfb65d1ac32f664ec104bb339d16b0a38b1bf9fc4bdf9afa47",
+      "source_lines": 239,
+      "moved_sha256": "664bb500b55b9fbe284f2a0aeea1630a5fcdd41e1f23f6216a0b789263daa61f",
+      "moved_lines": 241,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D3)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d3-step4-step5-manifest.json` の `intentional_diff` に記録している。本書が参照する `SKILL.md`・Agent 定義 (`pr-reviewer` / `test-runner` / `implementation-worker`)・`implement-issue` / `open-pr` / `pr-review-judge`・他の steps・補助 script 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。本書の記述だけで Step 4 / Step 5 / Final Gate が本番稼働していると解釈してはならない。\n\n",
+          "source": "",
+          "what": "insert a migration-status blockquote directly after the title"
+        }
+      ]
+    }
+  },
+  "migrated_dependencies": [
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    ".claude/skills/issue-contract-review/scripts/baseline_vc_preflight.py",
+    ".claude/skills/impl-review-loop/steps/step-2-verification.md"
+  ],
+  "test_files": [
+    "tests/stage_i4/test_i4_4d3_step4_step5.py"
+  ],
+  "required_files": [
+    ".claude/skills/impl-review-loop/steps/step-4-pr-review.md",
+    ".claude/skills/impl-review-loop/steps/step-5-feedback-and-termination.md",
+    ".claude/skills/impl-review-loop/steps/step-5-mergeability-handling.md",
+    ".claude/skills/impl-review-loop/tests/test_independent_vc_terminal_gate_regression.py",
+    ".claude/skills/impl-review-loop/tests/test_extract_vc_metadata.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_pr_review_only_canonical_path.py",
+    "docs/dev/i4-4b1-vc-adjudication-manifest.json",
+    "docs/dev/i4-4b2-vc-step4-tests-manifest.json",
+    "docs/dev/i4-4d1-preparation-step1-manifest.json",
+    "docs/dev/i4-4d2-step2-verification-manifest.json"
+  ],
+  "required_fixtures": [],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d3_step4_step5.py": 19
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d3_step4_step5.py": 19
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 19,
+    "ran": 19,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "restored_functions": 6,
+    "restored_cases": 6
+  },
+  "restored_b1_tests": [
+    {
+      "file": "test_independent_vc_terminal_gate_regression.py",
+      "function": "test_test_runner_documented_report_yields_certified_pass",
+      "cases": 1,
+      "body_sha256": "79bb3701d9cc94187ecb135672d375a5649798b61543ca82d7567dcf0c6ae24d"
+    },
+    {
+      "file": "test_independent_vc_terminal_gate_regression.py",
+      "function": "test_stage_a_b_reviewer_recovery_uses_same_gate",
+      "cases": 1,
+      "body_sha256": "9e404a5a1a66eb95c9f886c9b1addcd8541ed16ef92fc14c8deaf89487ea3013"
+    },
+    {
+      "file": "test_independent_vc_terminal_gate_regression.py",
+      "function": "test_documents_bind_the_canonical_entrances",
+      "cases": 1,
+      "body_sha256": "da7898345b8c18a8f60f125239109dbda53850479ba0abfe7ff4ba3c0a99089e"
+    },
+    {
+      "file": "test_extract_vc_metadata.py",
+      "function": "test_docs_use_parse_only_extractor_instead_of_baseline_executor",
+      "cases": 1,
+      "body_sha256": "438e7f7f714642f43333ddcfa705f32135c6a624516f8f533af37006b9aa58eb"
+    }
+  ],
+  "restored_b2_tests": [
+    {
+      "file": "test_step4_contract_snapshot_handoff.py",
+      "function": "test_step4_doc_names_the_new_handoff_arguments",
+      "cases": 1,
+      "body_sha256": "b0f3aa7d29e701e4897e7ad11d1fc627bf3e96e8891f99daa801163e6cd1c273"
+    },
+    {
+      "file": "test_step4_pr_review_only_canonical_path.py",
+      "function": "test_step_docs_state_canonical_entrance",
+      "cases": 1,
+      "body_sha256": "cd6a8bb3d7931bc745004fd13ede49692f4b3779cceb42a3a80f18a6a886747e"
+    }
+  ],
+  "remaining_b1_deferred": [
+    {
+      "id": "test_independent_vc_terminal_gate_regression.py::test_terminal_gate_resolves_semantic_ambiguity",
+      "reason": "needs the real git merge-tree oracle scripts/agent-ops/pr_head_replay_publish_exec.py (unmigrated; the file also mutates git state, so the read-only/mutation boundary needs an explicit decision)",
+      "owner_stage": "I-4-4C (tracker #60)",
+      "rerun_condition": "when the oracle is migrated, restore the source test verbatim and drop the fail-closed counterpart in tests/stage_i4/test_i4_4b1_closure.py"
+    }
+  ],
+  "b1_counts": {
+    "current": {
+      "ran": 122,
+      "deferred_source_tests": 1
+    },
+    "historical_pre_d3": {
+      "ran": 118,
+      "deferred_source_tests": 5
+    },
+    "note": "118 ran / 5 deferred source test functions is the measurement before I-4-4D3 and stays a historical record (also in the B1 manifest historical_pre_d3). D3 restored 4 functions that needed only documents: 118 + 4 = 122 ran, 5 - 4 = 1 deferred (the oracle-dependent test)."
+  },
+  "b2_counts": {
+    "current": {
+      "source_collected": 368,
+      "ran": 368,
+      "deferred_functions": 0,
+      "deferred_cases": 0,
+      "skipped": 0
+    },
+    "historical_pre_d3": {
+      "source_collected_before_removal": 368,
+      "ran": 366,
+      "removed_to_deferred_source_tests_cases": 2,
+      "removed_functions": 2
+    },
+    "historical_pre_d2": {
+      "source_collected_before_removal": 368,
+      "ran": 298,
+      "removed_to_deferred_source_tests_cases": 70,
+      "removed_functions": 22
+    },
+    "note": "The I-4-4B2 (#79) measurement 368/298/70/22 and the I-4-4D2 (#91) measurement 366 ran / 2 deferred are historical records preserved in the B2 manifest. D3 restored the last 2 functions: 366 + 2 = 368 ran, 0 deferred."
+  },
+  "unmigrated_references": {
+    "later_i_4_4d_slices": [
+      {
+        "reference": "impl-review-loop/SKILL.md (Skill entrypoint; body-only lane section referenced by step-5-feedback)",
+        "owner": "I-4-4D SKILL.md slice"
+      },
+      {
+        "reference": ".claude/agents/pr-reviewer.md (referenced by step-4)",
+        "owner": "I-4-4D Agent definition slice"
+      },
+      {
+        "reference": ".claude/agents/test-runner.md (referenced by step-4 and step-5-feedback)",
+        "owner": "I-4-4D Agent definition slice"
+      },
+      {
+        "reference": ".claude/agents/implementation-worker.md (update_pr_body_hygiene mode, step-5-feedback)",
+        "owner": "I-4-4D Agent definition slice"
+      },
+      {
+        "reference": "implement-issue skill and scripts/update_branch.py (step-5-mergeability-handling)",
+        "owner": "I-4-4D implement-issue / open-pr slice"
+      },
+      {
+        "reference": "open-pr skill, scripts/update_pr.py and validate_pr_body.py (step-5-feedback)",
+        "owner": "I-4-4D implement-issue / open-pr slice"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/SKILL.md (pr-review-judge procedure referenced by step-4)",
+        "owner": "I-4-4D pr-review-judge slice"
+      },
+      {
+        "reference": "steps/context-protocol-and-guardrails.md#human-history-v1 and the other steps",
+        "owner": "I-4-4D remaining steps slice"
+      },
+      {
+        "reference": "impl-review-loop/scripts/wait_ci_checks.py / .sh and get_ci_failed_log.sh (step-4, step-5-feedback)",
+        "owner": "I-4-4D scripts slice"
+      },
+      {
+        "reference": "impl-review-loop/scripts/body_only_repair_plan.py, finalize_no_diff_issue.py and validate_autonomy_policy_result.py (step-5-feedback)",
+        "owner": "I-4-4D scripts slice"
+      },
+      {
+        "reference": ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py as the step-5 publisher (exists for refinement only; impl-review-loop wiring is not connected)",
+        "owner": "I-4-4D Final Gate / LOOP_HANDOFF_RESULT_V1 wiring slice"
+      },
+      {
+        "reference": "scripts/run_worktree_agent_runtime_smoke.py (step-5-feedback)",
+        "owner": "I-4-4D runtime wiring / live acceptance slice"
+      },
+      {
+        "reference": "scripts/agent-ops/verify_pr_reviewer_permission_boundary.py (step-4)",
+        "owner": "I-4-4D Agent definition slice"
+      },
+      {
+        "reference": "scripts/claude-gpt/launch.sh as referenced by step-4",
+        "owner": "I-4-4D Agent definition slice (owner to be decided)"
+      },
+      {
+        "reference": "docs/dev/autonomy-policy.md, docs/dev/secret-policy.md and docs/dev/workflow.md (referenced as policy documents)",
+        "owner": "I-4-4D remaining docs slice or recorded as legacy"
+      },
+      {
+        "reference": "live GitHub / Git operations shown as code examples (gh pr view/comment, git push, gh pr create, update_branch.py, ensure_contract_snapshot.py --post): documentation only, never executed here",
+        "owner": "I-4-4D Final Gate / live acceptance slice"
+      },
+      {
+        "reference": "scripts/agent-ops/pr_head_replay_publish_exec.py (push-capable replay executor; #45/#46 decision pending)",
+        "owner": "I-4-4C (tracker #60); not migrated or run by D3"
+      }
+    ],
+    "legacy_repository_specific": [
+      "legacy repository slug squne121/loop-protocol (step-5-feedback examples and gh issue list --repo)",
+      "legacy Issue/PR numbers (for example #1873, #2916, #2996)",
+      "docs/playtest and tmp/ run-time output path examples"
+    ]
+  },
+  "supersedes": {
+    "docs/dev/i4-4b1-vc-adjudication-manifest.json": "expected_collect / expected_ran / totals / deferred_source_tests / source_parity / deferred_dependencies edited in place (118 -> 122 ran, 5 -> 1 deferred); the previous values are kept there as historical_pre_d3.",
+    "docs/dev/i4-4b2-vc-step4-tests-manifest.json": "expected_collect / expected_ran / totals / deferred_source_tests / source_parity / deferred_dependencies edited in place (366 -> 368 ran, 2 -> 0 deferred); the previous values are kept there as historical_pre_d3 and historical_pre_d2.",
+    "D1/D2 manifests and tests": "D1/D2 recorded Step 4 / Step 5 documents as unmigrated at their time; that classification stays as history. Their absence assertions and the D2 B2-current-count checks were re-pointed at the preserved history; the current state is verified by D3."
+  },
+  "rollback": "Revert the single D3 PR: it removes the three documents, this manifest, the D3 test and CI lane, deletes the 6 restored test functions and returns the B1/B2 manifests, D1/D2 tests and CI lanes to the D2 merge state (B1 118 ran / 5 deferred, B2 366 ran / 2 deferred).",
+  "handoff": {
+    "next": "remaining I-4-4D slices: impl-review-loop/SKILL.md, Agent definitions (pr-reviewer, test-runner, implementation-worker), implement-issue / open-pr / pr-review-judge wiring, remaining steps and scripts, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance; B1 oracle-dependent test stays with I-4-4C"
+  },
+  "evidence_boundary": {
+    "kind": "document wording tests + real adjudicator CLI with fake gh / temporary git repositories only",
+    "live_e2e": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "skill_entrypoint_published": false,
+    "subagent_lifecycle_runtime": false,
+    "github_live_operations": false,
+    "git_ref_mutation": false,
+    "push_capable_replay_executor_enabled": false,
+    "merge_tree_oracle_real_evidence": false,
+    "test_verdict_publish_enabled": false
+  }
+}

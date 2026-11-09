@@ -191,6 +191,7 @@
       "deferred_cases": 2,
       "skipped": 0
     },
+    "current_as_of": "I-4-4D2 (#91) merge state only. Superseded by I-4-4D3 (#93): B2 is now 368 ran / 0 deferred, recorded in docs/dev/i4-4d3-step4-step5-manifest.json b2_counts.current and in the B2 manifest historical_pre_d3. This D2-time record is kept as history.",
     "historical_pre_d2": {
       "source_collected_before_removal": 368,
       "ran": 298,

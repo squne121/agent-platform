@@ -137,27 +137,38 @@ def restored_problems(m: dict[str, Any], root: Path) -> list[str]:
 def b2_sync_problems(
     m: dict[str, Any], b2_manifest: dict[str, Any], b1_manifest: dict[str, Any], root: Path, ci: str
 ) -> list[str]:
-    """B2 must no longer defer the restored tests, keep the two remaining and its history."""
+    """D2-time B2 state, checked against the history B2 preserves, plus today's B2 invariants.
+
+    I-4-4D3 (#93) restored the 2 tests D2 left deferred, so B2 no longer defers anything and its
+    current counts are verified by the D3 closure. D2 keeps verifying what it recorded: the
+    restored tests are not deferred, the 2 remaining tests it recorded are exactly the ones B2
+    preserves in historical_pre_d3, the 366/2/2 counts match that record, and the historical
+    368/298/70/22 measurement is intact.
+    """
     problems: list[str] = []
     deferred = {e["id"]: e for e in b2_manifest["deferred_source_tests"]}
     for e in m["restored_b2_tests"]:
         if f"test_step4_pr_review_only_canonical_path.py::{e['function']}" in deferred:
             problems.append(f"restored test is still deferred in B2: {e['function']}")
     remaining = {e["id"]: e for e in m["remaining_b2_deferred"]}
-    if set(remaining) != set(deferred):
-        problems.append("remaining deferred set differs from the B2 deferred_source_tests")
-    for e in deferred.values():
+    pre_d3 = b2_manifest.get("historical_pre_d3", {})
+    if set(remaining) != set(pre_d3.get("restored_by_d3", [])):
+        problems.append("remaining deferred set differs from the B2 historical_pre_d3 record")
+    if set(deferred) - set(remaining):
+        problems.append("B2 defers a test that D2 did not record as remaining")
+    for e in remaining.values():
         for key in ("reason", "owner_stage", "rerun_condition"):
             if not e.get(key):
                 problems.append(f"remaining deferred entry lost {key}: {e['id']}")
     cur = m["b2_counts"]["current"]
+    recorded = pre_d3.get("totals", {})
     t = b2_manifest["totals"]
     if (
-        t["ran"],
-        t["removed_functions"],
-        t["removed_to_deferred_source_tests_cases"],
-        t["source_collected_before_removal"],
-        t["skipped"],
+        recorded.get("ran"),
+        recorded.get("removed_functions"),
+        recorded.get("removed_to_deferred_source_tests_cases"),
+        recorded.get("source_collected_before_removal"),
+        0,
     ) != (
         cur["ran"],
         cur["deferred_functions"],
@@ -165,7 +176,7 @@ def b2_sync_problems(
         cur["source_collected"],
         cur["skipped"],
     ):
-        problems.append("B2 totals differ from the current counts recorded by D2")
+        problems.append("B2 totals differ from the counts recorded by D2 (historical_pre_d3)")
     if sum(b2_manifest["expected_ran"].values()) != t["ran"]:
         problems.append("B2 expected_ran does not sum to totals.ran")
     if b2_manifest.get("historical_pre_d2", {}).get("totals", {}).get(
@@ -233,8 +244,14 @@ def test_ac1_references_are_classified_with_an_owner_and_really_absent(
     # nothing the document links to is faked: the unmigrated targets genuinely do not exist
     irl = ROOT / ".claude" / "skills" / "impl-review-loop"
     assert not (irl / "SKILL.md").exists()
-    assert not (irl / "steps" / "step-4-pr-review.md").exists()
-    assert not (irl / "steps" / "step-5-feedback-and-termination.md").exists()
+    # I-4-4D3 (#93) migrated these two documents after D2; D2 recorded them as owned by a later
+    # slice, which is the historical classification. Their existence is now pinned by D3.
+    d3 = json.loads(
+        (ROOT / "docs" / "dev" / "i4-4d3-step4-step5-manifest.json").read_text(encoding="utf-8")
+    )
+    for doc in ("step-4-pr-review.md", "step-5-feedback-and-termination.md"):
+        assert (irl / "steps" / doc).is_file()
+        assert f".claude/skills/impl-review-loop/steps/{doc}" in d3["documents"]
     assert not (ROOT / ".claude" / "agents" / "test-runner.md").exists()
     assert not list((irl / "scripts").glob("body_only_repair_plan.py"))
     # the migrated dependencies are real
@@ -300,10 +317,13 @@ def test_ac3_b2_sync_keeps_remaining_deferred_and_history(
 ) -> None:
     ci = CI.read_text(encoding="utf-8")
     assert b2_sync_problems(manifest, b2, b1, ROOT, ci) == []
-    assert sorted(e["id"] for e in b2["deferred_source_tests"]) == [
+    # D2-time remaining deferred tests are preserved by B2 as the I-4-4D3 restore record; B2
+    # itself defers nothing any more.
+    assert sorted(b2["historical_pre_d3"]["restored_by_d3"]) == [
         "test_step4_contract_snapshot_handoff.py::test_step4_doc_names_the_new_handoff_arguments",
         "test_step4_pr_review_only_canonical_path.py::test_step_docs_state_canonical_entrance",
     ]
+    assert b2["deferred_source_tests"] == []
     cur = manifest["b2_counts"]["current"]
     assert (cur["ran"], cur["deferred_functions"], cur["deferred_cases"]) == (366, 2, 2)
 
@@ -326,7 +346,17 @@ def test_ac3_current_counts_are_measured_not_assumed(manifest: dict[str, Any]) -
         check=False,
     )
     assert r.returncode == 0, r.stdout + r.stderr
-    assert f"{manifest['b2_counts']['current']['ran']} tests collected" in r.stdout
+    # The D2-time 366 plus the 2 cases I-4-4D3 restored is what is collected today.
+    d2_ran = manifest["b2_counts"]["current"]["ran"]
+    b2 = json.loads(B2_MANIFEST.read_text(encoding="utf-8"))
+    d3 = json.loads(
+        (ROOT / "docs" / "dev" / "i4-4d3-step4-step5-manifest.json").read_text(encoding="utf-8")
+    )
+    restored_cases = sum(e["cases"] for e in d3["restored_b2_tests"])
+    assert restored_cases == len(b2["historical_pre_d3"]["restored_by_d3"])
+    assert d2_ran == b2["historical_pre_d3"]["totals"]["ran"] == 366
+    assert f"{d2_ran + restored_cases} tests collected" in r.stdout
+    assert d2_ran + restored_cases == b2["totals"]["ran"]
 
 
 def test_ac3_prior_slices_still_hold_after_the_step2_document_exists() -> None:
@@ -397,7 +427,13 @@ def test_ac4_unrestored_test_is_detected(
     manifest: dict[str, Any], b2: dict[str, Any], b1: dict[str, Any]
 ) -> None:
     ci = CI.read_text(encoding="utf-8")
-    template = next(e for e in b2["deferred_source_tests"] if "canonical_entrance" in e["id"])
+    template = {
+        "id": "x",
+        "cases": 1,
+        "reason": "synthetic",
+        "owner_stage": "I-4-4D (synthetic)",
+        "rerun_condition": "synthetic",
+    }
     for restored in manifest["restored_b2_tests"]:
         broken = copy.deepcopy(b2)
         entry = copy.deepcopy(template)
@@ -413,12 +449,28 @@ def test_ac4_stale_deferred_entry_is_detected(
 ) -> None:
     ci = CI.read_text(encoding="utf-8")
     stale = copy.deepcopy(b2)
-    stale["deferred_source_tests"][0]["id"] = "test_step4_contract_snapshot_handoff.py::gone"
+    stale["historical_pre_d3"]["restored_by_d3"][0] = (
+        "test_step4_contract_snapshot_handoff.py::gone"
+    )
     problems = b2_sync_problems(manifest, stale, b1, ROOT, ci)
     assert any("remaining deferred set differs" in p for p in problems)
-    reasonless = copy.deepcopy(b2)
-    reasonless["deferred_source_tests"][0]["reason"] = ""
-    assert any("lost reason" in p for p in b2_sync_problems(manifest, reasonless, b1, ROOT, ci))
+    reasonless = copy.deepcopy(manifest)
+    reasonless["remaining_b2_deferred"][0]["reason"] = ""
+    assert any("lost reason" in p for p in b2_sync_problems(reasonless, b2, b1, ROOT, ci))
+    unknown = copy.deepcopy(b2)
+    unknown["deferred_source_tests"] = [
+        {
+            "id": "test_step4_contract_snapshot_handoff.py::newly_deferred",
+            "cases": 1,
+            "reason": "synthetic",
+            "owner_stage": "I-4-4D (synthetic)",
+            "rerun_condition": "synthetic",
+        }
+    ]
+    assert any(
+        "B2 defers a test that D2 did not record" in p
+        for p in b2_sync_problems(manifest, unknown, b1, ROOT, ci)
+    )
 
 
 def test_ac4_dropped_remaining_deferred_is_detected(
@@ -427,9 +479,15 @@ def test_ac4_dropped_remaining_deferred_is_detected(
     ci = CI.read_text(encoding="utf-8")
     for index in (0, 1):
         broken = copy.deepcopy(b2)
-        del broken["deferred_source_tests"][index]
+        del broken["historical_pre_d3"]["restored_by_d3"][index]
         problems = b2_sync_problems(manifest, broken, b1, ROOT, ci)
         assert any("remaining deferred set differs" in p for p in problems)
+    erased = copy.deepcopy(b2)
+    del erased["historical_pre_d3"]
+    assert any(
+        "remaining deferred set differs" in p
+        for p in b2_sync_problems(manifest, erased, b1, ROOT, ci)
+    )
 
 
 def test_ac4_rewritten_history_or_counts_are_detected(
@@ -448,7 +506,7 @@ def test_ac4_rewritten_history_or_counts_are_detected(
         "historical B2 measurement" in p for p in b2_sync_problems(manifest, erased, b1, ROOT, ci)
     )
     wrong_totals = copy.deepcopy(b2)
-    wrong_totals["totals"]["ran"] = 298
+    wrong_totals["historical_pre_d3"]["totals"]["ran"] = 298
     assert any(
         "B2 totals differ" in p for p in b2_sync_problems(manifest, wrong_totals, b1, ROOT, ci)
     )
@@ -475,14 +533,19 @@ def test_ac4_ci_count_tamper_and_lane_removal_are_detected(
     assert d2_tampered != text
     assert any("CI step missing" in p for p in ci_lane_problems(d2_tampered, manifest))
     # the B2 lane must pin the B2 manifest's current ran count, inside the B2 job only
-    stale_ci = text.replace("0 deferred with reasons, 366 ran", "0 deferred with reasons, 298 ran")
+    b2_ran = b2["totals"]["ran"]
+    stale_ci = text.replace(
+        f"0 deferred with reasons, {b2_ran} ran", "0 deferred with reasons, 298 ran"
+    )
     assert stale_ci != text
     assert any(
         "does not pin the current ran count" in p
         for p in b2_sync_problems(manifest, b2, b1, ROOT, stale_ci)
     )
-    elsewhere = text.replace("0 deferred with reasons, 366 ran", "0 deferred with reasons, 1 ran")
-    elsewhere += "\n# 0 deferred with reasons, 366 ran, 0 skipped\n"
+    elsewhere = text.replace(
+        f"0 deferred with reasons, {b2_ran} ran", "0 deferred with reasons, 1 ran"
+    )
+    elsewhere += f"\n# 0 deferred with reasons, {b2_ran} ran, 0 skipped\n"
     assert any(
         "does not pin the current ran count" in p
         for p in b2_sync_problems(manifest, b2, b1, ROOT, elsewhere)

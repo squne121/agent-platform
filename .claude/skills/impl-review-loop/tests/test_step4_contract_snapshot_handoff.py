@@ -1371,6 +1371,14 @@ def test_provisional_scenario_keeps_every_other_binding(provisional_world: World
 # --- CLI wiring facts ------------------------------------------------------------------------
 
 
+def test_step4_doc_names_the_new_handoff_arguments() -> None:
+    doc = (SKILL_DIR / "steps" / "step-4-pr-review.md").read_text(encoding="utf-8")
+    for token in ("--producer-exit-code", "existing_go", "dry_run_would_post", "human_judgment", "--repo"):
+        assert token in doc, token
+    # the pre-normalizer anti-pattern must be documented as forbidden, not offered as a recipe
+    assert "前置 normalizer" in doc
+
+
 def test_consumer_declares_the_new_optional_arguments() -> None:
     completed = subprocess.run([sys.executable, str(CONSUMER), "--help"], capture_output=True, text=True, check=False)
     assert completed.returncode == 0
