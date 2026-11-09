@@ -66,7 +66,7 @@
       "source_blob_sha1": "4d13baf0ac1754cda4265537d3a70538329018f8",
       "source_sha256": "906c91853e206c74aa05b00e4dd23d1b63c5fe4174d72c774d11cc8f98370795",
       "source_lines": 483,
-      "moved_sha256": "19b82dc00df7694843d5ddb18953226b615a2b8b0919c812255267be7e8b6502",
+      "moved_sha256": "ecf3372c3a70f7a298c5cf2d789b2a1790b861ede5d80f4a86a684451e09d692",
       "moved_lines": 483,
       "verbatim": false,
       "intentional_diff": [
@@ -88,6 +88,11 @@
         {
           "moved": "uv run --locked ruff check .\nuv run --locked ruff format --check .\nbash scripts/check_public_hygiene.sh\n",
           "source": "pnpm typecheck\npnpm lint\npnpm test [<test-file>]\npnpm build\npnpm <other-script-defined-in-package.json>\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response・HOME・XDG 値を一切含まない\n",
+          "source": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response/HOME/XDG 値を一切含まない\n",
           "what": "adapt legacy repository-specific content to the agent-platform contract"
         },
         {

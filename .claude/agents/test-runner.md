@@ -164,7 +164,7 @@ AGY_PREFLIGHT_CONFIRM_RUNTIME_PROBE_COST=1 AGY_PREFLIGHT_RUNTIME_ACCOUNT_SESSION
 - 環境変数は `AGY_PREFLIGHT_CONFIRM_RUNTIME_PROBE_COST=1` と `AGY_PREFLIGHT_RUNTIME_ACCOUNT_SESSION_MODE=1` の 2 つのみを付与する
 - 実行経路は canonical AGY route（`run_gemini_headless.run_delegation()`）のみであり、他の任意 network access には拡張しない
 - **永続化する** runtime verification の証跡（sanitized handoff-selection summary artifact を含む）は、スクリプト自身が生成する worktree-local `artifacts/` 配下に限定される（test-runner 自身はファイル書き込みを行わない）
-- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response/HOME/XDG 値を一切含まない
+- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response・HOME・XDG 値を一切含まない
 - 本例外は Issue #2656／Issue #2670 が固定するこの exact 1 コマンドパターンにのみ適用され、他の Issue・他のスクリプト・他の引数の組み合わせへ一般化しない
 
 ### Issue #2670 限定の狭域例外（AC7 guard script の read-only 確認）
