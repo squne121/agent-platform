@@ -552,15 +552,37 @@ jobs:
           version: "0.11.29"
       - run: uv sync --locked
       - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
-      - name: manifest-pinned collect/ran counts, 0 skipped / xfailed; only the 1 manifest-listed test is deselected (source tests of the read-only CI helpers and the test-runner report contract; not a Skill dispatch, Agent run, Final Gate or live E2E result)
+      - name: manifest-pinned collect/ran counts, 0 skipped / xfailed / deselected (source tests of the read-only CI helpers and the test-runner report contract; the deferral was released by I-4-4D5; not a Skill dispatch, Agent run, Final Gate or live E2E result)
         shell: bash
         run: |
           set -eo pipefail
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d4-skill-agents-readonly-manifest.json | tee runner.out
-          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed)" runner.out; then exit 1; fi
-          grep -Eq "(^|[^0-9])1 deselected" runner.out
-          grep -Eq "(^|[^0-9])1 deferred with reasons, 107 ran, 0 skipped" runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 108 ran, 0 skipped" runner.out
       - name: D4 closure, restored C2 SKILL.md test, C2/D1/D2/D3 sync and negative controls (source parity, frontmatter, deferred ownership, history)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
+
+  i4-4d5-pr-review-consumers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: manifest-pinned collect/ran counts, 0 skipped / xfailed / deselected (the D4 source tests incl. the restored 3-consumer test; document parity and real pytest only; not a Skill preload, Agent dispatch, verdict publish, Final Gate or live E2E result)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d5-pr-review-consumers-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 108 ran, 0 skipped" runner.out
+      - name: D5 closure, restored 3-consumer test, D3/D4 sync and negative controls (source parity, disabled Skill, lite Agent boundary, unmigrated dependencies, history)
         shell: bash
         run: |
           set -eo pipefail

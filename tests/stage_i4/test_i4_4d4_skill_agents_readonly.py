@@ -252,8 +252,6 @@ def reference_problems(m: dict[str, Any], root: Path) -> list[str]:
     for needed in (
         "implement-issue",
         "open-pr",
-        "pr-review-judge",
-        "pr-reviewer-lite",
         "pr_reviewer_guard.py",
         "body_only_repair_plan.py",
         "Final Gate",
@@ -263,8 +261,6 @@ def reference_problems(m: dict[str, Any], root: Path) -> list[str]:
     for absent in (
         ".claude/skills/implement-issue",
         ".claude/skills/open-pr",
-        ".claude/skills/pr-review-judge/SKILL.md",
-        ".claude/agents/pr-reviewer-lite.md",
         ".claude/hooks/pr_reviewer_guard.py",
         f"{SCRIPTS}/body_only_repair_plan.py",
     ):
@@ -276,29 +272,30 @@ def reference_problems(m: dict[str, Any], root: Path) -> list[str]:
 
 
 def deferred_problems(m: dict[str, Any], root: Path) -> list[str]:
-    """Exactly the approved single deferral; the source tests themselves stay unweakened."""
+    """After I-4-4D5 nothing is deferred; the restored source test stays unweakened (#97)."""
     problems: list[str] = []
     deferred = m["deferred_tests"]
-    if [e.get("id") for e in deferred] != [DEFERRED_ID]:
-        return ["deferred_tests must be exactly the one human-approved test id"]
-    entry = deferred[0]
-    for key in ("reason", "owner_stage", "rerun_condition", "function", "file"):
-        if not entry.get(key):
-            problems.append(f"deferred entry lost {key}")
-    if entry.get("kind") != "unmigrated_consumer_documents":
-        problems.append("deferred entry kind changed")
-    if sorted(entry.get("requires_missing_files", [])) != [
-        ".claude/agents/pr-reviewer-lite.md",
-        ".claude/skills/pr-review-judge/SKILL.md",
-    ]:
-        problems.append("deferred entry no longer names the two unmigrated consumers")
-    for rel in entry.get("requires_missing_files", []):
-        if (root / rel).exists():
-            problems.append(f"stale deferred entry: {rel} now exists, restore {entry['id']}")
-    src_file = root / entry["file"]
-    body = function_source(src_file, entry["function"]) if src_file.is_file() else None
+    if deferred:
+        ids = [e.get("id") for e in deferred]
+        return [f"deferred_tests must be empty once the 3 consumers exist (restored by D5): {ids}"]
+    restored = m.get("restored_by_d5", {})
+    if restored.get("id") != DEFERRED_ID:
+        problems.append("restored_by_d5 no longer tracks the original function id")
+    hist_totals = {
+        k: m.get("historical_pre_d5", {}).get("totals", {}).get(k)
+        for k in ("source_collected", "deferred", "ran", "skipped")
+    }
+    if hist_totals != {
+        "source_collected": 108,
+        "deferred": 1,
+        "ran": 107,
+        "skipped": 0,
+    }:
+        problems.append("historical_pre_d5 (108 / 1 deferred / 107 ran) was lost or rewritten")
+    src_file = root / f"{TESTS}/test_wait_ci_checks.py"
+    body = function_source(src_file, DEFERRED_ID.split("::")[1]) if src_file.is_file() else None
     if body is None:
-        problems.append("deferred function not found in the source test file")
+        problems.append("restored function not found in the source test file")
     else:
         for needle in (
             "pr-review-judge",
@@ -308,7 +305,7 @@ def deferred_problems(m: dict[str, Any], root: Path) -> list[str]:
             "wait_ci_checks",
         ):
             if needle not in body:
-                problems.append(f"deferred source test lost its assertion: {needle}")
+                problems.append(f"restored source test lost its assertion: {needle}")
     for rel in m["test_files"]:
         text = (root / rel).read_text(encoding="utf-8") if (root / rel).is_file() else ""
         if SKIP_RE.search(text):
@@ -321,11 +318,11 @@ def deferred_problems(m: dict[str, Any], root: Path) -> list[str]:
     if t["ran"] != sum(m["expected_ran"].values()):
         problems.append("totals.ran != sum(expected_ran)")
     if (
-        (t["source_collected"], t["deferred"], t["ran"]) != (108, 1, 107)
+        (t["source_collected"], t["deferred"], t["ran"]) != (108, 0, 108)
         or t["skipped"]
         or t["xfailed"]
     ):
-        problems.append("D4 source totals are not 108 collected / 1 deferred / 107 ran / 0 skipped")
+        problems.append("D4 source totals are not 108 collected / 0 deferred / 108 ran / 0 skipped")
     return problems
 
 
@@ -682,7 +679,7 @@ def test_ac1_evidence_boundary_is_not_overclaimed(manifest: dict[str, Any]) -> N
 # --- AC2: real source tests, fake gh fail-closed negatives, report contract ---------------
 
 
-def test_ac2_source_tests_run_107_pass_and_the_single_deferral_is_not_counted(
+def test_ac2_source_tests_run_108_pass_and_nothing_is_deferred(
     manifest: dict[str, Any],
 ) -> None:
     assert deferred_problems(manifest, ROOT) == []
@@ -701,17 +698,17 @@ def test_ac2_source_tests_run_107_pass_and_the_single_deferral_is_not_counted(
     )
     out = r.stdout + r.stderr
     assert r.returncode == 0, out
-    assert "108 collected, 1 deferred with reasons, 107 ran, 0 skipped" in out, out
-    assert "107 passed, 1 deselected" in out, out
+    assert "108 collected, 0 deferred with reasons, 108 ran, 0 skipped" in out, out
+    assert "108 passed" in out and "deselected" not in out, out
     assert not any(w in out for w in ("xfailed", "xpassed", "skipped,")), out
 
 
-def test_ac2_the_deferred_test_is_not_green_while_its_consumers_are_missing() -> None:
-    """Running it for real fails on the unmigrated consumer: the deferral hides nothing."""
+def test_ac2_the_restored_consumer_test_passes_for_real() -> None:
+    """The original, unchanged 3-consumer assertion runs under real pytest and passes (#97)."""
     r = _pytest(DEFERRED_ID)
     out = r.stdout + r.stderr
-    assert r.returncode == 1, out
-    assert "pr-review-judge/SKILL.md not found" in out, out
+    assert r.returncode == 0, out
+    assert "1 passed" in out, out
 
 
 @pytest.mark.parametrize("via", ["sh", "py"])
@@ -1029,38 +1026,42 @@ def test_ac4_a_weakened_source_test_assertion_is_detected(
 
 def test_ac4_false_deferred_and_count_tampering_are_detected(manifest: dict[str, Any]) -> None:
     extra = copy.deepcopy(manifest)
-    other = copy.deepcopy(extra["deferred_tests"][0])
-    other["id"] = f"{TESTS}/test_get_ci_failed_log.py::test_anything"
-    extra["deferred_tests"].append(other)
-    assert any("exactly the one human-approved" in p for p in deferred_problems(extra, ROOT))
-    dropped = copy.deepcopy(manifest)
-    dropped["deferred_tests"] = []
-    assert deferred_problems(dropped, ROOT)
-    swapped = copy.deepcopy(manifest)
-    swapped["deferred_tests"][0]["id"] = (
-        f"{TESTS}/test_wait_ci_checks.py::test_passed_required_checks"
+    extra["deferred_tests"].append(
+        {"id": DEFERRED_ID, "reason": "x", "owner_stage": "x", "rerun_condition": "x"}
     )
-    assert deferred_problems(swapped, ROOT)
-    for key in ("reason", "owner_stage", "rerun_condition"):
-        broken = copy.deepcopy(manifest)
-        broken["deferred_tests"][0][key] = ""
-        assert any(f"lost {key}" in p for p in deferred_problems(broken, ROOT))
+    assert any("must be empty" in p for p in deferred_problems(extra, ROOT))
     counts = copy.deepcopy(manifest)
-    counts["totals"]["ran"] = 108
+    counts["totals"]["ran"] = 107
+    assert deferred_problems(counts, ROOT)
+    counts = copy.deepcopy(manifest)
+    counts["totals"]["deferred"] = 1
     assert deferred_problems(counts, ROOT)
     counts = copy.deepcopy(manifest)
     counts["expected_ran"][f"{TESTS}/test_get_ci_failed_log.py"] += 1
     assert deferred_problems(counts, ROOT)
+    lost = copy.deepcopy(manifest)
+    del lost["historical_pre_d5"]
+    assert any("historical_pre_d5" in p for p in deferred_problems(lost, ROOT))
+    untracked = copy.deepcopy(manifest)
+    untracked["restored_by_d5"]["id"] = "other"
+    assert any("restored_by_d5" in p for p in deferred_problems(untracked, ROOT))
 
 
-def test_ac4_a_deferral_whose_consumers_now_exist_is_stale(
-    manifest: dict[str, Any], tmp_path: Path
+def test_ac4_a_residual_deferral_of_an_existing_consumer_is_detected(
+    manifest: dict[str, Any],
 ) -> None:
-    _copy_tree(manifest, tmp_path)
-    for rel in manifest["deferred_tests"][0]["requires_missing_files"]:
-        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
-        (tmp_path / rel).write_text("wait_ci_checks\n", encoding="utf-8")
-    assert any("stale deferred entry" in p for p in deferred_problems(manifest, tmp_path))
+    """An existing consumer file may not be hidden behind a deferral again."""
+    residual = copy.deepcopy(manifest)
+    residual["deferred_tests"] = [
+        {
+            "id": DEFERRED_ID,
+            "requires_missing_files": [".claude/skills/pr-review-judge/SKILL.md"],
+            "reason": "x",
+            "owner_stage": "x",
+            "rerun_condition": "x",
+        }
+    ]
+    assert any("must be empty" in p for p in deferred_problems(residual, ROOT))
 
 
 def test_ac4_c2_history_and_restoration_tampering_are_detected(
@@ -1099,7 +1100,7 @@ def test_ac4_ci_lane_tampering_is_detected(manifest: dict[str, Any]) -> None:
     assert any(
         "ran count" in p
         for p in lane_problems(
-            text.replace("1 deferred with reasons, 107 ran", "1 deferred with reasons, 108 ran"),
+            text.replace("0 deferred with reasons, 108 ran", "0 deferred with reasons, 107 ran"),
             manifest,
         )
     )
@@ -1108,12 +1109,6 @@ def test_ac4_ci_lane_tampering_is_detected(manifest: dict[str, Any]) -> None:
         for p in lane_problems(
             text.replace("1 deferred with reasons, 118 ran", "1 deferred with reasons, 117 ran"),
             manifest,
-        )
-    )
-    assert any(
-        "deselect count" in p
-        for p in lane_problems(
-            text.replace("(^|[^0-9])1 deselected", "(^|[^0-9])2 deselected"), manifest
         )
     )
     assert any(
@@ -1180,7 +1175,7 @@ def test_ac4_legacy_contract_and_unmigrated_record_tampering_are_detected(
         "later_i_4_4d_slices"
     ][:2]
     assert any("not recorded" in p for p in reference_problems(forgotten, ROOT))
-    faked = tmp_path / ".claude/skills/pr-review-judge/SKILL.md"
+    faked = tmp_path / ".claude/skills/open-pr/SKILL.md"
     faked.parent.mkdir(parents=True, exist_ok=True)
     faked.write_text("placeholder\n", encoding="utf-8")
     assert any(

@@ -19,7 +19,8 @@
     "legacy_content": "Legacy pnpm / game-specific examples in test-runner.md and implementation-worker.md were replaced by the agent-platform contract (uv / pytest / ruff / scripts/check_public_hygiene.sh) and the machine-valid example and its test VC were re-hashed accordingly. The Issue #2656 / #2670 / #2892 specific exception sections and the legacy repository URL citation are kept as historical source text; they are inert here (their targets do not exist) and a migration-status note says so. The single legacy slug assertion in test_test_runner_report_contract.py was shortened so check_no_functional_slug.py keeps its detection power.",
     "limited_deferral": "Human decision 2026-11-09 (#95): test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function checks 3 consumer documents (pr-review-judge/SKILL.md, pr-reviewer-lite.md, steps/step-4-pr-review.md). The first two are not migrated and are outside the D4 Allowed Paths. The source test body and its 3-consumer assertion are kept byte-identical and the single function is listed in deferred_tests (explicit --deselect by the runner; not skip, not xfail). The deferral is not counted as PASS: 108 collected / 107 ran / 1 deferred.",
     "agent_boundary": "pr-reviewer.md keeps the source hooks (.claude/hooks/pr_reviewer_guard.py) and `skills: [pr-review-judge]` unchanged, and keeps disallowedTools Edit/Write/MultiEdit. Neither the hook file nor the pr-review-judge Skill is migrated, so the hook layer gives no effective protection yet; the read-only boundary currently rests on the tools / disallowedTools declaration only. D4 never dispatches this Agent. Independent review uses another read-only SubAgent.",
-    "production_claim": "Migrating these files does not make /impl-review-loop, implementation, PR publish, the Final Gate or LOOP_HANDOFF_RESULT_V1 wiring runnable."
+    "production_claim": "Migrating these files does not make /impl-review-loop, implementation, PR publish, the Final Gate or LOOP_HANDOFF_RESULT_V1 wiring runnable.",
+    "note_i_4_4d5": "I-4-4D5 (#97) migrated pr-review-judge/SKILL.md (temporary disable-model-invocation: true) and pr-reviewer-lite.md and removed the single deferral: 108 collected / 108 ran / 0 deferred. The pre-D5 values 108/107/1 are kept in historical_pre_d5. The pr_reviewer_guard hook is still unmigrated, so evidence_boundary.hook_effective_protection stays false."
   },
   "documents": {
     ".claude/skills/impl-review-loop/SKILL.md": {
@@ -331,37 +332,21 @@
     ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
   },
   "expected_ran": {
-    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 69,
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 70,
     ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
     ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
   },
-  "deferred_tests": [
-    {
-      "id": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function",
-      "file": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
-      "function": "test_canonical_evaluator_consumers_use_same_function",
-      "parametrized_cases": 1,
-      "kind": "unmigrated_consumer_documents",
-      "requires_missing_files": [
-        ".claude/skills/pr-review-judge/SKILL.md",
-        ".claude/agents/pr-reviewer-lite.md"
-      ],
-      "reason": "The source test asserts that pr-review-judge/SKILL.md, .claude/agents/pr-reviewer-lite.md and steps/step-4-pr-review.md all exist and mention wait_ci_checks. The first two are not migrated and are outside the D4 Allowed Paths; the test body is deliberately kept unchanged and is not weakened, skipped or xfailed (human decision 2026-11-09, #95).",
-      "owner_stage": "I-4-4D5 or later (the slice that migrates pr-review-judge/SKILL.md and pr-reviewer-lite.md)",
-      "rerun_condition": "when both .claude/skills/pr-review-judge/SKILL.md and .claude/agents/pr-reviewer-lite.md are migrated, remove this entry and re-run the unchanged 3-consumer assertion; the closure test fails while an existing consumer file is still listed here",
-      "deferred_by": "manifest deferred_tests (explicit --deselect by scripts/ci/run_stage1b1_tests.py); not skip, not xfail"
-    }
-  ],
+  "deferred_tests": [],
   "totals": {
     "source_collected": 108,
-    "deferred": 1,
-    "ran": 107,
+    "deferred": 0,
+    "ran": 108,
     "skipped": 0,
     "xfailed": 0
   },
   "lane_totals": {
-    "note": "The manifest-pinned CI lane runs the 107 source tests through the runner, then the stage_i4 closure tests. closure_tests_ran is measured (pytest --co) for the D4 closure file only.",
-    "source_ran": 107,
+    "note": "The manifest-pinned CI lane runs the 108 source tests through the runner (0 deferred), then the stage_i4 closure tests. closure_tests_ran is measured (pytest --co) for the D4 closure file only.",
+    "source_ran": 108,
     "closure_tests_ran": 47
   },
   "c2_restoration": {
@@ -399,14 +384,6 @@
         "owner": "I-4-4D implement-issue / open-pr slice (D5 or later)"
       },
       {
-        "reference": ".claude/skills/pr-review-judge/SKILL.md and pr-review-judge/references/evidence-policy.md (preloaded by pr-reviewer.md; consumer #1 of the deferred test)",
-        "owner": "I-4-4D pr-review-judge slice (D5 or later)"
-      },
-      {
-        "reference": ".claude/agents/pr-reviewer-lite.md (consumer #2 of the deferred test)",
-        "owner": "I-4-4D pr-review-judge slice (D5 or later)"
-      },
-      {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared in pr-reviewer.md frontmatter)",
         "owner": "I-4-4D Agent permission boundary slice (D5 or later)"
       },
@@ -428,6 +405,18 @@
       "gemini-cli-headless-delegation Skill and scripts/verify_acp_roundtrip.sh referenced by the Issue #2656 / #2670 specific exception sections of test-runner.md (inert here)",
       "legacy repository Issue / comment numbers (#2656, #2670, #2892) kept as historical source text",
       "`<!-- loop-protocol/human-history:v1:sha256:... -->` marker text in context-protocol-and-guardrails.md is a contract string kept verbatim"
+    ],
+    "migrated_by_d5": [
+      {
+        "reference": ".claude/skills/pr-review-judge/SKILL.md and pr-review-judge/references/evidence-policy.md (preloaded by pr-reviewer.md; consumer #1 of the deferred test)",
+        "owner": "I-4-4D pr-review-judge slice (D5 or later)",
+        "note": "migrated by I-4-4D5 (#97); see docs/dev/i4-4d5-pr-review-consumers-manifest.json"
+      },
+      {
+        "reference": ".claude/agents/pr-reviewer-lite.md (consumer #2 of the deferred test)",
+        "owner": "I-4-4D pr-review-judge slice (D5 or later)",
+        "note": "migrated by I-4-4D5 (#97); see docs/dev/i4-4d5-pr-review-consumers-manifest.json"
+      }
     ]
   },
   "supersedes": {
@@ -438,7 +427,8 @@
   },
   "rollback": "Revert the single D4 PR: it removes the Skill, 3 Agents, 2 runbooks, 4 helper files, 3 source tests, the fixture, this manifest, the D4 closure test and CI lane, and restores the D1-D3 / C2 manifests, tests and CI pins (C2 117 ran / 2 deferred). No previously migrated file other than those edited manifests/tests/CI is modified.",
   "handoff": {
-    "next": "D5 and later: implement-issue, open-pr, pr-review-judge (+ pr-reviewer-lite, hook file), body-only / mutation-adjacent helpers, the references directory, real SubAgent lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Re-run the deferred 3-consumer test then; then consider releasing the temporary disable-model-invocation."
+    "next": "D5 and later: implement-issue, open-pr, pr-review-judge (+ pr-reviewer-lite, hook file), body-only / mutation-adjacent helpers, the references directory, real SubAgent lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Re-run the deferred 3-consumer test then; then consider releasing the temporary disable-model-invocation.",
+    "note_i_4_4d5": "I-4-4D5 (#97) restored the deferred 3-consumer test; the remaining items of this handoff (implement-issue, open-pr, hook, runtime wiring) stay with later slices."
   },
   "evidence_boundary": {
     "kind": "static parity + real pytest on the migrated source tests + fake gh on PATH inside tmp_path",
@@ -450,5 +440,54 @@
     "github_live_operations": false,
     "git_ref_mutation": false,
     "hook_effective_protection": false
+  },
+  "historical_pre_d5": {
+    "note": "Measured at I-4-4D4 (#95), before I-4-4D5 (#97) migrated the two missing consumers. Kept as history; never the current value.",
+    "totals": {
+      "source_collected": 108,
+      "deferred": 1,
+      "ran": 107,
+      "skipped": 0,
+      "xfailed": 0
+    },
+    "expected_ran": {
+      ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 69,
+      ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
+      ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
+    },
+    "lane_totals": {
+      "source_ran": 107,
+      "closure_tests_ran": 47
+    },
+    "deferred_tests": [
+      {
+        "id": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function",
+        "file": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+        "function": "test_canonical_evaluator_consumers_use_same_function",
+        "parametrized_cases": 1,
+        "kind": "unmigrated_consumer_documents",
+        "requires_missing_files": [
+          ".claude/skills/pr-review-judge/SKILL.md",
+          ".claude/agents/pr-reviewer-lite.md"
+        ],
+        "reason": "The source test asserts that pr-review-judge/SKILL.md, .claude/agents/pr-reviewer-lite.md and steps/step-4-pr-review.md all exist and mention wait_ci_checks. The first two are not migrated and are outside the D4 Allowed Paths; the test body is deliberately kept unchanged and is not weakened, skipped or xfailed (human decision 2026-11-09, #95).",
+        "owner_stage": "I-4-4D5 or later (the slice that migrates pr-review-judge/SKILL.md and pr-reviewer-lite.md)",
+        "rerun_condition": "when both .claude/skills/pr-review-judge/SKILL.md and .claude/agents/pr-reviewer-lite.md are migrated, remove this entry and re-run the unchanged 3-consumer assertion; the closure test fails while an existing consumer file is still listed here",
+        "deferred_by": "manifest deferred_tests (explicit --deselect by scripts/ci/run_stage1b1_tests.py); not skip, not xfail"
+      }
+    ]
+  },
+  "restored_by_d5": {
+    "id": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function",
+    "file": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+    "function": "test_canonical_evaluator_consumers_use_same_function",
+    "parametrized_cases": 1,
+    "consumers": [
+      ".claude/skills/pr-review-judge/SKILL.md",
+      ".claude/agents/pr-reviewer-lite.md",
+      ".claude/skills/impl-review-loop/steps/step-4-pr-review.md"
+    ],
+    "note": "The source test file is byte-identical to the pinned source (see verbatim_files / test_files). The 3-consumer assertion runs unchanged and passes under real pytest; the deferral entry is removed (human decision 2026-11-09, #95; restored by #97).",
+    "manifest": "docs/dev/i4-4d5-pr-review-consumers-manifest.json"
   }
 }
