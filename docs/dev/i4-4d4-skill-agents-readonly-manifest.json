@@ -92,7 +92,7 @@
         },
         {
           "moved": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response・HOME・XDG 値を一切含まない\n",
-          "source": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response/HOME/XDG 値を一切含まない\n",
+          "source": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response\u002fHOME/XDG 値を一切含まない\n",
           "what": "adapt legacy repository-specific content to the agent-platform contract"
         },
         {
