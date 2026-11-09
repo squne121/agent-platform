@@ -175,6 +175,8 @@ def d3_sync_problems(
         cur2["source_collected"],
     ):
         problems.append("B2 totals differ from the current counts recorded by D3")
+    if t2["skipped"] != cur2["skipped"] or t2["skipped"] != 0:
+        problems.append("B2 totals.skipped differs from the D3 record or is not 0")
     if sum(b2_manifest["expected_ran"].values()) != t2["ran"]:
         problems.append("B2 expected_ran does not sum to totals.ran")
     pre_d3 = b2_manifest.get("historical_pre_d3", {}).get("totals", {})
@@ -211,18 +213,21 @@ def d3_sync_problems(
 
 
 def stale_absence_problems(root: Path) -> list[str]:
-    """D1/D2 must no longer assert the absence of documents D3 migrated."""
+    """D1/D2 must no longer assert the absence of documents D3 migrated.
+
+    Any `assert not ...` line naming one of the migrated documents is flagged, whether the path
+    is written as `"steps" / "step-4-pr-review.md"` or as one string `"steps/step-4-pr-review.md"`.
+    """
     problems: list[str] = []
+    stale = re.compile(
+        r"assert not .*step-(4-pr-review|5-feedback-and-termination|5-mergeability-handling)\.md"
+    )
     for rel in (
         "tests/stage_i4/test_i4_4d1_preparation_step1.py",
         "tests/stage_i4/test_i4_4d2_step2_verification.py",
     ):
         for number, line in enumerate((root / rel).read_text(encoding="utf-8").splitlines(), 1):
-            if re.search(
-                r"assert not .*steps\"\s*/\s*\"step-(4-pr-review|5-feedback-and-termination|"
-                r"5-mergeability-handling)\.md\"",
-                line,
-            ):
+            if stale.search(line):
                 problems.append(f"stale absence assertion: {rel}:{number}")
     return problems
 
@@ -539,6 +544,9 @@ def test_ac4_rewritten_history_or_counts_are_detected(
     wrong_b2 = copy.deepcopy(b2)
     wrong_b2["totals"]["ran"] = 366
     assert any("B2 totals differ" in p for p in d3_sync_problems(manifest, b1, wrong_b2, ci))
+    skipped_b2 = copy.deepcopy(b2)
+    skipped_b2["totals"]["skipped"] = 1
+    assert any("totals.skipped" in p for p in d3_sync_problems(manifest, b1, skipped_b2, ci))
     wrong_expected = copy.deepcopy(b2)
     first = next(iter(wrong_expected["expected_ran"]))
     wrong_expected["expected_ran"][first] -= 1
@@ -588,6 +596,12 @@ def test_ac4_stale_absence_assertions_in_d1_d2_are_gone_and_detected(tmp_path: P
         stale = '    assert not (irl / "steps" / "step-4-pr-review.md").exists()\n'
         dest.write_text((ROOT / rel).read_text(encoding="utf-8") + stale, encoding="utf-8")
     assert len(stale_absence_problems(tmp_path)) == 2
+    single = tmp_path / "tests/stage_i4/test_i4_4d2_step2_verification.py"
+    single.write_text(
+        'assert not (ROOT / "' + IRL + '/steps/step-5-mergeability-handling.md").exists()\n',
+        encoding="utf-8",
+    )
+    assert any("d2_step2" in p for p in stale_absence_problems(tmp_path))
     # the SKILL.md / Agent absence checks D1/D2 keep are not flagged
     keep = tmp_path / "tests/stage_i4/test_i4_4d1_preparation_step1.py"
     keep.write_text('    assert not (irl / "SKILL.md").exists()\n', encoding="utf-8")

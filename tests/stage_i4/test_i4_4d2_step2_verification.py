@@ -349,7 +349,11 @@ def test_ac3_current_counts_are_measured_not_assumed(manifest: dict[str, Any]) -
     # The D2-time 366 plus the 2 cases I-4-4D3 restored is what is collected today.
     d2_ran = manifest["b2_counts"]["current"]["ran"]
     b2 = json.loads(B2_MANIFEST.read_text(encoding="utf-8"))
-    restored_cases = len(b2["historical_pre_d3"]["restored_by_d3"])
+    d3 = json.loads(
+        (ROOT / "docs" / "dev" / "i4-4d3-step4-step5-manifest.json").read_text(encoding="utf-8")
+    )
+    restored_cases = sum(e["cases"] for e in d3["restored_b2_tests"])
+    assert restored_cases == len(b2["historical_pre_d3"]["restored_by_d3"])
     assert d2_ran == b2["historical_pre_d3"]["totals"]["ran"] == 366
     assert f"{d2_ran + restored_cases} tests collected" in r.stdout
     assert d2_ran + restored_cases == b2["totals"]["ran"]
