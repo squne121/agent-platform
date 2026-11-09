@@ -89,7 +89,11 @@ def document_problems(m: dict[str, Any], root: Path) -> list[str]:
 
 
 def c2_sync_problems(m: dict[str, Any], c2_manifest: dict[str, Any], root: Path) -> list[str]:
-    """C2 must no longer defer the five restored tests and must keep the two remaining ones."""
+    """C2 must no longer defer the five restored tests (D1) nor the SKILL.md test (D4).
+
+    The D1-time record (117 ran / 2 deferred, SKILL.md + live canary) is history; the live C2
+    manifest is now 118 / 1 and carries that D1-time measurement as ``historical_pre_d4``.
+    """
     problems: list[str] = []
     deferred_ids = {e["id"] for e in c2_manifest["deferred_tests"]}
     source_ids = {e["id"] for e in c2_manifest["deferred_source_tests"]}
@@ -97,24 +101,25 @@ def c2_sync_problems(m: dict[str, Any], c2_manifest: dict[str, Any], root: Path)
         if tid in deferred_ids or tid in source_ids:
             problems.append(f"restored test is still deferred in C2: {tid}")
     remaining = {e["id"]: e for e in m["remaining_c2_deferred"]}
-    if set(remaining) != deferred_ids:
+    restored_by_d4 = set(c2_manifest.get("restored_by_d4", {}).get("restored_tests", []))
+    if set(remaining) - restored_by_d4 != deferred_ids:
         problems.append("remaining deferred set differs from the C2 deferred_tests")
     for e in c2_manifest["deferred_tests"]:
         for key in ("reason", "owner_stage", "rerun_condition"):
             if not e.get(key):
                 problems.append(f"remaining deferred entry lost {key}: {e['id']}")
     kinds = {e["kind"] for e in c2_manifest["deferred_tests"]}
-    if kinds != {"unmigrated_document", "live_github_canary"}:
-        problems.append("the SKILL.md entry and the live canary must both remain deferred")
-    cur = m["c2_counts"]["current"]
-    t = c2_manifest["totals"]
-    if (t["source_collected"], t["ran"], t["deferred"], t["skipped"]) != (
+    if kinds != {"live_github_canary"}:
+        problems.append("only the live canary may remain deferred after I-4-4D4")
+    cur = m["c2_counts"]["current"]  # the D1-time record, preserved as history
+    t = c2_manifest.get("historical_pre_d4", {}).get("totals", {})
+    if (t.get("source_collected"), t.get("ran"), t.get("deferred"), t.get("skipped")) != (
         cur["source_collected"],
         cur["ran"],
         cur["deferred"],
         cur["skipped"],
     ):
-        problems.append("C2 totals differ from the current counts recorded by D1")
+        problems.append("C2 totals differ from the D1-time counts recorded by D1")
     if c2_manifest.get("historical_pre_d1", {}).get("totals") != {
         "source_test_functions": 119,
         "source_collected": 119,
@@ -161,7 +166,8 @@ def test_ac1_references_are_classified_with_an_owner(manifest: dict[str, Any]) -
         assert needed in text, needed
     # every unmigrated Skill the documents link to is genuinely absent, never faked
     irl = ROOT / ".claude" / "skills" / "impl-review-loop"
-    assert not (irl / "SKILL.md").exists()
+    # SKILL.md was migrated later by I-4-4D4 (#95); like step-4-pr-review.md it is D1-time history.
+    assert (irl / "SKILL.md").is_file()
     # step-4-pr-review.md was migrated later by I-4-4D3 (#93); the classification above is the
     # D1-time record and stays as history. SKILL.md and implement-issue are still genuinely absent.
     assert (irl / "steps" / "step-4-pr-review.md").is_file()
@@ -202,13 +208,9 @@ def test_ac3_remaining_deferred_keep_reason_owner_and_history(
     manifest: dict[str, Any], c2: dict[str, Any]
 ) -> None:
     assert c2_sync_problems(manifest, c2, ROOT) == []
-    assert [e["kind"] for e in c2["deferred_tests"]] == [
-        "unmigrated_document",
-        "live_github_canary",
-    ]
-    assert c2["deferred_tests"][0]["requires_missing_files"] == [
-        ".claude/skills/impl-review-loop/SKILL.md"
-    ]
+    # D1-time state (SKILL.md + live canary) is history; D4 restored the SKILL.md test.
+    assert [e["kind"] for e in c2["deferred_tests"]] == ["live_github_canary"]
+    assert c2["historical_pre_d4"]["totals"]["deferred"] == 2
 
 
 # --- AC4: negative controls --------------------------------------------------------------
@@ -244,8 +246,23 @@ def test_ac4_wrong_source_pin_is_detected(manifest: dict[str, Any]) -> None:
     assert any("intentional_diff not recorded" in p for p in document_problems(hollow, ROOT))
 
 
+def _document_template(manifest: dict[str, Any]) -> dict[str, Any]:
+    """Synthetic unmigrated_document entry (the real C2 no longer has one after I-4-4D4)."""
+    return {
+        "id": manifest["restored_c2_tests"][0],
+        "function": "x",
+        "file": "x",
+        "parametrized_cases": 1,
+        "kind": "unmigrated_document",
+        "requires_missing_files": [".claude/skills/impl-review-loop/SKILL.md"],
+        "reason": "synthetic",
+        "owner_stage": "I-4-4D",
+        "rerun_condition": "synthetic",
+    }
+
+
 def test_ac4_unrestored_test_is_detected(manifest: dict[str, Any], c2: dict[str, Any]) -> None:
-    template = next(e for e in c2["deferred_tests"] if e["kind"] == "unmigrated_document")
+    template = _document_template(manifest)
     for tid in manifest["restored_c2_tests"]:
         broken = copy.deepcopy(c2)
         entry = copy.deepcopy(template)
@@ -259,22 +276,21 @@ def test_ac4_unrestored_test_is_detected(manifest: dict[str, Any], c2: dict[str,
 def test_ac4_stale_deferred_document_is_detected(
     manifest: dict[str, Any], c2: dict[str, Any], tmp_path: Path
 ) -> None:
-    template = next(e for e in c2["deferred_tests"] if e["kind"] == "unmigrated_document")
     stale = copy.deepcopy(c2)
-    entry = copy.deepcopy(template)
+    entry = _document_template(manifest)
     entry["requires_missing_files"] = [next(iter(manifest["documents"]))]
-    stale["deferred_tests"][0] = entry
+    stale["deferred_tests"].insert(0, entry)
+    stale["deferred_source_tests"].insert(0, copy.deepcopy(entry))
     assert any("stale deferred entry" in p for p in c2_sync_problems(manifest, stale, ROOT))
 
 
 def test_ac4_dropped_remaining_deferred_is_detected(
     manifest: dict[str, Any], c2: dict[str, Any]
 ) -> None:
-    for index in (0, 1):
-        broken = copy.deepcopy(c2)
-        del broken["deferred_tests"][index]
-        del broken["deferred_source_tests"][index]
-        assert any("remaining deferred" in p for p in c2_sync_problems(manifest, broken, ROOT))
+    broken = copy.deepcopy(c2)  # the only remaining deferred test is the live canary
+    del broken["deferred_tests"][0]
+    del broken["deferred_source_tests"][0]
+    assert any("remaining deferred" in p for p in c2_sync_problems(manifest, broken, ROOT))
     reasonless = copy.deepcopy(c2)
     reasonless["deferred_tests"][0]["reason"] = ""
     assert any("lost reason" in p for p in c2_sync_problems(manifest, reasonless, ROOT))
@@ -287,7 +303,7 @@ def test_ac4_rewritten_history_is_detected(manifest: dict[str, Any], c2: dict[st
         "historical C2 measurement" in p for p in c2_sync_problems(manifest, rewritten, ROOT)
     )
     wrong_totals = copy.deepcopy(c2)
-    wrong_totals["totals"]["ran"] = 112
+    wrong_totals["historical_pre_d4"]["totals"]["ran"] = 112
     assert any("C2 totals differ" in p for p in c2_sync_problems(manifest, wrong_totals, ROOT))
 
 

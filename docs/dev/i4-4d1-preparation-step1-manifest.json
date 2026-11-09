@@ -112,7 +112,8 @@
       "deferred": 7,
       "skipped": 0
     },
-    "note": "119/112/7 is the C2 (#83) measurement before this slice and stays a historical record in the C2 manifest (historical_pre_d1); the current state is 117 ran / 2 deferred. The five restored tests were already part of the 119 collected, so dedupe is by test id and the 5 are counted once, as ran."
+    "note": "119/112/7 is the C2 (#83) measurement before this slice and stays a historical record in the C2 manifest (historical_pre_d1); the current state is 117 ran / 2 deferred. The five restored tests were already part of the 119 collected, so dedupe is by test id and the 5 are counted once, as ran.",
+    "note_i_4_4d4": "The D1-time record above ('current': 117 ran / 2 deferred, SKILL.md + live canary) is history. I-4-4D4 (#95) migrated SKILL.md and restored the SKILL.md test, so the live C2 state is 118 ran / 1 deferred (docs/dev/i4-4c2-intake-capsule-manifest.json totals); the D1-time measurement is kept in the C2 manifest as historical_pre_d4."
   },
   "unmigrated_references": {
     "later_i_4_4d_slices": [
@@ -134,7 +135,8 @@
   },
   "rollback": "Revert the single D1 PR: it removes the two steps documents, this manifest, the D1 test and CI lane, and restores the C2 manifest/tests/CI lane to the 7-deferred state.",
   "handoff": {
-    "next": "remaining I-4-4D slices: SKILL.md and the dependent test, Agent definitions, implement-issue/open-pr wiring, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance"
+    "next": "remaining I-4-4D slices: SKILL.md and the dependent test, Agent definitions, implement-issue/open-pr wiring, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance",
+    "note_i_4_4d4": "SKILL.md, the 3 main Agents and the read-only CI helpers were migrated by I-4-4D4 (#95)."
   },
   "evidence_boundary": {
     "kind": "document wording tests + tmp_path only",

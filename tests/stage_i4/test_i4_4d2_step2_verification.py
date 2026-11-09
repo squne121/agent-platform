@@ -243,7 +243,9 @@ def test_ac1_references_are_classified_with_an_owner_and_really_absent(
         assert needed in text, needed
     # nothing the document links to is faked: the unmigrated targets genuinely do not exist
     irl = ROOT / ".claude" / "skills" / "impl-review-loop"
-    assert not (irl / "SKILL.md").exists()
+    # SKILL.md and the test-runner Agent were migrated later by I-4-4D4 (#95); the classification
+    # above is the D2-time record and stays as history. Their existence is pinned by D4.
+    assert (irl / "SKILL.md").is_file()
     # I-4-4D3 (#93) migrated these two documents after D2; D2 recorded them as owned by a later
     # slice, which is the historical classification. Their existence is now pinned by D3.
     d3 = json.loads(
@@ -252,7 +254,7 @@ def test_ac1_references_are_classified_with_an_owner_and_really_absent(
     for doc in ("step-4-pr-review.md", "step-5-feedback-and-termination.md"):
         assert (irl / "steps" / doc).is_file()
         assert f".claude/skills/impl-review-loop/steps/{doc}" in d3["documents"]
-    assert not (ROOT / ".claude" / "agents" / "test-runner.md").exists()
+    assert (ROOT / ".claude" / "agents" / "test-runner.md").is_file()
     assert not list((irl / "scripts").glob("body_only_repair_plan.py"))
     # the migrated dependencies are real
     for rel in manifest["migrated_dependencies"]:

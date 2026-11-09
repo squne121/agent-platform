@@ -11,7 +11,7 @@
     "direct_dependency": "build_intake_capsule._build_triage() loads triage_contract_blockers.py through _TRIAGE_PATH when the Contract Snapshot is blocked_needs_refinement / dry_run_would_post. Leaving it out would break the blocked-case contract, so it is part of the C2 closure. pnpm_gate_registry.py (already migrated) is reused.",
     "reuse": "implementation_landed_evidence.py (C1), route_loop_verdict_v2.py (4A), adjudicate_vc_result.py (B1), contract_review_result_parser.py, baseline_vc_preflight.py, allowed_paths_review_gate.py, pnpm_gate_registry.py and the Contract Snapshot producers are loaded from their migrated locations; none is copied or changed.",
     "verifier": "verify_implementation_landed_intake_runtime.py is the runtime helper of the integration test. It only runs gh read commands and writes a local artifact; the tests drive it with a fake runner. It is never executed against live GitHub here. Its ISSUE_NUMBER / PR_NUMBER constants still carry legacy-repository numbers (2119 / 2137); they must be replaced before any live run (I-4-4D).",
-    "deferral": "Two source tests still cannot run in this repository: one reads impl-review-loop/SKILL.md (owner I-4-4D) and one is a live GitHub canary. They are listed in deferred_tests (explicitly deselected by the CI runner, never skipped or weakened). No placeholder document was added to make them pass. The other five deferred tests were restored by I-4-4D1 (#89) when steps/preparation.md and steps/step-1-implementation.md were migrated; see restored_by_d1 and historical_pre_d1."
+    "deferral": "One source test still cannot run in this repository: the live GitHub canary (listed in deferred_tests, explicitly deselected by the CI runner, never skipped or weakened). The SKILL.md wording test was restored by I-4-4D4 (#95) when impl-review-loop/SKILL.md was migrated; the other five were restored by I-4-4D1 (#89). No placeholder document was added to make any of them pass. See restored_by_d1, restored_by_d4, historical_pre_d1 and historical_pre_d4."
   },
   "required_files": [
     ".claude/skills/impl-review-loop/scripts/build_intake_capsule.py",
@@ -56,26 +56,12 @@
     ".claude/skills/impl-review-loop/tests/test_build_intake_capsule.py": 38,
     ".claude/skills/impl-review-loop/tests/test_build_intake_capsule_advisory_routing.py": 7,
     ".claude/skills/impl-review-loop/tests/test_implementation_landed_intake_integration.py": 23,
-    ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py": 22,
+    ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py": 23,
     ".claude/skills/impl-review-loop/tests/test_triage_contract_blockers.py": 12,
     ".claude/skills/impl-review-loop/tests/test_triage_contract_blockers_pnpm_gate.py": 9,
     ".claude/skills/impl-review-loop/tests/test_triage_contract_blockers_typecheck_lint_docs_gate.py": 6
   },
   "deferred_tests": [
-    {
-      "id": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_skill_md_declares_provenance_inputs",
-      "function": "test_skill_md_declares_provenance_inputs",
-      "parametrized_cases": 1,
-      "kind": "unmigrated_document",
-      "requires_missing_files": [
-        ".claude/skills/impl-review-loop/SKILL.md"
-      ],
-      "reason": "reads .claude/skills/impl-review-loop/SKILL.md which is not migrated (owner I-4-4D); the assertion is about the wording of that document, so it cannot run before the document exists",
-      "owner_stage": "I-4-4D",
-      "rerun_condition": "when .claude/skills/impl-review-loop/SKILL.md is migrated by I-4-4D, remove this entry (the closure test fails while a deferred document exists)",
-      "file": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py",
-      "deferred_by": "manifest deferred_tests (explicit --deselect by scripts/ci/run_stage1b1_tests.py); not skip, not xfail"
-    },
     {
       "id": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_ac9_runtime_canary_known_pr_comment_resolves_against_real_github",
       "file": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py",
@@ -92,8 +78,8 @@
   "totals": {
     "source_test_functions": 119,
     "source_collected": 119,
-    "deferred": 2,
-    "ran": 117,
+    "deferred": 1,
+    "ran": 118,
     "skipped": 0,
     "xfailed": 0
   },
@@ -156,15 +142,6 @@
   },
   "deferred_source_tests": [
     {
-      "id": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_skill_md_declares_provenance_inputs",
-      "function": "test_skill_md_declares_provenance_inputs",
-      "parametrized_cases": 1,
-      "kind": "unmigrated_document",
-      "reason": "reads .claude/skills/impl-review-loop/SKILL.md which is not migrated (owner I-4-4D); the assertion is about the wording of that document, so it cannot run before the document exists",
-      "owner_stage": "I-4-4D",
-      "rerun_condition": "when .claude/skills/impl-review-loop/SKILL.md is migrated by I-4-4D, remove this entry (the closure test fails while a deferred document exists)"
-    },
-    {
       "id": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_ac9_runtime_canary_known_pr_comment_resolves_against_real_github",
       "function": "test_ac9_runtime_canary_known_pr_comment_resolves_against_real_github",
       "parametrized_cases": 1,
@@ -185,12 +162,6 @@
   ],
   "deferred_dependencies": [
     {
-      "path": "impl-review-loop/SKILL.md and the other unmigrated Skill/Agent/steps documents",
-      "owner_stage": "I-4-4D (tracker #60)",
-      "reason": "SKILL.md is not part of the D1 slice; 1 source test asserts its wording",
-      "rerun_condition": "migrated in a later I-4-4D slice; then remove the SKILL.md entry from deferred_tests"
-    },
-    {
       "path": "live GitHub acceptance of the intake capsule (AC9 canary)",
       "owner_stage": "I-4-4D (tracker #60)",
       "reason": "needs real GitHub; fixture / fake gh results are not live evidence",
@@ -209,11 +180,11 @@
       "rerun_condition": "when the boundary is decided and the oracle is migrated"
     }
   ],
-  "rollback": "Revert the single C2 PR: it removes the 3 scripts, 7 tests, this manifest, the closure tests and the CI job. No previously migrated file is modified, so no partial revert is needed. I-4-4D1 (#89) later edited this manifest (5 restored tests, totals, required_files); reverting the D1 PR restores the 7-deferred state recorded in historical_pre_d1.",
+  "rollback": "Revert the single C2 PR: it removes the 3 scripts, 7 tests, this manifest, the closure tests and the CI job. No previously migrated file is modified, so no partial revert is needed. I-4-4D1 (#89) later edited this manifest (5 restored tests, totals, required_files); reverting the D1 PR restores the 7-deferred state recorded in historical_pre_d1. I-4-4D4 (#95) later edited this manifest again (SKILL.md test restored, totals 118/1); reverting the D4 PR restores the 117/2 state recorded in historical_pre_d4.",
   "handoff": {
     "C3": "materialize_test_verdict_artifact.py; test_verdict.publish stays disabled until C3 decides it",
     "C4": "pr_head_replay_publish_exec.py oracle and push-capable execute() boundary; no Git ref mutation was introduced here",
-    "I-4-4D": "SKILL.md / Agent migration, the 2 remaining deferred tests (SKILL.md wording, live canary), Final Gate and LOOP_HANDOFF_RESULT_V1 wiring, live GitHub acceptance. steps/preparation.md and steps/step-1-implementation.md were migrated by I-4-4D1 (#89)."
+    "I-4-4D": "Agent-wiring, Final Gate and LOOP_HANDOFF_RESULT_V1 wiring, live GitHub acceptance and the remaining deferred test (live canary). impl-review-loop/SKILL.md, the 3 main Agents and the read-only CI helpers were migrated by I-4-4D4 (#95); steps/preparation.md and steps/step-1-implementation.md by I-4-4D1 (#89)."
   },
   "evidence_boundary": {
     "kind": "fixture + fake gh runner + tmp_path only",
@@ -242,6 +213,24 @@
       "source_collected": 119,
       "deferred": 7,
       "ran": 112,
+      "skipped": 0,
+      "xfailed": 0
+    }
+  },
+  "restored_by_d4": {
+    "issue": "squne121/agent-platform#95",
+    "manifest": "docs/dev/i4-4d4-skill-agents-readonly-manifest.json",
+    "restored_tests": [
+      ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_skill_md_declares_provenance_inputs"
+    ]
+  },
+  "historical_pre_d4": {
+    "note": "Measurement recorded by I-4-4D1 (#89) before I-4-4D4 migrated impl-review-loop/SKILL.md. It is a historical snapshot, not the current state; the current values are totals.",
+    "totals": {
+      "source_test_functions": 119,
+      "source_collected": 119,
+      "deferred": 2,
+      "ran": 117,
       "skipped": 0,
       "xfailed": 0
     }

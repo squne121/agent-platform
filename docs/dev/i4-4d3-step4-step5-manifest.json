@@ -263,7 +263,8 @@
       "legacy repository slug squne121/loop-protocol (step-5-feedback examples and gh issue list --repo)",
       "legacy Issue/PR numbers (for example #1873, #2916, #2996)",
       "docs/playtest and tmp/ run-time output path examples"
-    ]
+    ],
+    "note_i_4_4d4": "Historical classification at this slice. I-4-4D4 (#95) later migrated impl-review-loop/SKILL.md, the Agents implementation-worker / test-runner / pr-reviewer, wait_ci_checks.py/.sh, get_ci_failed_log.py/.sh and the two step runbooks; see docs/dev/i4-4d4-skill-agents-readonly-manifest.json. implement-issue, open-pr, pr-review-judge, pr-reviewer-lite, body_only_repair_plan.py and the pr_reviewer_guard hook stay unmigrated."
   },
   "supersedes": {
     "docs/dev/i4-4b1-vc-adjudication-manifest.json": "expected_collect / expected_ran / totals / deferred_source_tests / source_parity / deferred_dependencies edited in place (118 -> 122 ran, 5 -> 1 deferred); the previous values are kept there as historical_pre_d3.",
@@ -272,7 +273,8 @@
   },
   "rollback": "Revert the single D3 PR: it removes the three documents, this manifest, the D3 test and CI lane, deletes the 6 restored test functions and returns the B1/B2 manifests, D1/D2 tests and CI lanes to the D2 merge state (B1 118 ran / 5 deferred, B2 366 ran / 2 deferred).",
   "handoff": {
-    "next": "remaining I-4-4D slices: impl-review-loop/SKILL.md, Agent definitions (pr-reviewer, test-runner, implementation-worker), implement-issue / open-pr / pr-review-judge wiring, remaining steps and scripts, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance; B1 oracle-dependent test stays with I-4-4C"
+    "next": "remaining I-4-4D slices: impl-review-loop/SKILL.md, Agent definitions (pr-reviewer, test-runner, implementation-worker), implement-issue / open-pr / pr-review-judge wiring, remaining steps and scripts, Final Gate / LOOP_HANDOFF_RESULT_V1, live acceptance; B1 oracle-dependent test stays with I-4-4C",
+    "note_i_4_4d4": "I-4-4D4 (#95) migrated the Skill entrypoint, 3 main Agents, 2 runbooks and the read-only CI helpers; D5 and later own the rest."
   },
   "evidence_boundary": {
     "kind": "document wording tests + real adjudicator CLI with fake gh / temporary git repositories only",

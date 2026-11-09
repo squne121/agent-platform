@@ -110,10 +110,27 @@ def test_wrong_deferred_owner_is_detected(manifest: dict[str, Any]) -> None:
     assert any("unexpected owner" in p for p in closure.deferred_problems(manifest, ROOT))
 
 
+# The SKILL.md wording test was restored by I-4-4D4 (#95), so the real manifest no longer has an
+# unmigrated_document entry. The document-kind controls keep their detection power with this
+# synthetic template (tmp copies only; the real manifest is never changed).
+DOC_ENTRY = {
+    "id": f"{RUNNABLE_FILE}::test_skill_md_declares_provenance_inputs",
+    "function": "test_skill_md_declares_provenance_inputs",
+    "file": RUNNABLE_FILE,
+    "parametrized_cases": 1,
+    "kind": "unmigrated_document",
+    "requires_missing_files": [".claude/skills/impl-review-loop/SKILL.md"],
+    "reason": "synthetic negative-control template",
+    "owner_stage": "I-4-4D",
+    "rerun_condition": "synthetic negative-control template",
+}
+
+
 def test_deferred_document_that_now_exists_is_stale(
     manifest: dict[str, Any], tmp_path: Path
 ) -> None:
-    doc = next(e for e in manifest["deferred_tests"] if e["kind"] == "unmigrated_document")
+    doc = copy.deepcopy(DOC_ENTRY)
+    manifest["deferred_tests"].insert(0, doc)
     present = tmp_path / doc["requires_missing_files"][0]
     present.parent.mkdir(parents=True, exist_ok=True)
     present.write_text("# migrated by I-4-4D\n", encoding="utf-8")
@@ -206,7 +223,7 @@ def test_functional_default_repo_is_not_the_legacy_slug() -> None:
 def test_ci_lane_guard_removal_is_detected() -> None:
     text = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert closure.ci_lane_problems(text) == []
-    assert closure.ci_lane_problems(text.replace('2 deselected" runner.out', "x")) != []
+    assert closure.ci_lane_problems(text.replace('1 deselected" runner.out', "x")) != []
     assert closure.ci_lane_problems("jobs: {}") != []
 
 
@@ -216,7 +233,7 @@ def test_deferred_entry_pointing_at_a_runnable_test_is_detected(manifest: dict[s
     assert any("deferred function not found" in p for p in closure.deferred_problems(missing, ROOT))
     # a runnable test that reads no document cannot be passed off as a document-dependent deferral
     runnable = copy.deepcopy(manifest)
-    entry = runnable["deferred_tests"][0]
-    entry["file"] = RUNNABLE_FILE
+    entry = copy.deepcopy(DOC_ENTRY)
     entry["function"] = RUNNABLE_FUNCTION
+    runnable["deferred_tests"].insert(0, entry)
     assert any("does not read a document" in p for p in closure.deferred_problems(runnable, ROOT))

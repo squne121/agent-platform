@@ -290,15 +290,20 @@ def test_ac1_references_are_classified_with_an_owner_and_really_absent(
     assert "legacy repository slug" in "\n".join(refs["legacy_repository_specific"])
     # nothing the documents link to is faked: the unmigrated targets genuinely do not exist
     irl = ROOT / IRL
-    for absent in (
+    # I-4-4D4 (#95) migrated the Skill entrypoint, the 3 main Agents and wait_ci_checks.py after
+    # D3; the unmigrated_references above stay as the D3-time record. Their existence is pinned by D4.
+    for migrated_later in (
         irl / "SKILL.md",
         ROOT / ".claude" / "agents" / "pr-reviewer.md",
         ROOT / ".claude" / "agents" / "test-runner.md",
         ROOT / ".claude" / "agents" / "implementation-worker.md",
+        irl / "scripts" / "wait_ci_checks.py",
+    ):
+        assert migrated_later.is_file(), migrated_later
+    for absent in (
         ROOT / ".claude" / "skills" / "implement-issue",
         ROOT / ".claude" / "skills" / "open-pr",
         ROOT / ".claude" / "skills" / "pr-review-judge" / "SKILL.md",
-        irl / "scripts" / "wait_ci_checks.py",
         irl / "scripts" / "body_only_repair_plan.py",
     ):
         assert not absent.exists(), absent

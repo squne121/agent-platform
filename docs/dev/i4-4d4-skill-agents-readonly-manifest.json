@@ -1,0 +1,454 @@
+{
+  "schema": "I4_4D4_SKILL_AGENTS_READONLY_MANIFEST_V1",
+  "issue": "squne121/agent-platform#95",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "8088fccee46edb860469f3ea7c2871e1e92cc5ce",
+    "note": "D3 merge commit (PR #94)"
+  },
+  "decisions": {
+    "slice": "I-4-4D4: migrate the impl-review-loop Skill entrypoint, the 3 main Agent definitions (implementation-worker / test-runner / pr-reviewer), the 2 step runbooks, the read-only CI helpers (wait_ci_checks / get_ci_failed_log, .py and .sh) and their source tests, and restore the C2 SKILL.md wording test. No wrapper, shared schema or permanent gate is added; the existing runner is reused.",
+    "auto_invocation": "SKILL.md carries a temporary `disable-model-invocation: true` (Claude Code official Skill spec: Claude cannot invoke it on its own; a manual /impl-review-loop is still possible, so the body states the fail-closed rule: no Step 1/2/4/5 dispatch while the dependencies are unmigrated). It is not a permanent gate; releasing it is a decision for the slice that completes and verifies the wiring.",
+    "no_dispatch": "Nothing here starts an Agent or SubAgent, runs the loop, calls live GitHub write operations, mutates a Git ref or publishes a PR. The read-only helpers are exercised with a fake gh on PATH inside tmp_path.",
+    "legacy_content": "Legacy pnpm / game-specific examples in test-runner.md and implementation-worker.md were replaced by the agent-platform contract (uv / pytest / ruff / scripts/check_public_hygiene.sh) and the machine-valid example and its test VC were re-hashed accordingly. The Issue #2656 / #2670 / #2892 specific exception sections and the legacy repository URL citation are kept as historical source text; they are inert here (their targets do not exist) and a migration-status note says so. The single legacy slug assertion in test_test_runner_report_contract.py was shortened so check_no_functional_slug.py keeps its detection power.",
+    "limited_deferral": "Human decision 2026-11-09 (#95): test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function checks 3 consumer documents (pr-review-judge/SKILL.md, pr-reviewer-lite.md, steps/step-4-pr-review.md). The first two are not migrated and are outside the D4 Allowed Paths. The source test body and its 3-consumer assertion are kept byte-identical and the single function is listed in deferred_tests (explicit --deselect by the runner; not skip, not xfail). The deferral is not counted as PASS: 108 collected / 107 ran / 1 deferred.",
+    "agent_boundary": "pr-reviewer.md keeps the source hooks (.claude/hooks/pr_reviewer_guard.py) and `skills: [pr-review-judge]` unchanged, and keeps disallowedTools Edit/Write/MultiEdit. Neither the hook file nor the pr-review-judge Skill is migrated, so the hook layer gives no effective protection yet; the read-only boundary currently rests on the tools / disallowedTools declaration only. D4 never dispatches this Agent. Independent review uses another read-only SubAgent.",
+    "production_claim": "Migrating these files does not make /impl-review-loop, implementation, PR publish, the Final Gate or LOOP_HANDOFF_RESULT_V1 wiring runnable."
+  },
+  "documents": {
+    ".claude/skills/impl-review-loop/SKILL.md": {
+      "source_blob_sha1": "7cdcffb383d69b5784ebb9166dd13a811e5e6c7c",
+      "source_sha256": "cec219ffde69115d4000f7665f17c8fd446876300a05222b880b707527eb6dd7",
+      "source_lines": 408,
+      "moved_sha256": "21487b64b11b6309b2b8e70770ff2e19e970ce7922e752055ec66b7691d173e3",
+      "moved_lines": 414,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "  移管元では `/impl-review-loop <N>` または「Issue ◯◯ をループで実装して」で使う想定だったが、\n  I-4-4D4 の暫定移管では未移管依存が残るため Claude による自動起動を禁止している（下記の移管状況を参照）。\n  着手前に `AGENTS.md` と `docs/dev/github-ops.md` の運用境界を確認する。\ndisable-model-invocation: true\n",
+          "source": "  `/impl-review-loop <N>` または「Issue ◯◯ をループで実装して」のトリガーで使う。\n  着手前に `docs/dev/workflow.md` の通常 workflow safety boundary を確認する。\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名 Skill を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。\n>\n> **一時的な自動起動禁止（fail-closed）**: frontmatter の `disable-model-invocation: true` は Claude による自動起動を抑止するが、ユーザーによる `/impl-review-loop` の手動 invoke は妨げない（Claude Code 公式 Skill 仕様）。そのため手動で invoke された場合も、本書の Step 1 / Step 2 / Step 4 / Step 5 の通常 dispatch を行ってはならない。`implement-issue` / `open-pr` / `pr-review-judge` Skill、`pr-reviewer-lite`、`body_only_repair_plan.py` 等の補助 script、`references/` 配下の文書等の未移管参照、Final Gate・`LOOP_HANDOFF_RESULT_V1` の本番接続は未移管であり、後続の I-4-4D スライスの担当である。未移管の対象を起動できるものとして扱わず、必要になった時点で停止して人間へ報告する。本書の `docs/dev/workflow.md` 等の旧 repo 固有の参照は履歴であり、現行の正本は `AGENTS.md` / `docs/dev/github-ops.md`（uv / pytest / ruff）である。この制限の解除は、後続スライスで完全な結線と動作検証を終えた後にのみ検討する（恒久的な gate ではない）。\n",
+          "source": "",
+          "what": "insert migration-status / annotation"
+        }
+      ]
+    },
+    ".claude/agents/implementation-worker.md": {
+      "source_blob_sha1": "23e76a8c1ee77ffc76e361bee23428adb77e5dda",
+      "source_sha256": "0cc2eaed71035617f3d74c5ee7d607652229a273296352c59e216286ff2be3a5",
+      "source_lines": 325,
+      "moved_sha256": "2bd2dc2d036ea013d8c96948a86a877140cde1ed0c58df9a948a4447643fea06",
+      "moved_lines": 327,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "# Bash 制約: uv run --locked pytest / ruff check / ruff format --check / scripts/check_public_hygiene.sh と\n",
+          "source": "# Bash 制約: pnpm typecheck / lint / test / build と\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。frontmatter 内の Bash 制約コメントの `pnpm` 系を uv/ruff/pytest/hygiene に置換した（tools / permissionMode は無変更）。本定義が参照する `implement-issue` / `open-pr` / `pr-review-judge` Skill・`pr-reviewer-lite`・`.claude/hooks/pr_reviewer_guard.py`・補助 script 等のうち本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。**D4 ではこの Agent を実 dispatch しない。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
+          "source": "",
+          "what": "insert migration-status / annotation"
+        }
+      ]
+    },
+    ".claude/agents/test-runner.md": {
+      "source_blob_sha1": "4d13baf0ac1754cda4265537d3a70538329018f8",
+      "source_sha256": "906c91853e206c74aa05b00e4dd23d1b63c5fe4174d72c774d11cc8f98370795",
+      "source_lines": 483,
+      "moved_sha256": "ecf3372c3a70f7a298c5cf2d789b2a1790b861ede5d80f4a86a684451e09d692",
+      "moved_lines": 483,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "description: Issue contract の Verification Commands を実行し、AC ごとの PASS/FAIL を構造化報告する SubAgent。agent-platform では `uv run --locked ruff check .` / `uv run --locked ruff format --check .` / `uv run --locked pytest` / `bash scripts/check_public_hygiene.sh` を基本とし、追加の grep / test -f 等の決定論的検証も実行する。Bash 経由のファイル書き込みは行わない。mergeable 状態の検知も担当（CONFLICTING / DIRTY / BLOCKED / BEHIND）。\n",
+          "source": "description: Issue contract の Verification Commands を実行し、AC ごとの PASS/FAIL を構造化報告する SubAgent。LOOP_PROTOCOL では pnpm typecheck / lint / test / build を基本とし、追加の grep / test -f 等の決定論的検証も実行する。Bash 経由のファイル書き込みは行わない。mergeable 状態の検知も担当（CONFLICTING / DIRTY / BLOCKED / BEHIND）。\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。許可コマンド節の `pnpm` 系を uv/ruff/hygiene に置換した。`Issue #2656` / `#2670` / `#2892` 固有の狭域例外節は移管元の履歴として原文のまま残すが、参照先 (旧 repo の Issue・未移管 script) は本 repository に存在せず、本 repository で有効な実行許可としては扱わない。本定義が参照する `implement-issue` / `open-pr` / `pr-review-judge` Skill・`pr-reviewer-lite`・`.claude/hooks/pr_reviewer_guard.py`・補助 script 等のうち本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。**D4 ではこの Agent を実 dispatch しない。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
+          "source": "",
+          "what": "insert migration-status / annotation"
+        },
+        {
+          "moved": "agent-platform は uv + pytest + ruff が基本（`AGENTS.md`）。以下のコマンドだけを実行する:\n",
+          "source": "LOOP_PROTOCOL は pnpm + Vite + Vitest が基本。以下のコマンドだけを実行する:\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "uv run --locked ruff check .\nuv run --locked ruff format --check .\nbash scripts/check_public_hygiene.sh\n",
+          "source": "pnpm typecheck\npnpm lint\npnpm test [<test-file>]\npnpm build\npnpm <other-script-defined-in-package.json>\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response・HOME・XDG 値を一切含まない\n",
+          "source": "- 実行結果（exit code・stdout の `verdict`/`reason_code`・`handoff_classification`・sanitized artifact path）を `runtime_ac_results[].notes` に記録する。`handoff_classification` は `validated_handoff_selected` / `invalid_handoff_rejected` / `source_absent` / `no_handoff_ordinary_lookup` の 4 値ラベルのみであり、root/path/token/credential/account/response\u002fHOME/XDG 値を一切含まない\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "      command: \"uv run --locked ruff check .\"\n      command_hash: \"sha256:8c4f8d41cd21beee623aa1780034db795f1627dde788596ca2a1ce96dcf33e88\"\n",
+          "source": "      command: \"pnpm lint\"\n      command_hash: \"sha256:ede823a2d5f2814db6ddd8a2969504d513bf5a4428b806aa4d1a0499fb38462f\"\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "      command: \"uv run --locked ruff format --check .\"\n      command_hash: \"sha256:08954c7fbc000b87d9900ec48702b9ba1e6121cf3315b2f3ed38d56132e36b2a\"\n",
+          "source": "      command: \"pnpm typecheck\"\n      command_hash: \"sha256:1b65adab2d69e0f148ddd11c15c7dcd73ca087b66cc02dac2672f9493093cc6d\"\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "| AC1 | `uv run --locked pytest tests/smoke/test_example.py` | 4 passed | 0 | PASS |\n| AC2 | `grep -n \"boundary\" scripts/example.py` | found | 0 | PASS |\n",
+          "source": "| AC1 | `pnpm test tests/movement-system.test.ts` | 4 passed | 0 | PASS |\n| AC2 | `grep -n \"boundary\" src/systems/MovementSystem.ts` | found | 0 | PASS |\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        }
+      ]
+    },
+    ".claude/agents/pr-reviewer.md": {
+      "source_blob_sha1": "5a83c95aebf9a4af7f1739126c569b8800af0908",
+      "source_sha256": "7d1bf03b63062fbfd4d9697958f18e993e25b5bb9216da5bcc95733dfffb830d",
+      "source_lines": 87,
+      "moved_sha256": "45d6e716c5b4b0f0aac7c48ac433a9376902e8f2398bce0872ca183142e02187",
+      "moved_lines": 89,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。frontmatter の `hooks`（`.claude/hooks/pr_reviewer_guard.py` を参照）と `skills: [pr-review-judge]` は移管元のまま維持している。hook 実体と Skill は未移管のため、これらは現時点で保護の実効を持たず、read-only の境界は `tools` / `disallowedTools` の宣言にのみ依存する。本定義が参照する `implement-issue` / `open-pr` / `pr-review-judge` Skill・`pr-reviewer-lite`・`.claude/hooks/pr_reviewer_guard.py`・補助 script 等のうち本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。**D4 ではこの Agent を実 dispatch しない。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
+          "source": "",
+          "what": "insert migration-status / annotation"
+        }
+      ]
+    },
+    ".claude/skills/impl-review-loop/steps/context-protocol-and-guardrails.md": {
+      "source_blob_sha1": "e96e52840875fad6b0f834d2a6dfe48ba562826a",
+      "source_sha256": "4311b4f2225049f36a4e5b4fa8aeb07564aeeb51dd6ae0a31b5fe1e35b916bba",
+      "source_lines": 66,
+      "moved_sha256": "8615b59bb50289db5658ff86b75c455bdec40ad18be6a80eb9dc424c6bdedc5f",
+      "moved_lines": 68,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。本書が参照する `implement-issue` / `open-pr` / `pr-review-judge`・`references/`・補助 script 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。本書の記述だけで通常の `/impl-review-loop`・Step 4 / Step 5 / Final Gate が本番稼働していると解釈してはならない。\n",
+          "source": "",
+          "what": "insert migration-status / annotation"
+        }
+      ]
+    },
+    ".claude/skills/impl-review-loop/steps/conflicting-pr-escalation-runbook.md": {
+      "source_blob_sha1": "160e5d7f9b826619919a3f10412bb01b5647db3e",
+      "source_sha256": "442cb7dbc9863f0a2965045d0e7a9a8fd5ccd94a9f3fa7325118e3253003e5e7",
+      "source_lines": 70,
+      "moved_sha256": "b1ae540f21bbc1e9e49349516533061d709d13b6f7e15c2e6df3467c2656c728",
+      "moved_lines": 72,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。本書が参照する `implement-issue` / `open-pr` / `pr-review-judge`・`references/`・補助 script 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。本書の記述だけで通常の `/impl-review-loop`・Step 4 / Step 5 / Final Gate が本番稼働していると解釈してはならない。\n",
+          "source": "",
+          "what": "insert migration-status / annotation"
+        }
+      ]
+    },
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": {
+      "source_blob_sha1": "804f383ae1a1033890c97bd406fbbb672f054e54",
+      "source_sha256": "e7aa4b4aa849dc379386ae14da6e5e325fd25e2342de5a389ebe9aec6c918fae",
+      "source_lines": 473,
+      "moved_sha256": "c91487bfca245e2b44a23269cce3f3dbc60a0a05cfcea843584f71e41098bfb6",
+      "moved_lines": 473,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "$ uv run --locked ruff check .\n",
+          "source": "$ pnpm lint\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "$ uv run --locked ruff format --check .\n",
+          "source": "$ pnpm typecheck\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        },
+        {
+          "moved": "    assert \"issues/2892#issuecomment-5978351466\" in policy\n",
+          "source": "    assert \"https://github.com/squne121/loop-protocol/issues/2892#issuecomment-5978351466\" in policy\n",
+          "what": "adapt legacy repository-specific content to the agent-platform contract"
+        }
+      ]
+    }
+  },
+  "verbatim_files": {
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py": {
+      "source_blob_sha1": "42d1e16a190f0ede317118209c70bfca34c9f443",
+      "source_sha256": "3c2b5a233b53c8bf265bc411fcb9f6dd6ff410a19f6c2080dd1a7f672b4de4a8",
+      "moved_sha256": "3c2b5a233b53c8bf265bc411fcb9f6dd6ff410a19f6c2080dd1a7f672b4de4a8",
+      "moved_lines": 576,
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.sh": {
+      "source_blob_sha1": "b79b705bc284861450ff70038303a2c840c77cf2",
+      "source_sha256": "d096f85af664e4711ea07b78d32aed229fd89f1829781c0bde935e62ec903b65",
+      "moved_sha256": "d096f85af664e4711ea07b78d32aed229fd89f1829781c0bde935e62ec903b65",
+      "moved_lines": 14,
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/scripts/get_ci_failed_log.py": {
+      "source_blob_sha1": "fe2b2fa1a333d5e86389290ed7c628cd0f8823af",
+      "source_sha256": "95b883ca2ed2dc86c473b44a317fbd861b9f3c30a8eba359ed5e35ed912160c3",
+      "moved_sha256": "95b883ca2ed2dc86c473b44a317fbd861b9f3c30a8eba359ed5e35ed912160c3",
+      "moved_lines": 324,
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/scripts/get_ci_failed_log.sh": {
+      "source_blob_sha1": "83d4e35f4405233b3c91bb8aa5ffc596328f6030",
+      "source_sha256": "17aca631dc32038a0ab482c745e33c6d047b5dd03ad629d8e2c4a52315fb6e47",
+      "moved_sha256": "17aca631dc32038a0ab482c745e33c6d047b5dd03ad629d8e2c4a52315fb6e47",
+      "moved_lines": 14,
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": {
+      "source_blob_sha1": "337d8379e62291f4d8f50ea83683cacde00d0db4",
+      "source_sha256": "974ede0c15c06c6d192c40b3bb63ba8a40808b2cbed1987a37ca25da09324466",
+      "moved_sha256": "974ede0c15c06c6d192c40b3bb63ba8a40808b2cbed1987a37ca25da09324466",
+      "moved_lines": 1240,
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": {
+      "source_blob_sha1": "94dd08e35b4e16685f049b1810f3308ed8ab1491",
+      "source_sha256": "80724983ca1236f55adb1899b491a46d4d8e284bab2b129fc3bbba769270d747",
+      "moved_sha256": "80724983ca1236f55adb1899b491a46d4d8e284bab2b129fc3bbba769270d747",
+      "moved_lines": 495,
+      "verbatim": true
+    },
+    ".claude/skills/impl-review-loop/tests/fixtures/test_runner_report_smoke_prompt.md": {
+      "source_blob_sha1": "7d32e9f6b08b14ac86da14b479a5a91aae3cd815",
+      "source_sha256": "399675c97bf4e127cca1dbed7ff463e8839fac9b3e630266932eec52be1c2aad",
+      "moved_sha256": "399675c97bf4e127cca1dbed7ff463e8839fac9b3e630266932eec52be1c2aad",
+      "moved_lines": 55,
+      "verbatim": true
+    }
+  },
+  "frontmatter": {
+    ".claude/skills/impl-review-loop/SKILL.md": {
+      "name": "impl-review-loop",
+      "disable-model-invocation": true
+    },
+    ".claude/agents/implementation-worker.md": {
+      "name": "implementation-worker",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash",
+        "Edit",
+        "Write",
+        "MultiEdit"
+      ],
+      "disallowedTools": null,
+      "model": "sonnet",
+      "effort": "high",
+      "permissionMode": "acceptEdits",
+      "skills": null
+    },
+    ".claude/agents/test-runner.md": {
+      "name": "test-runner",
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash"
+      ],
+      "disallowedTools": [
+        "Edit",
+        "Write",
+        "MultiEdit"
+      ],
+      "model": "haiku",
+      "effort": "low",
+      "permissionMode": "dontAsk",
+      "skills": null
+    },
+    ".claude/agents/pr-reviewer.md": {
+      "name": "pr-reviewer",
+      "tools": [
+        "Bash",
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "disallowedTools": [
+        "Edit",
+        "Write",
+        "MultiEdit"
+      ],
+      "model": "sonnet",
+      "effort": "high",
+      "permissionMode": "dontAsk",
+      "skills": [
+        "pr-review-judge"
+      ],
+      "hook_commands": [
+        "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py"
+      ],
+      "hook_events": [
+        "PreToolUse",
+        "SessionStart",
+        "PostToolUse"
+      ]
+    }
+  },
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py",
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py"
+  ],
+  "required_files": [
+    ".claude/skills/impl-review-loop/SKILL.md",
+    ".claude/agents/implementation-worker.md",
+    ".claude/agents/test-runner.md",
+    ".claude/agents/pr-reviewer.md",
+    ".claude/skills/impl-review-loop/steps/context-protocol-and-guardrails.md",
+    ".claude/skills/impl-review-loop/steps/conflicting-pr-escalation-runbook.md",
+    ".claude/skills/impl-review-loop/steps/step-4-pr-review.md",
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py",
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.sh",
+    ".claude/skills/impl-review-loop/scripts/get_ci_failed_log.py",
+    ".claude/skills/impl-review-loop/scripts/get_ci_failed_log.sh",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py"
+  ],
+  "required_fixtures": [
+    ".claude/skills/impl-review-loop/tests/fixtures/test_runner_report_smoke_prompt.md"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 70,
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 69,
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
+  },
+  "deferred_tests": [
+    {
+      "id": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function",
+      "file": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+      "function": "test_canonical_evaluator_consumers_use_same_function",
+      "parametrized_cases": 1,
+      "kind": "unmigrated_consumer_documents",
+      "requires_missing_files": [
+        ".claude/skills/pr-review-judge/SKILL.md",
+        ".claude/agents/pr-reviewer-lite.md"
+      ],
+      "reason": "The source test asserts that pr-review-judge/SKILL.md, .claude/agents/pr-reviewer-lite.md and steps/step-4-pr-review.md all exist and mention wait_ci_checks. The first two are not migrated and are outside the D4 Allowed Paths; the test body is deliberately kept unchanged and is not weakened, skipped or xfailed (human decision 2026-11-09, #95).",
+      "owner_stage": "I-4-4D5 or later (the slice that migrates pr-review-judge/SKILL.md and pr-reviewer-lite.md)",
+      "rerun_condition": "when both .claude/skills/pr-review-judge/SKILL.md and .claude/agents/pr-reviewer-lite.md are migrated, remove this entry and re-run the unchanged 3-consumer assertion; the closure test fails while an existing consumer file is still listed here",
+      "deferred_by": "manifest deferred_tests (explicit --deselect by scripts/ci/run_stage1b1_tests.py); not skip, not xfail"
+    }
+  ],
+  "totals": {
+    "source_collected": 108,
+    "deferred": 1,
+    "ran": 107,
+    "skipped": 0,
+    "xfailed": 0
+  },
+  "lane_totals": {
+    "note": "The manifest-pinned CI lane runs the 107 source tests through the runner, then the stage_i4 closure tests. closure_tests_ran is measured (pytest --co) for the D4 closure file only.",
+    "source_ran": 107,
+    "closure_tests_ran": 47
+  },
+  "c2_restoration": {
+    "restored_test": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_skill_md_declares_provenance_inputs",
+    "c2_manifest": "docs/dev/i4-4c2-intake-capsule-manifest.json",
+    "current": {
+      "source_collected": 119,
+      "ran": 118,
+      "deferred": 1,
+      "skipped": 0
+    },
+    "historical_pre_d4": {
+      "source_collected": 119,
+      "ran": 117,
+      "deferred": 2,
+      "skipped": 0
+    },
+    "historical_pre_d1": {
+      "source_collected": 119,
+      "ran": 112,
+      "deferred": 7,
+      "skipped": 0
+    },
+    "remaining_deferred": ".claude/skills/impl-review-loop/tests/test_intake_capsule_provenance_e2e.py::test_ac9_runtime_canary_known_pr_comment_resolves_against_real_github",
+    "note": "The live GitHub canary stays deferred (owner I-4-4D live acceptance); a fixture or fake gh result never stands in for it."
+  },
+  "unmigrated_references": {
+    "later_i_4_4d_slices": [
+      {
+        "reference": "implement-issue Skill and implement-issue/scripts/update_branch.py (referenced by SKILL.md and implementation-worker.md)",
+        "owner": "I-4-4D implement-issue / open-pr slice (D5 or later)"
+      },
+      {
+        "reference": "open-pr Skill and open-pr/scripts/update_pr.py (referenced by SKILL.md and implementation-worker.md)",
+        "owner": "I-4-4D implement-issue / open-pr slice (D5 or later)"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/SKILL.md and pr-review-judge/references/evidence-policy.md (preloaded by pr-reviewer.md; consumer #1 of the deferred test)",
+        "owner": "I-4-4D pr-review-judge slice (D5 or later)"
+      },
+      {
+        "reference": ".claude/agents/pr-reviewer-lite.md (consumer #2 of the deferred test)",
+        "owner": "I-4-4D pr-review-judge slice (D5 or later)"
+      },
+      {
+        "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared in pr-reviewer.md frontmatter)",
+        "owner": "I-4-4D Agent permission boundary slice (D5 or later)"
+      },
+      {
+        "reference": "impl-review-loop/scripts/body_only_repair_plan.py, finalize_no_diff_issue.py, validate_autonomy_policy_result.py, update_branch.py (mutation-adjacent helpers)",
+        "owner": "I-4-4D mutation-adjacent helper slice (D5 or later)"
+      },
+      {
+        "reference": "impl-review-loop/references/ (allowed-paths-gate.md, termination-policy.md) referenced by SKILL.md",
+        "owner": "I-4-4D references slice (D5 or later)"
+      },
+      {
+        "reference": "run_worktree_agent_runtime_smoke.py, Final Gate and LOOP_HANDOFF_RESULT_V1 production wiring, real SubAgent lifecycle, live GitHub E2E",
+        "owner": "I-4-4D runtime wiring / live acceptance slice"
+      }
+    ],
+    "legacy_repository_specific": [
+      "docs/dev/workflow.md and docs/dev/workflows/impl-review-loop-design.md: the destination's source of truth is AGENTS.md and docs/dev/github-ops.md",
+      "gemini-cli-headless-delegation Skill and scripts/verify_acp_roundtrip.sh referenced by the Issue #2656 / #2670 specific exception sections of test-runner.md (inert here)",
+      "legacy repository Issue / comment numbers (#2656, #2670, #2892) kept as historical source text",
+      "`<!-- loop-protocol/human-history:v1:sha256:... -->` marker text in context-protocol-and-guardrails.md is a contract string kept verbatim"
+    ]
+  },
+  "supersedes": {
+    "docs/dev/i4-4c2-intake-capsule-manifest.json": "SKILL.md wording test restored: deferred_tests / deferred_source_tests / totals / expected_ran edited in place; the previous measurement is kept as historical_pre_d4 (and historical_pre_d1).",
+    "docs/dev/i4-4d1-preparation-step1-manifest.json": "c2_counts keeps the D1-time record; note_i_4_4d4 added. Tests re-pointed to C2 historical_pre_d4.",
+    "docs/dev/i4-4d2-step2-verification-manifest.json": "note_i_4_4d4 added; the SKILL.md / test-runner absence assertions are replaced by existence assertions in the D2 test.",
+    "docs/dev/i4-4d3-step4-step5-manifest.json": "note_i_4_4d4 added; the five stale absence assertions are replaced by existence assertions in the D3 test. unmigrated_references stays as the D3-time record."
+  },
+  "rollback": "Revert the single D4 PR: it removes the Skill, 3 Agents, 2 runbooks, 4 helper files, 3 source tests, the fixture, this manifest, the D4 closure test and CI lane, and restores the D1-D3 / C2 manifests, tests and CI pins (C2 117 ran / 2 deferred). No previously migrated file other than those edited manifests/tests/CI is modified.",
+  "handoff": {
+    "next": "D5 and later: implement-issue, open-pr, pr-review-judge (+ pr-reviewer-lite, hook file), body-only / mutation-adjacent helpers, the references directory, real SubAgent lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Re-run the deferred 3-consumer test then; then consider releasing the temporary disable-model-invocation."
+  },
+  "evidence_boundary": {
+    "kind": "static parity + real pytest on the migrated source tests + fake gh on PATH inside tmp_path",
+    "live_e2e": false,
+    "agent_dispatched": false,
+    "skill_production_invocable": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "github_live_operations": false,
+    "git_ref_mutation": false,
+    "hook_effective_protection": false
+  }
+}
