@@ -1048,14 +1048,8 @@ def main():
     else:
         output = json.dumps(output_dict, indent=2)
 
-    if args.output:
-        with open(args.output, "w") as f:
-            f.write(output)
-        print(f"Result written to {args.output}")
-    else:
-        print(output)
-
-    # Validate output against schema
+    # I-4-4D6 fail-closed: validate BEFORE anything is published. On a schema failure nothing is
+    # printed to stdout and --output is not written, so an unvalidated APPROVE never escapes.
     schema_path = Path(__file__).parent.parent / "references" / "pr-review-gate-result-schema.yml"
     validation_errors = validate_against_schema(output_dict, schema_path)
     if validation_errors:
@@ -1063,6 +1057,13 @@ def main():
         for err in validation_errors:
             print(f"  - {err}", file=sys.stderr)
         sys.exit(2)
+
+    if args.output:
+        with open(args.output, "w") as f:
+            f.write(output)
+        print(f"Result written to {args.output}")
+    else:
+        print(output)
 
     # Exit code based on verdict
     sys.exit(0 if checker.result.verdict == Verdict.APPROVE.value else 1)

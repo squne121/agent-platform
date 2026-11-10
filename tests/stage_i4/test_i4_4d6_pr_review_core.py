@@ -905,6 +905,78 @@ def test_ac3_missing_or_malformed_schema_never_silently_approves(tmp_path: Path)
     assert schema_fail_closed_problems(text, tmp_path) == []
 
 
+def _gates_cli(script: Path, tmp_path: Path, fmt: str, out: Path | None, body: str = GOOD_BODY):
+    art = tmp_path / "artifact.json"
+    art.write_text(json.dumps(GOOD_ARTIFACT), encoding="utf-8")
+    args = [sys.executable, "-I", str(script), "--rule", "all", "--format", fmt]
+    args += ["--ci-artifact", str(art), "--pr-body", body]
+    args += ["--pr-head-sha", "abc", "--local-head-sha", "abc"]
+    if out is not None:
+        args += ["--output", str(out)]
+    return subprocess.run(args, capture_output=True, text=True, check=False, timeout=120)
+
+
+def _layout_with_schema(tmp_path: Path, schema_text: str | None) -> Path:
+    layout = tmp_path / "layout"
+    (layout / "scripts").mkdir(parents=True, exist_ok=True)
+    (layout / "references").mkdir(exist_ok=True)
+    script = layout / "scripts" / "check_pr_review_gates.py"
+    script.write_text((ROOT / GATES).read_text(encoding="utf-8"), encoding="utf-8")
+    schema = layout / "references" / "pr-review-gate-result-schema.yml"
+    if schema_text is None:
+        return script
+    schema.write_text(schema_text, encoding="utf-8")
+    return script
+
+
+@pytest.mark.parametrize("fmt", ["json", "yaml"])
+@pytest.mark.parametrize("to_file", [False, True])
+def test_ac3_valid_schema_output_is_published_with_the_right_exit_code(
+    tmp_path: Path, fmt: str, to_file: bool
+) -> None:
+    for body, code, verdict in ((GOOD_BODY, 0, "APPROVE"), ("plain\n", 1, "REQUEST_CHANGES")):
+        out = tmp_path / f"out-{code}.{fmt}" if to_file else None
+        proc = _gates_cli(ROOT / GATES, tmp_path, fmt, out, body)
+        assert proc.returncode == code, proc.stderr
+        if out is None:
+            text = proc.stdout
+        else:
+            assert out.is_file()
+            assert proc.stdout.strip() == f"Result written to {out}"
+            text = out.read_text(encoding="utf-8")
+        data = json.loads(text) if fmt == "json" else __import__("yaml").safe_load(text)
+        assert data["verdict"] == verdict
+
+
+@pytest.mark.parametrize("fmt", ["json", "yaml"])
+@pytest.mark.parametrize("to_file", [False, True])
+@pytest.mark.parametrize(
+    "schema_text",
+    [None, "schema: [unclosed\n  : :", "foo: bar\n", "schema:\n  required: []\n"],
+    ids=["missing", "malformed", "no-schema-key", "empty-required"],
+)
+def test_ac3_invalid_schema_publishes_no_approval_on_stdout_or_file(
+    tmp_path: Path, fmt: str, to_file: bool, schema_text: str | None
+) -> None:
+    script = _layout_with_schema(tmp_path, schema_text)
+    out = tmp_path / f"approval.{fmt}" if to_file else None
+    proc = _gates_cli(script, tmp_path, fmt, out)
+    assert proc.returncode == 2
+    assert "fail-closed" in proc.stderr
+    assert "APPROVE" not in proc.stdout
+    assert proc.stdout.strip() == ""
+    if out is not None:
+        assert not out.exists()
+
+
+def test_ac3_invalid_schema_does_not_overwrite_a_previous_output_file(tmp_path: Path) -> None:
+    script = _layout_with_schema(tmp_path, "foo: bar\n")
+    out = tmp_path / "previous.json"
+    out.write_text("previous", encoding="utf-8")
+    assert _gates_cli(script, tmp_path, "json", out).returncode == 2
+    assert out.read_text(encoding="utf-8") == "previous"
+
+
 def test_ac3_required_ci_authority_stays_wait_ci_checks(manifest: dict[str, Any]) -> None:
     assert authority_problems(manifest, ROOT) == []
     assert "wait_ci_checks" in (ROOT / f"{SK}/SKILL.md").read_text(encoding="utf-8")

@@ -17,8 +17,8 @@
       "source_blob_sha1": "d6a1021f1d72b56862388608704a70fb36f7d8db",
       "source_sha256": "932f686a320775900145cb7b7387b98cea73c4f5abec5dfa07d4eecc125e9f4a",
       "source_lines": 1076,
-      "moved_sha256": "c8c6ce05bc264fa640d2d5a369fa128b205e137829c08277dadfb75e884489bc",
-      "moved_lines": 1072,
+      "moved_sha256": "02cfeee7cb367f2449b116d596a24fe5ad2cec4f7edc544169f0108fbae9c8ac",
+      "moved_lines": 1073,
       "verbatim": false,
       "intentional_diff": [
         {
@@ -26,6 +26,12 @@
           "source": "    try:\n        with open(schema_path) as f:\n            schema_doc = yaml.safe_load(f) if yaml else json.load(f)\n    except Exception:\n        schema_doc = {\n            \"schema\": {\n                \"required\": [\"schema_version\", \"generated_at\", \"generated_by\", \"verdict\", \"gates\"]\n            }\n        }\n\n    if \"schema\" not in schema_doc:\n        schema_doc = {\n            \"schema\": {\n                \"required\": [\"schema_version\", \"generated_at\", \"generated_by\", \"verdict\", \"gates\"]\n            }\n        }\n\n    schema = schema_doc[\"schema\"]\n",
           "what": "validate_against_schema: fail closed when the schema file is missing, unreadable, malformed, lacks a top-level `schema` mapping or an empty `required`",
           "reason": "the source silently fell back to a weaker built-in schema, so an APPROVE output exited 0 without being validated against the schema (reproduced with the real CLI: missing / malformed / no-schema-key all exit 0 APPROVE). Issue #99 AC3 permits this minimal fail-closed fix; no new schema is designed and the schema path is unchanged."
+        },
+        {
+          "moved": "    # I-4-4D6 fail-closed: validate BEFORE anything is published. On a schema failure nothing is\n    # printed to stdout and --output is not written, so an unvalidated APPROVE never escapes.\n    schema_path = Path(__file__).parent.parent / \"references\" / \"pr-review-gate-result-schema.yml\"\n    validation_errors = validate_against_schema(output_dict, schema_path)\n    if validation_errors:\n        print(\"Schema validation errors:\", file=sys.stderr)\n        for err in validation_errors:\n            print(f\"  - {err}\", file=sys.stderr)\n        sys.exit(2)\n\n    if args.output:\n        with open(args.output, \"w\") as f:\n            f.write(output)\n        print(f\"Result written to {args.output}\")\n    else:\n        print(output)\n\n",
+          "source": "    if args.output:\n        with open(args.output, \"w\") as f:\n            f.write(output)\n        print(f\"Result written to {args.output}\")\n    else:\n        print(output)\n\n    # Validate output against schema\n    schema_path = Path(__file__).parent.parent / \"references\" / \"pr-review-gate-result-schema.yml\"\n    validation_errors = validate_against_schema(output_dict, schema_path)\n    if validation_errors:\n        print(\"Schema validation errors:\", file=sys.stderr)\n        for err in validation_errors:\n            print(f\"  - {err}\", file=sys.stderr)\n        sys.exit(2)\n\n",
+          "what": "main: run validate_against_schema before any stdout print or --output write; on failure exit 2 with nothing on stdout and no output file",
+          "reason": "the source printed / wrote the result JSON first, so on a schema failure stdout and --output still carried verdict APPROVE while the exit code was 2. Only the order of the existing statements changes; the schema, the required-CI authority, the gate logic and the success-path output are unchanged."
         }
       ]
     },
@@ -134,11 +140,11 @@
   },
   "decisions": {
     "slice": "I-4-4D6: migrate the pr-review-judge CI evidence helper (ci_verdict_summary.py) and the deterministic gate runner (check_pr_review_gates.py) with their source tests, the six CI fixtures and the existing PR_REVIEW_GATE_RESULT_V1 schema. No wrapper, new schema or permanent gate is added; the existing runner scripts/ci/run_stage1b1_tests.py is reused.",
-    "schema_fix": "One necessary behaviour change: validate_against_schema fails closed (exit 2) when the schema cannot be trusted. The source fell back silently to a weaker built-in schema (reproduced: exit 0 / APPROVE with a missing, malformed or schema-less file). The schema file itself, its path and its keys are unchanged.",
+    "schema_fix": "Two necessary behaviour changes: (1) validate_against_schema fails closed (exit 2) when the schema cannot be trusted. The source fell back silently to a weaker built-in schema (reproduced: exit 0 / APPROVE with a missing, malformed or schema-less file). The schema file itself, its path and its keys are unchanged. (2) main() validates before it publishes: on a schema failure nothing is printed to stdout and --output is not written (exit 2); valid APPROVE (exit 0) and REQUEST_CHANGES (exit 1) output is unchanged.",
     "no_mutation": "Both scripts only read GitHub (gh pr view / gh api graphql query / gh run view --log) and write local artifacts. The closure test runs them against a fake gh that records every call and asserts there is no write form.",
     "skill_state": "pr-review-judge/SKILL.md and impl-review-loop/SKILL.md keep the temporary disable-model-invocation: true. This slice does not preload a Skill, dispatch pr-reviewer / pr-reviewer-lite or publish a verdict; passing source tests is not proof of production operation.",
     "monolithic_suite": "The source test_check_pr_review_gates.py imports the unmigrated generate_ci_test_selection_artifact.py and is NOT included. It is owned by the generator slice (see unmigrated_references). The migrated test_check_pr_review_gates_indeterminate.py plus the D6 closure real-CLI and real-schema cases cover the gate runner here; no source assertion is weakened.",
-    "stdout_vs_exit_code": "Residual (kept from the source, found by the independent review): main() prints / writes the result JSON before validate_against_schema runs, so on a schema failure stdout (and --output) can still show verdict APPROVE while the exit code is 2 (fail-closed). The exit code is authoritative; stdout or --output alone must never be trusted as an approval. Moving the validation before the output would widen the minimal fix allowed by Issue #99. Owner: D9 (real Reviewer wiring) must require exit code 0 in its consumer, or reorder validation before output."
+    "stdout_vs_exit_code": "Resolved in the D6 final-review fix (PR #100): main() now runs validate_against_schema before any stdout print or --output write. On a missing / malformed / invalid schema it exits 2 with empty stdout and no new --output file (JSON and YAML verified with the real CLI); valid APPROVE exits 0 and REQUEST_CHANGES exits 1 with the same output as before. The exit code is still the primary signal."
   },
   "authority": {
     "required_ci_evaluator": ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py",
@@ -198,7 +204,7 @@
   "lane_totals": {
     "note": "The D6 lane runs the 173 migrated source tests (167 + 6, 0 deferred) through the runner on this manifest, then the stage_i4 closure tests. closure_tests_ran is measured (pytest --co) for the D6 closure file only.",
     "source_ran": 173,
-    "closure_tests_ran": 43
+    "closure_tests_ran": 64
   },
   "d5_sync": {
     "d5_manifest": "docs/dev/i4-4d5-pr-review-consumers-manifest.json",
