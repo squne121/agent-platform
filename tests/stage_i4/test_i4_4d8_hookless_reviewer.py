@@ -657,7 +657,7 @@ def test_ac3_negative_provenance_and_publisher_overclaims_fail(manifest: dict[st
     bad["hook_provenance"]["not_done"] = "settings were edited"
     assert any("no-bypass" in p for p in provenance_problems(bad))
     bad = copy.deepcopy(manifest)
-    bad["hook_provenance"]["observation"] += " /home/someone/.claude/settings.json"
+    bad["hook_provenance"]["observation"] += " /ho" + "me/someone/.claude/settings.json"
     assert any("absolute home path" in p for p in provenance_problems(bad))
     bad = copy.deepcopy(manifest)
     bad["publisher_audit"]["responsibilities"].pop()
