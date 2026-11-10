@@ -550,7 +550,7 @@ def _handoff_consistency_error(body: str) -> str:
     name = "LOOP_HANDOFF_RESULT_V1"
     malformed = "handoff_marker_malformed"
     fences = list(re.finditer(
-        r"(?m)^[ \t]*(`{3,}|~{3,})yaml[ \t]*\n(.*?)\n\1[ \t]*(?:\n|$)", body, re.DOTALL
+        r"(?m)^[ \t]*(`{3,}|~{3,})[^\n]*\n(.*?)\n\1[ \t]*(?:\n|$)", body, re.DOTALL
     ))
     key_count = 0
     outside_parts = []
@@ -572,8 +572,22 @@ def _handoff_consistency_error(body: str) -> str:
             for token, following in pairwise(tokens)
         )
     outside_parts.append(body[cursor:])
-    if re.search(r"(?m)^[ \t]*[\"']?LOOP_HANDOFF_RESULT_V1[\"']?[ \t]*:", "\n".join(outside_parts)):
+    outside = "\n".join(outside_parts)
+    if re.search(r"(?m)^[ \t]*[\"']?LOOP_HANDOFF_RESULT_V1[\"']?[ \t]*:", outside):
         return malformed
+    # Raw mappings have no fence or language label and may be nested in a
+    # sequence or mapping. Scan lazily from each nonempty Markdown line so a
+    # preceding/trailing prose error cannot erase a structural claim.
+    for start in re.finditer(r"(?m)^[ \t]*(?=\S)", outside):
+        try:
+            if any(
+                isinstance(token, yaml.tokens.ScalarToken) and token.value == name
+                and isinstance(following, yaml.tokens.ValueToken)
+                for token, following in pairwise(yaml.scan(outside[start.start():]))
+            ):
+                return malformed
+        except yaml.YAMLError:
+            continue
     comments = [match for match in re.finditer(
         r"<!--(?:(?!-->).)*\bLOOP_HANDOFF_RESULT_V1\b(?:(?!-->).)*(?:-->|$)", body, re.DOTALL
     ) if not any(fence.start() <= match.start() < fence.end() for fence in fences)]

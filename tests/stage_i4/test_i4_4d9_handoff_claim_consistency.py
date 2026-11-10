@@ -466,6 +466,65 @@ def test_ac2_fix_delta1_flow_claim_and_unrelated_flow_yaml_are_legal(cli):
     assert not (root / "mutation.txt").exists()
 
 
+@pytest.mark.parametrize("framing", ["yml", "YAML", "", "raw"])
+@pytest.mark.parametrize("quoted", [False, True])
+@pytest.mark.parametrize("layout", ["flow", "multiline_flow", "block", "sequence", "wrapped"])
+def test_ac1_fix_delta2_claim_framing_before_executor(cli, framing, quoted, layout):
+    name = '"LOOP_HANDOFF_RESULT_V1"' if quoted else "LOOP_HANDOFF_RESULT_V1"
+    value = "{status: refinement_approved, metadata: {title_prefix_ready: false}, auto_fixes: {required: [{result: skipped}]}}"
+    second = {
+        "flow": "{" + name + ": " + value + "}",
+        "multiline_flow": "{\n  " + name + ": " + value + "\n}",
+        "block": name + ": " + value,
+        "sequence": "- {" + name + ": " + value + "}",
+        "wrapped": "audit: {" + name + ": " + value + "}",
+    }[layout]
+    extra = second if framing == "raw" else "```" + framing + "\n" + second + "\n```"
+    assert_rejected(cli, body(approved()) + "\n" + extra + "\n")
+
+
+@pytest.mark.parametrize("framing", ["yml", "YAML", "", "raw"])
+@pytest.mark.parametrize(
+    "content",
+    [
+        "{note: unrelated}",
+        '{before: "LOOP_HANDOFF_RESULT_V1: broken old marker"}',
+        "before: |\n  LOOP_HANDOFF_RESULT_V1 is an audit marker, not authority",
+    ],
+)
+def test_ac2_fix_delta2_nonclaim_framing_still_publishes(cli, framing, content):
+    extra = content if framing == "raw" else "```" + framing + "\n" + content + "\n```"
+    text = body(approved()) + "\n" + extra + "\n"
+    proc, root = cli(text)
+    assert proc.returncode == 0, proc.stderr
+    assert (root / "mutation.txt").is_file()
+    assert json.loads((root / "executor.json").read_text())["payload"]["comment_body"].startswith(
+        text
+    )
+
+
+@pytest.mark.parametrize("field", ["before", "after"])
+@pytest.mark.parametrize(
+    "literal",
+    [
+        "{LOOP_HANDOFF_RESULT_V1: {metadata: {title_prefix_ready: false}}}",
+        '{"LOOP_HANDOFF_RESULT_V1": {auto_fixes: {required: [{result: skipped}]}}}',
+    ],
+)
+def test_ac2_fix_delta2_scalar_evidence_still_publishes(cli, field, literal):
+    claim = approved()
+    claim["auto_fixes"]["required"] = [repair()]
+    original = "missing" if field == "before" else "repaired"
+    text = body(claim).replace(field + ": " + original, field + ": |\n          " + literal)
+    assert field + ": |" in text
+    proc, root = cli(text)
+    assert proc.returncode == 0, proc.stderr
+    assert (root / "mutation.txt").is_file()
+    assert json.loads((root / "executor.json").read_text())["payload"]["comment_body"].startswith(
+        text
+    )
+
+
 @pytest.fixture
 def pub():
     """Load the production module for the two tests moved from the source lane."""
