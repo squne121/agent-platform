@@ -1,0 +1,297 @@
+{
+  "schema": "I4_4D7_OPEN_PR_REFERENCE_EVALUATOR_MANIFEST_V1",
+  "issue": "squne121/agent-platform#101",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "6e6effdb457270f1c66c51817e2be93aae17c73e",
+    "note": "D6 merge commit (PR #100)"
+  },
+  "documents": {
+    ".claude/skills/open-pr/scripts/validate_pr_body.py": {
+      "source_blob_sha1": "9ab611caea3b006132d53782d08670ee978bf923",
+      "source_sha256": "e5bb8d80695e56d4d4af87006bdc42fc9cb3ab028eb26028440a8868f3892071",
+      "source_lines": 1544,
+      "moved_sha256": "e5bb8d80695e56d4d4af87006bdc42fc9cb3ab028eb26028440a8868f3892071",
+      "moved_lines": 1544,
+      "verbatim": true,
+      "intentional_diff": []
+    }
+  },
+  "decisions": {
+    "slice": "I-4-4D7: migrate the single open-pr reference evaluator validate_pr_body.py byte-for-byte (no legacy adaptation was necessary) and verify its two pure CLI entry points (--evaluate-reference-policy, --evaluate-native-auto-close-risk) through the real Python CLI with temporary body / facts files. No wrapper, new schema or permanent gate is added; the existing runner scripts/ci/run_stage1b1_tests.py is reused.",
+    "scope_limit": "Only the pure evaluator moved. open-pr SKILL.md, open_pr.py / update_pr.py, the PR template, the normal PR body lint entry (it depends on unmigrated artifacts) and the full source test_validate_pr_body.py stay unmigrated and are not claimed as working or as run.",
+    "no_github_io": "The evaluator performs no GitHub I/O; the closure feeds it fixtures only. It cannot close an Issue, change a closing relation or merge anything.",
+    "time_bound": "A clear native result is time-bound: a human can change the final squash message or the closing relation afterwards, so the merge-time caller must re-run the check (fresh recheck) or merge the verified message unchanged (adopted_message_sha256). That recheck is a later runtime owner and was not run live here."
+  },
+  "exit_code_contract": {
+    "rule": "The source CLI exits 0 for EVERY structured result, including fail_closed, body_verdict block / repair and native blocked / fail_closed. The exit code is a JSON transport status, not an allow decision. Only an unreadable --body-file exits 2 with empty stdout. Consumers must read the JSON.",
+    "structured_fields": [
+      "decision",
+      "body_verdict",
+      "status",
+      "reason_code"
+    ],
+    "reference_policy_fields": [
+      "decision",
+      "level",
+      "reason_code",
+      "repo",
+      "issue_number",
+      "pr_number",
+      "pr_body_sha256",
+      "effective_kind",
+      "body_verdict",
+      "body_reason"
+    ],
+    "native_fields": [
+      "status",
+      "reason_code",
+      "decision",
+      "level",
+      "repo",
+      "issue_number",
+      "pr_number",
+      "adopted_message_sha256",
+      "findings"
+    ],
+    "negative_control": "naive_exit_code_consumer accepts every blocked / fail_closed / repair result; strict consumers accept only body_verdict valid under a non-fail_closed decision and native status clear."
+  },
+  "source_test_scope": {
+    "source_test_path": ".claude/skills/open-pr/scripts/tests/test_validate_pr_body.py (read-only at the source tag; not migrated)",
+    "source_test_blob_sha1": "61592bd77da739f172aa87836b403c2dbc522d08",
+    "full_source_suite_migrated": false,
+    "full_source_suite_counted_as_run": false,
+    "note": "The D7 closure re-expresses the source reference-policy and native decision matrices as real CLI tests with no expectation weakened. The source test bodies and assertions are untouched at the source. The monolithic source suite is not claimed as run.",
+    "mapped_source_tests": [
+      {
+        "source_test": "test_given_reference_policy_matrix_when_validated_then_accept_or_reject",
+        "d7_tests": "test_ac2_reference_policy_matrix_through_the_real_cli",
+        "note": "every matrix row (A1 / A2 / A3 / CLOSED, Closes / Refs, keywords, other issue / repository, fence / quote, unresolved applicability, A1 invalid / ambiguous); the LP057 lint half of the source test needs the unmigrated lint fixtures and is not covered"
+      },
+      {
+        "source_test": "test_given_reference_facts_wire_when_evaluated_then_exact_keys_and_body_bytes_hash",
+        "d7_tests": "test_ac2_wire_keys_body_bytes_hash_and_binding",
+        "note": "exact keys, body bytes sha256 binding, stop is exit 0"
+      },
+      {
+        "source_test": "test_given_reference_facts_wire_when_evaluated_then_exact_keys_and_body_bytes_hash",
+        "d7_tests": "test_ac2_unreadable_body_is_the_only_exit_two",
+        "note": "unreadable body is exit 2"
+      },
+      {
+        "source_test": "test_given_malformed_reference_facts_when_evaluated_then_facts_invalid",
+        "d7_tests": "test_ac2_malformed_authority_facts_are_a_structured_stop",
+        "note": "21 malformed facts shapes"
+      },
+      {
+        "source_test": "test_given_non_json_facts_file_when_evaluated_then_facts_invalid",
+        "d7_tests": "test_ac2_non_json_facts_file_is_facts_invalid",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_valid_refs_without_native_close_path_when_checked_then_clear_with_adopted_message_hash",
+        "d7_tests": "test_ac3_clear_with_a_bound_adopted_message_hash",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_native_relation_to_target_when_a1_or_a2_then_blocked_even_though_body_is_valid_refs",
+        "d7_tests": "test_ac3_manual_relation_blocks_even_though_the_body_is_valid_refs",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_unrelated_native_relation_or_keyword_when_checked_then_target_is_not_blocked",
+        "d7_tests": "test_ac3_unrelated_relation_or_keyword_does_not_block_the_target",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_effective_squash_message_with_target_keyword_when_checked_then_blocked",
+        "d7_tests": "test_ac3_effective_squash_message_keyword_blocks",
+        "note": "9 keywords x 3 target grammars"
+      },
+      {
+        "source_test": "test_given_squash_settings_when_checked_then_only_the_adopted_text_is_inspected",
+        "d7_tests": "test_ac3_only_the_adopted_squash_text_is_inspected",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_final_squash_message_when_checked_then_it_overrides_the_settings_derivation",
+        "d7_tests": "test_ac3_final_squash_message_overrides_the_settings_derivation",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_live_merge_settings_when_checked_then_methods_are_not_hardcoded",
+        "d7_tests": "test_ac3_merge_method_differences_use_the_live_settings",
+        "note": "merge / squash / rebase"
+      },
+      {
+        "source_test": "test_given_malformed_native_facts_when_checked_then_structured_fail_closed_not_exception",
+        "d7_tests": "test_ac3_malformed_or_incomplete_native_facts_fail_closed",
+        "note": "26 malformed or incomplete shapes"
+      },
+      {
+        "source_test": "test_given_lane_without_open_promise_when_checked_then_not_applicable_or_fail_closed_policy_passes_through",
+        "d7_tests": "test_ac3_lanes_without_an_open_promise_and_policy_pass_through",
+        "note": ""
+      },
+      {
+        "source_test": "test_given_native_facts_file_when_cli_runs_then_json_with_exit_zero_for_every_status",
+        "d7_tests": "test_ac3_cli_prints_json_with_exit_zero_for_every_status",
+        "note": ""
+      }
+    ],
+    "not_covered_source_tests": [
+      {
+        "source_test": "test_given_reference_policy_facts_not_supplied_when_validated_then_legacy_lp057_is_unchanged",
+        "reason": "drives the normal PR body lint (LP057) with the unmigrated lint fixtures valid_not_schema_change.md / non_safety_paths.txt",
+        "owner": "D8 or later: open-pr PR template and body lint slice",
+        "rerun_condition": "migrate the lint fixtures and the full source suite unweakened"
+      },
+      {
+        "source_test": "test_given_facts_without_evaluate_flag_when_linted_then_lp057_follows_the_evaluator",
+        "reason": "same: normal lint entry with unmigrated fixtures",
+        "owner": "D8 or later: open-pr PR template and body lint slice",
+        "rerun_condition": "migrate the lint fixtures and the full source suite unweakened"
+      },
+      {
+        "source_test": "test_ac9_pull_request_template_projects_all_required_sections",
+        "reason": "depends on the unmigrated .github/pull_request_template.md, which would change the initial body of new PRs to the old game pnpm template",
+        "owner": "D8 or later: open-pr PR template slice",
+        "rerun_condition": "decide the PR template for this repository, then run the source test unweakened"
+      },
+      {
+        "source_test": "all remaining PR body lint / safety claims / schema decision tests of test_validate_pr_body.py",
+        "reason": "the normal lint entry depends on other unmigrated artifacts; not claimed to work or to be run",
+        "owner": "D8 or later: open-pr slice",
+        "rerun_condition": "migrate open-pr with its fixtures and run the full source suite unchanged"
+      }
+    ]
+  },
+  "earlier_slice_sync": {
+    "d3_d4_d5_d6_tests": "The open-pr directory absence assertions of the D3 / D4 / D5 / D6 closure tests are narrowed to open-pr/SKILL.md, scripts/open_pr.py and scripts/update_pr.py (still absent); D3 additionally asserts validate_pr_body.py now exists. No assertion is removed.",
+    "d5_manifest": "unmigrated_references.hard_dependencies open-pr entry rewritten; the previous entry is kept as historical_pre_d7 and the migration is noted as migrated_by_d7. Totals untouched.",
+    "d6_manifest": "same as D5, plus handoff.note_i_4_4d7. Totals untouched.",
+    "d5_totals_kept": {
+      "collected": 108,
+      "ran": 108,
+      "deferred": 0
+    },
+    "d6_totals_kept": {
+      "collected": 173,
+      "ran": 173,
+      "deferred": 0
+    },
+    "c2_residual": {
+      "ran": 118,
+      "deferred": 1,
+      "note": "C2 live canary stays deferred"
+    }
+  },
+  "test_files": [
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py"
+  ],
+  "required_files": [
+    ".claude/skills/open-pr/scripts/validate_pr_body.py",
+    ".claude/skills/create-issue/scripts/prose_boundary_policy.py",
+    ".claude/skills/pr-review-judge/SKILL.md",
+    ".claude/skills/impl-review-loop/steps/step-5-feedback-and-termination.md"
+  ],
+  "required_fixtures": [],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 194,
+    "deferred": 0,
+    "ran": 194,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "lane_totals": {
+    "note": "The D7 lane runs the D7 closure file through the runner on this manifest (collected == ran, 0 deferred), then every stage_i4 closure test. No source test is migrated, so no source count is added; the migrated script is exercised only through these real CLI tests.",
+    "closure_tests_ran": 194,
+    "source_tests_migrated": 0
+  },
+  "unmigrated_references": {
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/open-pr/SKILL.md, scripts/open_pr.py, scripts/update_pr.py (PR publisher / updater)",
+        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
+        "reason": "D7 is the pure evaluator only; PR creation / edit is a mutation path that D7 does not enable",
+        "rerun_condition": "confirm PR publication permission, then migrate with their source tests unweakened"
+      },
+      {
+        "reference": ".github/pull_request_template.md",
+        "owner": "D8 or later: open-pr PR template slice",
+        "reason": "adding it would change the initial body of new PRs to the old game pnpm template",
+        "rerun_condition": "decide the template for this repository, then migrate"
+      },
+      {
+        "reference": ".claude/skills/open-pr/scripts/tests/test_validate_pr_body.py (monolithic source suite) and its lint fixtures",
+        "owner": "D8 or later: open-pr slice (see source_test_scope.not_covered_source_tests)",
+        "reason": "mixes the PR body lint, safety / schema checks, the PR template and the legacy fixtures; the normal lint entry depends on unmigrated artifacts",
+        "rerun_condition": "migrate the fixtures and the template, then run the full source suite unchanged next to the D7 closure"
+      },
+      {
+        "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json / secret_boundary_guard.sh",
+        "owner": "D8: Reviewer hook and permission boundary slice",
+        "reason": "the hook layer is not migrated; the read-only boundary rests on tools / disallowedTools only",
+        "rerun_condition": "migrate the hook with negative controls and verify it live"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary_v2.py, generate_ci_test_selection_artifact.py, wait_pr_checks.py and the monolithic test_check_pr_review_gates.py",
+        "owner": "D8 or later: see docs/dev/i4-4d6-pr-review-core-manifest.json unmigrated_references (per-file owner / reason / rerun_condition)",
+        "reason": "unchanged by D7",
+        "rerun_condition": "as recorded by D6"
+      },
+      {
+        "reference": "real Reviewer Skill preload / SubAgent dispatch, trusted verdict comment publish, Final Gate, LOOP_HANDOFF_RESULT_V1 wiring, live reference / native recheck at merge time",
+        "owner": "D9 or later: runtime wiring and live acceptance",
+        "reason": "D7 verifies the pure evaluator only; pr-review-judge and impl-review-loop stay disable-model-invocation: true",
+        "rerun_condition": "release the temporary disable only when the real path is wired and verified live"
+      }
+    ],
+    "note": "Missing files are classified with owner / reason / rerun_condition; no empty stub stands in for them."
+  },
+  "supersedes": {
+    "tests/stage_i4/test_i4_4d3_step4_step5.py": "the open-pr directory absence assertion is narrowed to SKILL.md / open_pr.py / update_pr.py; validate_pr_body.py existence is asserted",
+    "tests/stage_i4/test_i4_4d4_skill_agents_readonly.py": "reference_problems absence list narrowed the same way",
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py": "STILL_ABSENT narrowed the same way",
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py": "STILL_ABSENT narrowed the same way",
+    "docs/dev/i4-4d5-pr-review-consumers-manifest.json": "open-pr hard dependency rewritten; previous record kept as historical_pre_d7; migrated_by_d7 added",
+    "docs/dev/i4-4d6-pr-review-core-manifest.json": "open-pr hard dependency rewritten; previous record kept as historical_pre_d7; migrated_by_d7 and handoff.note_i_4_4d7 added"
+  },
+  "rollback": "Revert the single D7 PR: it removes validate_pr_body.py, the D7 closure test, this manifest and the D7 CI lane, and restores the D3 / D4 / D5 / D6 absence assertions and the D5 / D6 manifest records to the D6 merge state. No Skill, Agent or other previously migrated file is modified.",
+  "handoff": {
+    "next": "D8: open-pr Skill / PR publisher (after confirming PR publication permission), the PR template and the full source lint suite; pr_reviewer_guard.py and the Reviewer hook; CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, merge-time fresh native recheck, Final Gate, live E2E; release disable-model-invocation only then."
+  },
+  "evidence_boundary": {
+    "kind": "static source parity + real Python CLI runs over temporary body / facts files (pure evaluator, no network, no gh)",
+    "live_e2e": false,
+    "agent_dispatched": false,
+    "skill_production_invocable": false,
+    "skill_preload_effective": false,
+    "verdict_published": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "github_live_operations": false,
+    "github_mutation_by_evaluator": false,
+    "git_ref_mutation": false,
+    "open_pr_skill_enabled": false,
+    "pr_publisher_enabled": false,
+    "closing_relation_mutated": false,
+    "full_source_suite_run": false,
+    "disable_model_invocation_released": false
+  }
+}

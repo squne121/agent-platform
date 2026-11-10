@@ -294,10 +294,10 @@
         "rerun_condition": "migrate each remaining script with its source tests (unweakened) per the D6 manifest, then run test_pr_reviewer_skill_contract_drift.py and release the temporary disable-model-invocation"
       },
       {
-        "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
-        "owner": "I-4-4D open-pr slice",
-        "reason": "the Skill delegates the Closes / Refs decision to this single evaluator",
-        "rerun_condition": "migrate open-pr and its evaluator tests"
+        "reference": ".claude/skills/open-pr/SKILL.md and scripts/open_pr.py / update_pr.py (validate_pr_body.py was migrated by I-4-4D7)",
+        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
+        "reason": "only the pure reference evaluator landed in D7; the Skill entrypoint, the PR publisher / updater, the PR template and the full source test_validate_pr_body.py are still unmigrated",
+        "rerun_condition": "migrate open-pr SKILL.md, open_pr.py, update_pr.py, the PR template and the full source test_validate_pr_body.py (unweakened) with PR publication permission confirmed; D7 does not enable any of them"
       },
       {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared by pr-reviewer.md)",
@@ -368,5 +368,23 @@
       ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml"
     ],
     "note": "The D5 totals (108 collected / 108 ran / 0 deferred) are unchanged. The D6 lane runs 173 further source tests."
+  },
+  "historical_pre_d7": {
+    "note": "Measured before I-4-4D7 (#101) migrated .claude/skills/open-pr/scripts/validate_pr_body.py. Kept as history; never the current value.",
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
+        "owner": "I-4-4D open-pr slice",
+        "reason": "the Skill delegates the Closes / Refs decision to this single evaluator",
+        "rerun_condition": "migrate open-pr and its evaluator tests"
+      }
+    ]
+  },
+  "migrated_by_d7": {
+    "files": [
+      ".claude/skills/open-pr/scripts/validate_pr_body.py"
+    ],
+    "manifest": "docs/dev/i4-4d7-open-pr-reference-evaluator-manifest.json",
+    "note": "Only the pure reference / native auto-close risk evaluator was migrated. open-pr SKILL.md, the publisher, the PR template and the full source test suite remain unmigrated; no Skill / Agent was enabled."
   }
 }

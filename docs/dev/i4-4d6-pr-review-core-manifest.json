@@ -242,10 +242,10 @@
         "rerun_condition": "after the generator lands, run it unchanged next to test_check_pr_review_gates_indeterminate.py"
       },
       {
-        "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
-        "owner": "D7: open-pr reference evaluator slice",
-        "reason": "the Skill delegates the Closes / Refs decision to this single evaluator; the reviewer must use its result and not duplicate the grammar",
-        "rerun_condition": "migrate open-pr and its evaluator tests (blob 9ab611caea3b006132d53782d08670ee978bf923)"
+        "reference": ".claude/skills/open-pr/SKILL.md and scripts/open_pr.py / update_pr.py (validate_pr_body.py was migrated by I-4-4D7)",
+        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
+        "reason": "only the pure reference evaluator landed in D7; the Skill entrypoint, the PR publisher / updater, the PR template and the full source test_validate_pr_body.py are still unmigrated",
+        "rerun_condition": "migrate open-pr SKILL.md, open_pr.py, update_pr.py, the PR template and the full source test_validate_pr_body.py (unweakened) with PR publication permission confirmed; D7 does not enable any of them"
       },
       {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json / secret_boundary_guard.sh",
@@ -268,7 +268,8 @@
   },
   "rollback": "Revert the single D6 PR: it removes the two scripts, the two source test modules, the six fixtures, the schema, this manifest, the D6 closure test and CI lane, and restores the D5 manifest, test and CI to the D5 merge state (108 collected / 108 ran / 0 deferred). No Skill, Agent or previously migrated file other than those edited D5 sync files is modified.",
   "handoff": {
-    "next": "D7: open-pr validate_pr_body.py reference evaluator (the reviewer consumes its single result and does not copy the Closes / Refs grammar). D8: pr_reviewer_guard.py and the Reviewer hook, plus the pr-reviewer-lite docs-only allow-list improvement before real use. D7-D8 also decide the CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, Final Gate, live E2E; release disable-model-invocation only then."
+    "next": "D7: open-pr validate_pr_body.py reference evaluator (the reviewer consumes its single result and does not copy the Closes / Refs grammar). D8: pr_reviewer_guard.py and the Reviewer hook, plus the pr-reviewer-lite docs-only allow-list improvement before real use. D7-D8 also decide the CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, Final Gate, live E2E; release disable-model-invocation only then.",
+    "note_i_4_4d7": "I-4-4D7 (#101) migrated open-pr/scripts/validate_pr_body.py (the single reference evaluator). The D6 handoff text above is the D6-time record; the open-pr Skill / publisher stay for D8 or later."
   },
   "evidence_boundary": {
     "kind": "static parity + real pytest on the migrated source tests + real CLI against a fake gh on PATH inside tmp_path (read-only)",
@@ -287,5 +288,23 @@
     "ci_v2_or_generator_wired": false,
     "reviewer_hook_wired": false,
     "disable_model_invocation_released": false
+  },
+  "historical_pre_d7": {
+    "note": "Measured before I-4-4D7 (#101) migrated .claude/skills/open-pr/scripts/validate_pr_body.py. Kept as history; never the current value.",
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
+        "owner": "D7: open-pr reference evaluator slice",
+        "reason": "the Skill delegates the Closes / Refs decision to this single evaluator; the reviewer must use its result and not duplicate the grammar",
+        "rerun_condition": "migrate open-pr and its evaluator tests (blob 9ab611caea3b006132d53782d08670ee978bf923)"
+      }
+    ]
+  },
+  "migrated_by_d7": {
+    "files": [
+      ".claude/skills/open-pr/scripts/validate_pr_body.py"
+    ],
+    "manifest": "docs/dev/i4-4d7-open-pr-reference-evaluator-manifest.json",
+    "note": "Only the pure reference / native auto-close risk evaluator was migrated. open-pr SKILL.md, the publisher, the PR template and the full source test suite remain unmigrated; no Skill / Agent was enabled."
   }
 }
