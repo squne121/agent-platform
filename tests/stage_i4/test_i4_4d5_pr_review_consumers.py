@@ -47,9 +47,10 @@ ISSUE_SOURCE_BLOBS = {
 }
 EDITING_TOOLS = {"Edit", "Write", "MultiEdit"}
 # Not migrated in D5: they stay absent (no empty stub) and keep an owner in the manifest.
+# ci_verdict_summary.py and check_pr_review_gates.py left this list when I-4-4D6 (#99) migrated
+# them (their pre-D6 record is kept in the manifest as historical_pre_d6).
 STILL_ABSENT = (
-    f"{SK}/scripts/ci_verdict_summary.py",
-    f"{SK}/scripts/check_pr_review_gates.py",
+    f"{SK}/scripts/ci_verdict_summary_v2.py",
     ".claude/skills/open-pr",
     ".claude/skills/implement-issue",
     ".claude/hooks/pr_reviewer_guard.py",
@@ -137,7 +138,8 @@ def reference_map_problems(m: dict[str, Any], root: Path) -> list[str]:
         problems.append(f"Reference Loading Map no longer names: {sorted(migrated - named)}")
     refs_dir = root / SK / "references"
     present = {f.name for f in refs_dir.iterdir()} if refs_dir.is_dir() else set()
-    for name in sorted(present - migrated):
+    # I-4-4D6 migrated the result schema (it is not a Reference Loading Map document).
+    for name in sorted(present - migrated - {"pr-review-gate-result-schema.yml"}):
         problems.append(f"unrecorded reference present: {name}")
     return problems
 
@@ -296,7 +298,7 @@ def dependency_problems(m: dict[str, Any], root: Path) -> list[str]:
             if not e.get(key):
                 problems.append(f"unmigrated dependency without {key}: {e.get('reference')}")
     text = "\n".join(e["reference"] for e in deps)
-    for needed in ("ci_verdict_summary.py", "open-pr", "pr_reviewer_guard.py", "contract_drift"):
+    for needed in ("ci_verdict_summary_v2.py", "open-pr", "pr_reviewer_guard.py", "contract_drift"):
         if needed not in text:
             problems.append(f"unmigrated dependency not recorded: {needed}")
     for absent in STILL_ABSENT:
@@ -604,7 +606,7 @@ def test_ac4_dependency_and_boundary_tampering_are_detected(
         "hard_dependencies"
     ][:1]
     assert any("not recorded" in p for p in dependency_problems(forgotten, ROOT))
-    for rel in (f"{SK}/scripts/ci_verdict_summary.py", ".claude/hooks/pr_reviewer_guard.py"):
+    for rel in (f"{SK}/scripts/ci_verdict_summary_v2.py", ".claude/hooks/pr_reviewer_guard.py"):
         fake = tmp_path / rel
         fake.parent.mkdir(parents=True, exist_ok=True)
         fake.write_text("# empty stub\n", encoding="utf-8")

@@ -1,0 +1,284 @@
+{
+  "schema": "I4_4D6_PR_REVIEW_CORE_MANIFEST_V1",
+  "issue": "squne121/agent-platform#99",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "6ad63e0ae8a59eba0ec93b94b2b18934a050ab5f",
+    "note": "D5 merge commit (PR #98)"
+  },
+  "documents": {
+    ".claude/skills/pr-review-judge/scripts/check_pr_review_gates.py": {
+      "source_blob_sha1": "d6a1021f1d72b56862388608704a70fb36f7d8db",
+      "source_sha256": "932f686a320775900145cb7b7387b98cea73c4f5abec5dfa07d4eecc125e9f4a",
+      "source_lines": 1076,
+      "moved_sha256": "c8c6ce05bc264fa640d2d5a369fa128b205e137829c08277dadfb75e884489bc",
+      "moved_lines": 1072,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "    # I-4-4D6 fail-closed: a missing / unreadable / malformed schema must never fall back to a\n    # weaker built-in schema (the source fell back silently, so APPROVE could exit 0 unvalidated).\n    try:\n        with open(schema_path) as f:\n            schema_doc = yaml.safe_load(f) if yaml else json.load(f)\n    except Exception as exc:\n        return [f\"Schema unavailable (fail-closed): {schema_path}: {type(exc).__name__}\"]\n\n    if not isinstance(schema_doc, dict) or not isinstance(schema_doc.get(\"schema\"), dict):\n        return [f\"Schema malformed (fail-closed): no top-level 'schema' mapping in {schema_path}\"]\n\n    schema = schema_doc[\"schema\"]\n    if not schema.get(\"required\"):\n        return [f\"Schema malformed (fail-closed): empty 'required' in {schema_path}\"]\n",
+          "source": "    try:\n        with open(schema_path) as f:\n            schema_doc = yaml.safe_load(f) if yaml else json.load(f)\n    except Exception:\n        schema_doc = {\n            \"schema\": {\n                \"required\": [\"schema_version\", \"generated_at\", \"generated_by\", \"verdict\", \"gates\"]\n            }\n        }\n\n    if \"schema\" not in schema_doc:\n        schema_doc = {\n            \"schema\": {\n                \"required\": [\"schema_version\", \"generated_at\", \"generated_by\", \"verdict\", \"gates\"]\n            }\n        }\n\n    schema = schema_doc[\"schema\"]\n",
+          "what": "validate_against_schema: fail closed when the schema file is missing, unreadable, malformed, lacks a top-level `schema` mapping or an empty `required`",
+          "reason": "the source silently fell back to a weaker built-in schema, so an APPROVE output exited 0 without being validated against the schema (reproduced with the real CLI: missing / malformed / no-schema-key all exit 0 APPROVE). Issue #99 AC3 permits this minimal fail-closed fix; no new schema is designed and the schema path is unchanged."
+        }
+      ]
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/test_ci_verdict_summary.py": {
+      "source_blob_sha1": "7b31b08bb3ab975ea41398f211e8e761ce5bd177",
+      "source_sha256": "e34b7c3ab792bc1ffaad86da025acca5e9399265f1b6649f095205b7cf52f342",
+      "source_lines": 2326,
+      "moved_sha256": "3b37f327954bdd5ef9b307f8ada97f5e571952587a6958f36a2d503d6dd617a3",
+      "moved_lines": 2326,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "https://github.com/owner/repo/actions/runs/29290822289/job/86953783527",
+          "source": "https://github.com/squne121/loop-protocol/actions/runs/29290822289/job/86953783527",
+          "what": "golden fixture detailsUrl: legacy repository slug -> owner/repo",
+          "reason": "check_no_functional_slug.py forbids the legacy repository identity in .py files. Only the URL host path changes; the run / job IDs, the parsed databaseId, event, head SHA and every assertion are unchanged (the slug is never read by an assertion)."
+        },
+        {
+          "moved": "https://github.com/owner/repo/actions/runs/29291421456/job/86955636256",
+          "source": "https://github.com/squne121/loop-protocol/actions/runs/29291421456/job/86955636256",
+          "what": "golden fixture detailsUrl: legacy repository slug -> owner/repo",
+          "reason": "check_no_functional_slug.py forbids the legacy repository identity in .py files. Only the URL host path changes; the run / job IDs, the parsed databaseId, event, head SHA and every assertion are unchanged (the slug is never read by an assertion)."
+        },
+        {
+          "moved": "fetch_checks(1505, \"owner/repo\")",
+          "source": "fetch_checks(1505, \"squne121/loop-protocol\")",
+          "what": "fetch_checks repo argument: legacy slug -> owner/repo",
+          "reason": "the argument only feeds the owner/name split for the mocked run_gh call; no assertion depends on the slug (same no-functional-slug reason)."
+        }
+      ]
+    },
+    ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml": {
+      "source_blob_sha1": "97dbc6ba9105ac4c78ee3b4cec1826edd3b1a709",
+      "source_sha256": "9b5d16f400c627cec0b9dd28976e4787f5630dbb96f6ec30c6f09e9da681eb40",
+      "source_lines": 173,
+      "moved_sha256": "efb25b13c759aed1ceea4587bfc4308476e6e115e9ea27e31784ddf85513a61a",
+      "moved_lines": 173,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "https://github.com/owner/repo/actions/runs/123456",
+          "source": "https://github.com/squne121/loop-protocol/actions/runs/123456",
+          "what": "schema description example ci_run_ref.url: legacy slug -> owner/repo",
+          "reason": "documentation example inside a .yml scanned as text by check_no_functional_slug.py; the schema keys, enums, required list and types are unchanged."
+        }
+      ]
+    }
+  },
+  "verbatim_files": {
+    ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py": {
+      "source_blob_sha1": "6d03dbccbfbac44756435542ff0f6db5ea2a2d4d",
+      "source_sha256": "875afb270a13df206b7636ddf395f422232ca5df3438318dbbfb90f828e44bda",
+      "moved_sha256": "875afb270a13df206b7636ddf395f422232ca5df3438318dbbfb90f828e44bda",
+      "moved_lines": 911,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/test_check_pr_review_gates_indeterminate.py": {
+      "source_blob_sha1": "7ea668da901c81a9bad0e89f58bcfd9686b535c7",
+      "source_sha256": "18464b5c0efd193b0d1a95dcfb3fab5f77da2b5d1d2bfa1bb2513093334ce75d",
+      "moved_sha256": "18464b5c0efd193b0d1a95dcfb3fab5f77da2b5d1d2bfa1bb2513093334ce75d",
+      "moved_lines": 96,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_all_pass.json": {
+      "source_blob_sha1": "6fe7c286a816d4bb5ac7317bb3447a91cd0b63fe",
+      "source_sha256": "897676b54d2859d30129693e0e1b4777acc0bbc25e6cdea688002bbd11b25a11",
+      "moved_sha256": "897676b54d2859d30129693e0e1b4777acc0bbc25e6cdea688002bbd11b25a11",
+      "moved_lines": 22,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_ambiguous.json": {
+      "source_blob_sha1": "58fd76f82ea1312e394f83bf49b08173bb669388",
+      "source_sha256": "a846787595495badfdff21d0ab42f52a65855ef146e79ef144d144c4ab5e6293",
+      "moved_sha256": "a846787595495badfdff21d0ab42f52a65855ef146e79ef144d144c4ab5e6293",
+      "moved_lines": 22,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_failed.json": {
+      "source_blob_sha1": "b4588b02d966e9d3ed64cc141acec4141bb7c2bf",
+      "source_sha256": "b21735a0aa376b0db8784da468d47e123708176b5bd7b4d3a45b8d22175fa4ca",
+      "moved_sha256": "b21735a0aa376b0db8784da468d47e123708176b5bd7b4d3a45b8d22175fa4ca",
+      "moved_lines": 22,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_pending.json": {
+      "source_blob_sha1": "c4d44f535f5771af3349e8064314136f40bd01ba",
+      "source_sha256": "83b9c09d4f58dc7a8b935b1a0d666790a0a6015bc8abed9afe939ca103815c8d",
+      "moved_sha256": "83b9c09d4f58dc7a8b935b1a0d666790a0a6015bc8abed9afe939ca103815c8d",
+      "moved_lines": 22,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/pr_view_pass.json": {
+      "source_blob_sha1": "befe84fb1160599bbd8df3fffa76f6a0144d979d",
+      "source_sha256": "40a18bcdece30044cc95548347e0ff3e45e47e61539cb0d07f683ef5b2973671",
+      "moved_sha256": "40a18bcdece30044cc95548347e0ff3e45e47e61539cb0d07f683ef5b2973671",
+      "moved_lines": 3,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/pr_view_stale.json": {
+      "source_blob_sha1": "840acf43ea212dd7c37effb749b36b0fa9a926c6",
+      "source_sha256": "5a7efcb883783ef456229816a8e6b297eb7bbfe1697095675746d782692dded2",
+      "moved_sha256": "5a7efcb883783ef456229816a8e6b297eb7bbfe1697095675746d782692dded2",
+      "moved_lines": 3,
+      "verbatim": true
+    }
+  },
+  "decisions": {
+    "slice": "I-4-4D6: migrate the pr-review-judge CI evidence helper (ci_verdict_summary.py) and the deterministic gate runner (check_pr_review_gates.py) with their source tests, the six CI fixtures and the existing PR_REVIEW_GATE_RESULT_V1 schema. No wrapper, new schema or permanent gate is added; the existing runner scripts/ci/run_stage1b1_tests.py is reused.",
+    "schema_fix": "One necessary behaviour change: validate_against_schema fails closed (exit 2) when the schema cannot be trusted. The source fell back silently to a weaker built-in schema (reproduced: exit 0 / APPROVE with a missing, malformed or schema-less file). The schema file itself, its path and its keys are unchanged.",
+    "no_mutation": "Both scripts only read GitHub (gh pr view / gh api graphql query / gh run view --log) and write local artifacts. The closure test runs them against a fake gh that records every call and asserts there is no write form.",
+    "skill_state": "pr-review-judge/SKILL.md and impl-review-loop/SKILL.md keep the temporary disable-model-invocation: true. This slice does not preload a Skill, dispatch pr-reviewer / pr-reviewer-lite or publish a verdict; passing source tests is not proof of production operation.",
+    "monolithic_suite": "The source test_check_pr_review_gates.py imports the unmigrated generate_ci_test_selection_artifact.py and is NOT included. It is owned by the generator slice (see unmigrated_references). The migrated test_check_pr_review_gates_indeterminate.py plus the D6 closure real-CLI and real-schema cases cover the gate runner here; no source assertion is weakened."
+  },
+  "authority": {
+    "required_ci_evaluator": ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py",
+    "ci_verdict_summary_role": "auxiliary CI provenance summary (CI_VERDICT_SUMMARY_V1); it never replaces wait_ci_checks.py and neither script imports it",
+    "gate_runner_role": "deterministic gate booleans / schema consumer (PR_REVIEW_GATE_RESULT_V1); it generates no semantic findings and its APPROVE is not a semantic code review nor a required-CI success claim"
+  },
+  "legacy_ci_contract": {
+    "note": "ci_verdict_summary.py carries HEAD_SHA_NULL_SKIPPED_EXCLUDE_RULES, a legacy allow-list of workflow / check names of the source repository (deploy-pages, agent-retro-index, Check Japanese Content, retro-live-verification). It is kept verbatim because it only excludes conditional `skipped` checks that have no head SHA. None of those workflows exist in this repository's .github/workflows/ci.yml, so the rule is inert here.",
+    "rule": "A legacy workflow name is never evidence that this repository's required CI passed. Required-CI success is decided only by wait_ci_checks.py on the final PR HEAD (see authority)."
+  },
+  "schema_fail_closed": {
+    "cases": [
+      "missing",
+      "malformed yaml",
+      "no top-level schema key",
+      "empty required"
+    ],
+    "expected_exit": 2,
+    "positive_control": "real schema + APPROVE control exits 0"
+  },
+  "test_files": [
+    ".claude/skills/pr-review-judge/scripts/tests/test_ci_verdict_summary.py",
+    ".claude/skills/pr-review-judge/scripts/tests/test_check_pr_review_gates_indeterminate.py"
+  ],
+  "required_files": [
+    ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py",
+    ".claude/skills/pr-review-judge/scripts/check_pr_review_gates.py",
+    ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml",
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py",
+    ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py",
+    ".claude/skills/pr-review-judge/SKILL.md"
+  ],
+  "required_fixtures": [
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_all_pass.json",
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_ambiguous.json",
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_failed.json",
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/checks_pending.json",
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/pr_view_pass.json",
+    ".claude/skills/pr-review-judge/scripts/tests/fixtures/ci_verdict/pr_view_stale.json"
+  ],
+  "expected_collect": {
+    ".claude/skills/pr-review-judge/scripts/tests/test_ci_verdict_summary.py": 167,
+    ".claude/skills/pr-review-judge/scripts/tests/test_check_pr_review_gates_indeterminate.py": 6
+  },
+  "expected_ran": {
+    ".claude/skills/pr-review-judge/scripts/tests/test_ci_verdict_summary.py": 167,
+    ".claude/skills/pr-review-judge/scripts/tests/test_check_pr_review_gates_indeterminate.py": 6
+  },
+  "deferred_tests": [],
+  "totals": {
+    "source_collected": 173,
+    "deferred": 0,
+    "ran": 173,
+    "skipped": 0,
+    "xfailed": 0
+  },
+  "lane_totals": {
+    "note": "The D6 lane runs the 173 migrated source tests (167 + 6, 0 deferred) through the runner on this manifest, then the stage_i4 closure tests. closure_tests_ran is measured (pytest --co) for the D6 closure file only.",
+    "source_ran": 173,
+    "closure_tests_ran": 43
+  },
+  "d5_sync": {
+    "d5_manifest": "docs/dev/i4-4d5-pr-review-consumers-manifest.json",
+    "d5_totals_kept": {
+      "collected": 108,
+      "ran": 108,
+      "deferred": 0
+    },
+    "note": "The D5 manifest keeps its 108 / 108 / 0 values. Its pre-D6 'unmigrated' record is preserved as historical_pre_d6 and the live record now lists only what is still unmigrated; the D5 closure test no longer asserts that the two scripts and the schema are absent."
+  },
+  "unmigrated_references": {
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary_v2.py (+ scripts/ci/ci_job_snapshot.py and verify_ci_check_conclusions.py shared provenance)",
+        "owner": "D7 or later: CI V2 / shared provenance slice (re-evaluate necessity first)",
+        "reason": "V2 depends on unmigrated shared CI provenance helpers; the V1 helper plus the authoritative wait_ci_checks.py cover D6",
+        "rerun_condition": "migrate ci_job_snapshot.py and the provenance helpers with their source tests unweakened, then migrate V2 and its tests"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/generate_ci_test_selection_artifact.py (+ scripts/ci/python_test_plan.py)",
+        "owner": "D7 or later: CI test-selection generator slice",
+        "reason": "the generator imports the unmigrated python_test_plan.py; it is the producer of the G1 ci_test_selection/v1 artifact",
+        "rerun_condition": "migrate python_test_plan.py and the generator with their source tests"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/wait_pr_checks.py",
+        "owner": "D7 or later: decide whether it is still needed (duplicates the authority of the migrated wait_ci_checks.py)",
+        "reason": "responsibility overlaps wait_ci_checks.py, the authoritative required-CI evaluator",
+        "rerun_condition": "only if a non-duplicate responsibility is confirmed; otherwise record as intentionally not migrated"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/tests/test_check_pr_review_gates.py (monolithic source suite)",
+        "owner": "D7 or later: the generator slice that migrates generate_ci_test_selection_artifact.py",
+        "reason": "it imports the unmigrated generator, so it cannot be collected here; no source assertion is weakened or rewritten",
+        "rerun_condition": "after the generator lands, run it unchanged next to test_check_pr_review_gates_indeterminate.py"
+      },
+      {
+        "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
+        "owner": "D7: open-pr reference evaluator slice",
+        "reason": "the Skill delegates the Closes / Refs decision to this single evaluator; the reviewer must use its result and not duplicate the grammar",
+        "rerun_condition": "migrate open-pr and its evaluator tests (blob 9ab611caea3b006132d53782d08670ee978bf923)"
+      },
+      {
+        "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json / secret_boundary_guard.sh",
+        "owner": "D8: Reviewer hook and permission-boundary slice",
+        "reason": "hook layer gives no effective protection yet; its source tests also depend on unmigrated settings; no permission is introduced implicitly",
+        "rerun_condition": "migrate the hook with negative controls, classify the settings dependency and verify it live"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/tests/test_pr_reviewer_skill_contract_drift.py and real Reviewer Skill preload / dispatch, verdict comment publish, Final Gate / LOOP_HANDOFF_RESULT_V1, live GitHub E2E",
+        "owner": "D9 or later: runtime wiring slice",
+        "reason": "requires disable-model-invocation to be false; D6 keeps the Skill disabled",
+        "rerun_condition": "run it unchanged when the Skill may really be preloaded; release the temporary disable only then"
+      }
+    ],
+    "note": "Missing files are classified with owner / reason / rerun_condition; no empty stub stands in for them."
+  },
+  "supersedes": {
+    "docs/dev/i4-4d5-pr-review-consumers-manifest.json": "unmigrated_references.hard_dependencies[0] and not_migrated_references_files edited in place; the previous record is kept as historical_pre_d6 and the migration is noted in migrated_by_d6. Totals (108 / 108 / 0), documents and verbatim_files are untouched.",
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py": "STILL_ABSENT no longer lists the two migrated scripts, the reference-set check allows the migrated schema, and the dependency check names ci_verdict_summary_v2.py; the test count stays 24."
+  },
+  "rollback": "Revert the single D6 PR: it removes the two scripts, the two source test modules, the six fixtures, the schema, this manifest, the D6 closure test and CI lane, and restores the D5 manifest, test and CI to the D5 merge state (108 collected / 108 ran / 0 deferred). No Skill, Agent or previously migrated file other than those edited D5 sync files is modified.",
+  "handoff": {
+    "next": "D7: open-pr validate_pr_body.py reference evaluator (the reviewer consumes its single result and does not copy the Closes / Refs grammar). D8: pr_reviewer_guard.py and the Reviewer hook, plus the pr-reviewer-lite docs-only allow-list improvement before real use. D7-D8 also decide the CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, Final Gate, live E2E; release disable-model-invocation only then."
+  },
+  "evidence_boundary": {
+    "kind": "static parity + real pytest on the migrated source tests + real CLI against a fake gh on PATH inside tmp_path (read-only)",
+    "live_e2e": false,
+    "agent_dispatched": false,
+    "skill_production_invocable": false,
+    "skill_preload_effective": false,
+    "verdict_published": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "github_live_operations": false,
+    "github_mutation_by_ci_helpers": false,
+    "git_ref_mutation": false,
+    "hook_effective_protection": false,
+    "open_pr_evaluator_wired": false,
+    "ci_v2_or_generator_wired": false,
+    "reviewer_hook_wired": false,
+    "disable_model_invocation_released": false
+  }
+}
