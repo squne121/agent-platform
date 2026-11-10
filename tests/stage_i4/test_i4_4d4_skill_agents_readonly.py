@@ -153,7 +153,7 @@ def issue_pin_problems(m: dict[str, Any]) -> list[str]:
 
 
 def frontmatter_problems(m: dict[str, Any], root: Path) -> list[str]:
-    """Skill auto-invocation is off; Agent roles (read-only vs editing) and hooks are kept."""
+    """Skill auto-invocation is off; Agent roles (read-only vs editing) are kept and hooks stay absent."""
     problems: list[str] = []
     expected = m["frontmatter"]
     skill = expected[f"{IRL}/SKILL.md"]
@@ -197,13 +197,10 @@ def frontmatter_problems(m: dict[str, Any], root: Path) -> list[str]:
             "MultiEdit",
         }:
             problems.append(f"read-only Agent gained an editing tool: {rel}")
-        if "hook_commands" in exp:
-            hooks = json.dumps(agent.get("hooks", {}))
-            for cmd in exp["hook_commands"]:
-                if cmd not in hooks:
-                    problems.append(f"Agent lost its source hook declaration: {rel}")
-            if set(agent.get("hooks", {})) != set(exp["hook_events"]):
-                problems.append(f"Agent hook events differ from the source: {rel}")
+        # I-4-4D8 (#103, owner decision): the old Claude Code hook is not re-migrated. Bringing the
+        # `hooks` declaration back is the failure now (it used to be removing it).
+        if exp.get("hooks_forbidden") and "hooks" in agent:
+            problems.append(f"Agent re-introduced a hook declaration (not adopted, D8): {rel}")
         text = path.read_text(encoding="utf-8")
         if "I-4-4D4" not in text or "実 dispatch しない" not in text:
             problems.append(f"Agent lost its unwired / no-dispatch note: {rel}")
@@ -640,17 +637,19 @@ def test_ac1_skill_blocks_auto_invocation_and_agents_keep_their_roles(
         assert "移管状況 (I-4-4D4)" in (ROOT / rel).read_text(encoding="utf-8"), rel
 
 
-def test_ac1_pr_reviewer_keeps_hooks_and_preload_but_is_never_dispatched(
+def test_ac1_pr_reviewer_is_hookless_keeps_preload_and_is_never_dispatched(
     manifest: dict[str, Any],
 ) -> None:
     fm = frontmatter(ROOT / ".claude/agents/pr-reviewer.md")
+    text = (ROOT / ".claude/agents/pr-reviewer.md").read_text(encoding="utf-8")
     assert fm["skills"] == ["pr-review-judge"]
-    assert set(fm["hooks"]) == {"PreToolUse", "SessionStart", "PostToolUse"}
-    assert "pr_reviewer_guard.py" in json.dumps(fm["hooks"])
-    # the hook file / Skill are not migrated: the record must say protection is not effective
+    # I-4-4D8 (#103): the hooks were removed on purpose; the file they pointed to is absent too
+    assert "hooks" not in fm
+    assert manifest["frontmatter"][".claude/agents/pr-reviewer.md"]["hooks_forbidden"] is True
     assert not (ROOT / ".claude/hooks/pr_reviewer_guard.py").exists()
     assert manifest["evidence_boundary"]["hook_effective_protection"] is False
-    assert "実効" in (ROOT / ".claude/agents/pr-reviewer.md").read_text(encoding="utf-8")
+    # no technical-denial claim: the Agent has Bash
+    assert "技術的に拒否できるとは主張しない" in text
 
 
 def test_ac1_legacy_pnpm_and_game_contracts_are_not_the_destination_contract() -> None:
@@ -1153,10 +1152,20 @@ def test_ac4_auto_invocation_unwired_note_and_agent_boundary_tampering_are_detec
     runner.write_text(text, encoding="utf-8")
     reviewer = tmp_path / ".claude/agents/pr-reviewer.md"
     rtext = reviewer.read_text(encoding="utf-8")
+    # I-4-4D8: re-introducing the old hook declaration is the failure (removing it is the contract)
+    assert "\nhooks:" not in rtext
     reviewer.write_text(
-        re.sub(r"\nhooks:\n(?:  .*\n|    .*\n)+", "\n", rtext, count=1), encoding="utf-8"
+        rtext.replace(
+            "skills:\n  - pr-review-judge\n---\n",
+            "skills:\n  - pr-review-judge\nhooks:\n  PreToolUse:\n    - {matcher: Bash, hooks: "
+            "[{type: command, command: x/pr_reviewer_guard.py}]}\n---\n",
+            1,
+        ),
+        encoding="utf-8",
     )
-    assert any("hook" in p for p in frontmatter_problems(manifest, tmp_path))
+    assert any("re-introduced a hook" in p for p in frontmatter_problems(manifest, tmp_path))
+    reviewer.write_text(rtext, encoding="utf-8")
+    assert frontmatter_problems(manifest, tmp_path) == []
     reviewer.write_text(rtext.replace("skills:\n  - pr-review-judge\n", "", 1), encoding="utf-8")
     assert any(
         "differs from the pinned source" in p for p in frontmatter_problems(manifest, tmp_path)

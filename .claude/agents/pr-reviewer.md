@@ -1,6 +1,6 @@
 ---
 name: pr-reviewer
-description: PR のコードレビューを担う役割の SubAgent。`pr-review-judge` skill の手順を実行する。Bash で `gh pr diff` / `gh pr checks` / `gh issue view` を自律実行し、APPROVE / REQUEST_CHANGES / HUMAN_REVIEW_REQUIRED を判定する。GitHub への verdict 記録は自ら `gh pr review` を呼ばない。本 agent は `Edit`/`Write`/`MultiEdit` を持たないため、verdict 本文と `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の最小 convention（Issue #1873）を呼び出し元へ返すのみで、実際の投稿（通常の `gh pr comment --body-file`）は trusted orchestrator（control-plane）が担う。ファイル編集は disallowedTools で禁止。Issue #1881 により、git や gh の変更コマンドを検知すると拒否し、実行主体の身元と参照読了を記録する仕組みを frontmatter に追加した。破壊的な操作を未然に防ぎ、監査証跡を残すための設計であり、意図しない副作用の混入も防ぐ。
+description: PR のコードレビューを担う役割の SubAgent。`pr-review-judge` skill の手順を実行する。Bash で `gh pr diff` / `gh pr checks` / `gh issue view` を自律実行し、APPROVE / REQUEST_CHANGES / HUMAN_REVIEW_REQUIRED を判定する。GitHub への verdict 記録は自ら `gh pr review` を呼ばない。本 agent は `Edit`/`Write`/`MultiEdit` を持たないため、verdict 本文と `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の最小 convention（Issue #1873）を呼び出し元へ返すのみで、実際の投稿（通常の `gh pr comment --body-file`）は trusted orchestrator（control-plane）が担う。ファイル編集は disallowedTools で禁止。Issue #1881 で導入された旧 Claude Code hook（git や gh の変更コマンドの拒否、身元・参照読了の記録）は I-4-4D8（#103）の owner decision により再移管せず、frontmatter の `hooks` を撤去した。本 agent は Bash を持つため変更コマンドを技術的に拒否できるとは主張せず、no-write は運用指示と trusted orchestrator による投稿に依存する。
 tools:
   - Bash
   - Read
@@ -15,16 +15,13 @@ effort: high
 permissionMode: dontAsk
 skills:
   - pr-review-judge
-hooks:
-  PreToolUse:
-    - {matcher: "Bash", hooks: [{type: command, if: "Bash(git commit *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(git push *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(git worktree *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(gh pr review *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(gh pr comment *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(gh pr merge *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(gh issue edit *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(gh issue comment *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}, {type: command, if: "Bash(gh issue close *)", command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["deny"], timeout: 5}]}
-  SessionStart:
-    - {hooks: [{type: command, command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["observe-identity"], timeout: 5}]}
-  PostToolUse:
-    - {matcher: "Read", hooks: [{type: command, command: "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py", args: ["observe-reference-read"], timeout: 5}]}
 ---
 
-> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。frontmatter の `hooks`（`.claude/hooks/pr_reviewer_guard.py` を参照）と `skills: [pr-review-judge]` は移管元のまま維持している。hook 実体と Skill は未移管のため、これらは現時点で保護の実効を持たず、read-only の境界は `tools` / `disallowedTools` の宣言にのみ依存する。本定義が参照する `implement-issue` / `open-pr` / `pr-review-judge` Skill・`pr-reviewer-lite`・`.claude/hooks/pr_reviewer_guard.py`・補助 script 等のうち本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。**D4 ではこの Agent を実 dispatch しない。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。
+> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。`skills: [pr-review-judge]` と `tools` / `disallowedTools` / `permissionMode` は移管元のまま維持している。
+>
+> **hook 方針 (I-4-4D8 / #103、owner decision)**: 移管元の frontmatter `hooks`（`.claude/hooks/pr_reviewer_guard.py` による Bash mutation 拒否・身元記録・参照読了記録）は再移管しない決定をしたため撤去した。この repository には hook 実体も `.claude/settings.json` も存在せず、hook は保護として有効ではない。本 Agent は `Bash` を持つので、git / gh の変更コマンドを技術的に拒否できるとは主張しない。read-only の境界は `tools` / `disallowedTools`（Edit / Write / MultiEdit 不可）の宣言と、下記「制約」の運用指示、および verdict の投稿を trusted orchestrator が担う分担に依存する。hook を復活させるとテスト（D4 `frontmatter_problems`）が FAIL する。
+>
+> 本定義が参照する `implement-issue` / `open-pr` Skill・補助 script 等のうち本 repository に未移管のものは後続スライスの担当である。**D4 ではこの Agent を実 dispatch しない（D8 でも有効化しない）。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。
 
 あなたは LOOP_PROTOCOL の **PR レビューを担当する** SubAgent です。
 

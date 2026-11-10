@@ -17,7 +17,7 @@
       "source_blob_sha1": "db2ae9d1f17498fa358528f552974f7e2666c8fa",
       "source_sha256": "72017cd60d93bdcd9c38bc3c94e2e8f46b4c0aeba3aa90fdc229ae27fcde4f76",
       "source_lines": 336,
-      "moved_sha256": "7124a5777ed1a15c921ab70955d4c059dfc7c52d9bde789d14b7db43764d38e0",
+      "moved_sha256": "04a0555ce2898b9da61885a35c4b3065e014eeaf803119ab5526b70278532d52",
       "moved_lines": 344,
       "verbatim": false,
       "intentional_diff": [
@@ -27,11 +27,17 @@
           "what": "insert migration-status / annotation or temporary frontmatter key"
         },
         {
-          "moved": "\n> **移管状況 (I-4-4D5)**: 本 Skill は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名 Skill を最小差分で移管したもの。差分は `docs/dev/i4-4d5-pr-review-consumers-manifest.json` の `intentional_diff` に記録している。\n>\n> - **一時 disable**: frontmatter に `disable-model-invocation: true` を設定している（Claude Code 公式 Skill 仕様では、Claude の自動 invoke と SubAgent への preload が抑止される）。したがって `pr-reviewer.md` の `skills: [pr-review-judge]` による preload は **まだ有効ではない**。これは意図的な deferred であり、本番稼働の証明ではない。動作検証と下記の未移管依存が揃うまで解除しない。\n> - **no-dispatch / no-publish**: 手動 `/pr-review-judge` は disable では防げない。手動 invoke された場合でも、本移管（D5）では実レビュー手順（PR 本文 evaluator・CI provenance script・gate script の実行）と verdict 投稿（`gh pr comment` 等の GitHub 書込）、Reviewer SubAgent の dispatch を **実行しない**（fail-closed）。本文は read-only の documentation として読むに留める。\n> - **未移管の hard dependency**（実レビュー手順が参照するが本 repository には存在しない）: `open-pr` Skill と `validate_pr_body.py`、`pr-review-judge/scripts/ci_verdict_summary.py` / `ci_verdict_summary_v2.py` / `check_pr_review_gates.py` / `wait_pr_checks.py`、`implement-issue` Skill、`gemini-cli-headless-delegation` Skill、`.claude/hooks/pr_reviewer_guard.py`、`docs/dev/workflow.md`、`docs/dev/schema-governance.md`、`.github/pull_request_template.md`。後続の runtime 結線工程の担当である（owner / rerun_condition は manifest の `unmigrated_references`）。移管済みなのは `scripts/allowed_paths_review_gate.py` と `impl-review-loop/scripts/wait_ci_checks.py` のみ。\n> - 現行の正本は `AGENTS.md` / `docs/dev/github-ops.md`。本文中の旧 repository の Issue・PR 番号、`docs/dev/workflow.md`、ゲーム固有の例は移管元の履歴記述であり、現行の実行認可や正本ではない。\n",
+          "moved": "\n> **移管状況 (I-4-4D5)**: 本 Skill は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名 Skill を最小差分で移管したもの。差分は `docs/dev/i4-4d5-pr-review-consumers-manifest.json` の `intentional_diff` に記録している。\n>\n> - **一時 disable**: frontmatter に `disable-model-invocation: true` を設定している（Claude Code 公式 Skill 仕様では、Claude の自動 invoke と SubAgent への preload が抑止される）。したがって `pr-reviewer.md` の `skills: [pr-review-judge]` による preload は **まだ有効ではない**。これは意図的な deferred であり、本番稼働の証明ではない。動作検証と下記の未移管依存が揃うまで解除しない。\n> - **no-dispatch / no-publish**: 手動 `/pr-review-judge` は disable では防げない。手動 invoke された場合でも、本移管（D5）では実レビュー手順（PR 本文 evaluator・CI provenance script・gate script の実行）と verdict 投稿（`gh pr comment` 等の GitHub 書込）、Reviewer SubAgent の dispatch を **実行しない**（fail-closed）。本文は read-only の documentation として読むに留める。\n> - **未移管の hard dependency**（実レビュー手順が参照するが本 repository には存在しない）: `open-pr` Skill と `validate_pr_body.py`、`pr-review-judge/scripts/ci_verdict_summary.py` / `ci_verdict_summary_v2.py` / `check_pr_review_gates.py` / `wait_pr_checks.py`、`implement-issue` Skill、`gemini-cli-headless-delegation` Skill、`docs/dev/workflow.md`、`docs/dev/schema-governance.md`、`.github/pull_request_template.md`。後続の runtime 結線工程の担当である（owner / rerun_condition は manifest の `unmigrated_references`）。移管済みなのは `scripts/allowed_paths_review_gate.py` と `impl-review-loop/scripts/wait_ci_checks.py` のみ。 旧 Claude Code hook `.claude/hooks/pr_reviewer_guard.py` は I-4-4D8（#103）の owner decision により再移管しない（`pr-reviewer.md` の `hooks` は撤去済み）ため、未移管の依存としては扱わない。hook がなくても Bash を持つ Reviewer が変更コマンドを技術的に実行できないとは主張しない。\n> - 現行の正本は `AGENTS.md` / `docs/dev/github-ops.md`。本文中の旧 repository の Issue・PR 番号、`docs/dev/workflow.md`、ゲーム固有の例は移管元の履歴記述であり、現行の実行認可や正本ではない。\n",
           "source": "",
           "what": "insert migration-status / annotation or temporary frontmatter key"
         }
-      ]
+      ],
+      "historical_pre_d8": {
+        "moved_sha256": "7124a5777ed1a15c921ab70955d4c059dfc7c52d9bde789d14b7db43764d38e0",
+        "moved_lines": 344,
+        "intentional_diff_1_moved_sha256": "339520e137875a90b41e943dccb3df6e26cb6b0baa4cb59db64a5f8f88c6efb6",
+        "note": "D5-time record. The migration note listed `.claude/hooks/pr_reviewer_guard.py` as an unmigrated hard dependency; I-4-4D8 (#103) reclassified it as intentionally not adopted."
+      }
     },
     ".claude/agents/pr-reviewer-lite.md": {
       "source_blob_sha1": "7216a760618bc33e90bbcea3ea59dac962e467c5",
@@ -301,9 +307,15 @@
       },
       {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared by pr-reviewer.md)",
-        "owner": "I-4-4D Agent permission boundary slice",
-        "reason": "the hook layer gives no effective protection yet; the read-only boundary rests on tools / disallowedTools only",
-        "rerun_condition": "migrate the hook with negative controls and verify it live"
+        "owner": "none: not adopted by owner decision (I-4-4D8 #103); no hook re-migration",
+        "reason": "the old Claude Code hook is not re-migrated and pr-reviewer.md no longer declares it; the read-only boundary rests on tools / disallowedTools plus operational instructions, and no technical denial of Bash mutation is claimed",
+        "rerun_condition": "none for the hook (reintroducing it fails the D4/D8 closure tests); a future technical write-denial for a Bash-capable Reviewer needs a new Issue and a live verification",
+        "historical_pre_d8": {
+          "owner": "I-4-4D Agent permission boundary slice",
+          "reason": "the hook layer gives no effective protection yet; the read-only boundary rests on tools / disallowedTools only",
+          "rerun_condition": "migrate the hook with negative controls and verify it live"
+        },
+        "status": "intentionally_not_adopted_by_d8"
       },
       {
         "reference": "implement-issue Skill, gemini-cli-headless-delegation Skill, .github/pull_request_template.md, docs/dev/workflow.md, docs/dev/schema-governance.md, scripts/claude-gpt/runtime_smoke_test.sh",
@@ -329,7 +341,8 @@
   },
   "rollback": "Revert the single D5 PR: it removes pr-review-judge/SKILL.md, pr-reviewer-lite.md, the 10 references, this manifest, the D5 closure test and CI lane, and restores the D3 / D4 manifests, tests and CI pins (D4 108 collected / 107 ran / 1 deferred). No previously migrated file other than those edited manifests / tests / CI is modified.",
   "handoff": {
-    "next": "D6 and later: pr-review-judge runtime scripts and their source tests, open-pr evaluator, pr_reviewer_guard hook, real SubAgent preload / lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Release the temporary disable-model-invocation only then."
+    "next": "D6 and later: pr-review-judge runtime scripts and their source tests, open-pr evaluator, pr_reviewer_guard hook, real SubAgent preload / lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Release the temporary disable-model-invocation only then.",
+    "note_i_4_4d8": "I-4-4D8 (#103) did not re-migrate pr_reviewer_guard.py or the Reviewer hook: the hook is intentionally not adopted (owner decision) and pr-reviewer.md no longer declares it. Earlier `next` / owner text naming the hook is D-time history. See docs/dev/i4-4d8-hookless-reviewer-manifest.json."
   },
   "evidence_boundary": {
     "kind": "static parity + real pytest on the migrated source tests (fake gh on PATH inside tmp_path)",

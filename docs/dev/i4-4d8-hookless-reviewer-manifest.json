@@ -1,0 +1,291 @@
+{
+  "schema": "I4_4D8_HOOKLESS_REVIEWER_MANIFEST_V1",
+  "issue": "squne121/agent-platform#103",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "a68d519a5e89ff7933016bed9f531fbd97414874",
+    "note": "D7 merge commit (PR #102)"
+  },
+  "owner_decision": {
+    "date": "2026-11-10",
+    "policy": "A",
+    "statement": "The old Claude Code hook (.claude/hooks/pr_reviewer_guard.py) is not re-migrated. The pr-reviewer.md frontmatter `hooks` reference may be abolished. No claim that a Bash-capable Reviewer is technically unable to write.",
+    "recorded_in": "Issue #103 live body (Owner decision) and the Issue refinement comments"
+  },
+  "documents": {
+    ".claude/agents/pr-reviewer.md": {
+      "source_blob_sha1": "5a83c95aebf9a4af7f1739126c569b8800af0908",
+      "source_sha256": "7d1bf03b63062fbfd4d9697958f18e993e25b5bb9216da5bcc95733dfffb830d",
+      "d4_moved_sha256": "45d6e716c5b4b0f0aac7c48ac433a9376902e8f2398bce0872ca183142e02187",
+      "d4_moved_lines": 89,
+      "current_moved_sha256": "cf41fbf35053bd77e02c4c6e564b7963410d81e89f23df60cb46bd5fc6e27c74",
+      "current_moved_lines": 86,
+      "intentional_diff_owner": "docs/dev/i4-4d4-skill-agents-readonly-manifest.json documents[pr-reviewer.md].intentional_diff (3 entries: description sentence, removed hooks frontmatter, rewritten migration note); D4-time diff kept under historical_pre_d8",
+      "unchanged_role_contract": {
+        "tools": [
+          "Bash",
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "disallowedTools": [
+          "Edit",
+          "Write",
+          "MultiEdit"
+        ],
+        "model": "sonnet",
+        "effort": "high",
+        "permissionMode": "dontAsk",
+        "skills": [
+          "pr-review-judge"
+        ]
+      }
+    },
+    ".claude/skills/pr-review-judge/SKILL.md": {
+      "source_blob_sha1": "db2ae9d1f17498fa358528f552974f7e2666c8fa",
+      "source_sha256": "72017cd60d93bdcd9c38bc3c94e2e8f46b4c0aeba3aa90fdc229ae27fcde4f76",
+      "d5_moved_sha256": "7124a5777ed1a15c921ab70955d4c059dfc7c52d9bde789d14b7db43764d38e0",
+      "current_moved_sha256": "04a0555ce2898b9da61885a35c4b3065e014eeaf803119ab5526b70278532d52",
+      "change": "the D5 migration note no longer lists .claude/hooks/pr_reviewer_guard.py as an unmigrated hard dependency; it states the hook is not adopted and makes no technical write-denial claim. frontmatter disable-model-invocation: true is unchanged.",
+      "intentional_diff_owner": "docs/dev/i4-4d5-pr-review-consumers-manifest.json documents[pr-review-judge/SKILL.md].intentional_diff[1]"
+    }
+  },
+  "hook_policy": {
+    "frontmatter_hooks_present": false,
+    "forbidden_if_reintroduced": [
+      "hooks"
+    ],
+    "negative_controls": "hook reintroduction, editing-tool grant, disallowedTools removal, skills removal, rewritten source pin, rewritten D4 history, an active-protection claim, and temporary disable-model-invocation release each FAIL (tests test_ac1_*).",
+    "bash_write_denial_claimed": false,
+    "dispatch": "pr-reviewer / pr-review-judge / impl-review-loop are not dispatched or enabled; pr-review-judge and impl-review-loop keep disable-model-invocation: true"
+  },
+  "hook_provenance": {
+    "observed_on": "2026-11-10",
+    "method": "read-only inspection of the settings files (hook event / matcher / command kinds only) plus the auto-mode denial reproduced in this session; the interactive /hooks screen was not driven",
+    "observation": "A Bash call was rewritten by a PreToolUse hook (a grep pipeline became `rtk grep ...`) and auto mode refused it with `hook changed this call's input after auto mode reviewed it`; re-issuing the exact rewritten input once was accepted. The D7 log showed the same class (`git status` -> `rtk git status`). No setting was changed and no permission was bypassed.",
+    "origins": {
+      "project": {
+        "status": "none",
+        "evidence": "this repository has no .claude/settings.json, .claude/settings.local.json or .claude/hooks/"
+      },
+      "agent": {
+        "status": "none",
+        "evidence": "after D8 no .claude/agents/*.md declares `hooks`; pr_reviewer_guard.py never existed in this repository"
+      },
+      "user": {
+        "status": "observed",
+        "evidence": "the user-scope settings file registers a PreToolUse hook with matcher Bash whose command is the `rtk hook claude` rewriter (plus unrelated session / stop / notification hooks, not listed); permissions.defaultMode is auto"
+      },
+      "plugin": {
+        "status": "UNKNOWN",
+        "evidence": "two plugins are enabled in user settings; their own hook registrations were not inspected"
+      },
+      "session": {
+        "status": "UNKNOWN",
+        "evidence": "the /hooks view was not observed"
+      }
+    },
+    "conclusion": "The input rewrite is attributed to the user-scope `rtk hook claude` PreToolUse hook (inferred from the registered command and the `rtk` prefix on the rewritten call; not independently traced). It is NOT evidence that the unmigrated pr_reviewer_guard.py ran.",
+    "minimal_reproduction": "In an auto-mode session with that user hook active, run any Bash command that rtk rewrites (for example `git status`); auto mode denies the call, and re-issuing the rewritten input is reviewed normally.",
+    "not_done": "user / global / plugin settings were not modified; auto mode was not bypassed; rtk was not removed"
+  },
+  "publisher_audit": {
+    "scope": "read-only comparison of the pinned source open-pr Skill / open_pr.py / update_pr.py with the current repository; nothing is migrated or enabled by D8",
+    "current_open_pr_files": [
+      ".claude/skills/open-pr/scripts/validate_pr_body.py"
+    ],
+    "not_present_now": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py",
+      ".claude/skills/open-pr/scripts/update_pr.py",
+      ".github/pull_request_template.md"
+    ],
+    "capability_vs_experience": "A successful `gh pr create` in an existing Claude Code session is a fact about that session's credentials. It is not the trusted control-plane `pr_*` capability, which stays unavailable (stage2-7 mutation_routes.unavailable) and whose permission is unverified.",
+    "responsibilities": [
+      {
+        "id": "canonical_repository_resolution",
+        "source": "open_pr.py resolve_canonical_repository (API full_name, lower-cased, fail-closed)",
+        "current_route": "none (scripts/agent-guards/repo_identity.py only reads a trusted slug from config)",
+        "missing": true,
+        "owner": "publisher slice (new Issue)",
+        "rerun_condition": "mock-gh real CLI tests for mixed-case / rename alias / API failure fail-closed"
+      },
+      {
+        "id": "closes_refs_reference_policy",
+        "source": "open_pr.py select_linked_issue_reference / run_reference_policy_entrypoint",
+        "current_route": "validate_pr_body.py --evaluate-reference-policy and --evaluate-native-auto-close-risk (D7, byte-for-byte)",
+        "missing": false,
+        "gap": "the caller that applies the evaluator result to a PR body is not migrated",
+        "owner": "publisher slice (new Issue)",
+        "rerun_condition": "caller applies closing_required / nonclosing_required / fail_closed without weakening the D7 matrices"
+      },
+      {
+        "id": "pr_body_validation",
+        "source": "open_pr.py _run_pr_body_validator / generate_pr_body.py / validate_pr_body_hygiene.py",
+        "current_route": "none for the general lint (D7 migrated only the pure evaluator entry points)",
+        "missing": true,
+        "owner": "PR body lint slice (new Issue)",
+        "rerun_condition": "the source lint tests pass unchanged against the migrated lint"
+      },
+      {
+        "id": "japanese_content_validation",
+        "source": "open_pr.py _run_japanese_content_validator / create-issue validate_japanese_content.py",
+        "current_route": "none (validate_japanese_content.py is absent from create-issue/scripts)",
+        "missing": true,
+        "owner": "PR body lint slice (new Issue)",
+        "rerun_condition": "validator migrated with its tests"
+      },
+      {
+        "id": "idempotency_existing_pr_reuse",
+        "source": "open_pr.py find_existing_pr",
+        "current_route": "none",
+        "missing": true,
+        "owner": "publisher slice (new Issue)",
+        "rerun_condition": "mock-gh test: second run reuses the open PR and creates nothing"
+      },
+      {
+        "id": "pr_create_update_execution",
+        "source": "open_pr.py create_pr (gh pr create --repo) / update_pr.py update_pr (gh pr edit --body-file)",
+        "current_route": "none through the control plane; pr_create / pr_edit / pr_comment / pr_update_branch are unavailable",
+        "missing": true,
+        "owner": "Stage 2 control-plane owner (new Issue; permission must be verified live first)",
+        "rerun_condition": "pr_create / pr_edit registered as controlled routes and the permission verified live; the record stays `unverified` until then"
+      },
+      {
+        "id": "task_context_notification",
+        "source": "open_pr.py emit_implementation_pr_observed (best-effort)",
+        "current_route": "none; scripts/task-context/ does not exist",
+        "missing": true,
+        "owner": "Task Context owner (new Issue; confirm a contract first)",
+        "rerun_condition": "a Task Context contract and adapter exist in this repository"
+      }
+    ],
+    "decision": "No bulk migration. Only the rows with missing=true are carried forward, each with an owner and a rerun condition. D8 enables no PR publisher and registers no pr_* route.",
+    "unknown": [
+      "whether pr_body_japanese_repair_plan.py is wanted",
+      "whether any current consumer receives emit_implementation_pr_observed"
+    ]
+  },
+  "handoff_audit": {
+    "evidence": {
+      "issue": "squne121/agent-platform#101",
+      "contract_snapshot": "https://github.com/squne121/agent-platform/issues/101#issuecomment-6766034634",
+      "termination_report": "https://github.com/squne121/agent-platform/issues/101#issuecomment-6766041114"
+    },
+    "defects": [
+      {
+        "id": "approved_body_sha256_caller_format",
+        "cause": "publish_termination_report.py requires a bare 64-char lowercase hex for --approved-body-sha256 (re.fullmatch [0-9a-f]{64}); the #101 caller passed `sha256:<64hex>`, which is rejected as INVALID_APPROVED_BODY_SHA256",
+        "effect": "the post-publish Task Context refinement_approved signal was not applied; the termination comment itself was published (best-effort, never rolled back)",
+        "minimal_fix": "callers pass the bare hex (done for #103). An optional normalization of a `sha256:` prefix in the publisher is a separate small Issue, not D8",
+        "owner": "issue-refinement-loop orchestrator (caller) / publisher slice",
+        "rerun_condition": "do not re-send the #101 signal; a signal is only (re)attempted by a fresh approved termination once the adapter exists"
+      },
+      {
+        "id": "task_context_adapter_absent",
+        "cause": "the publisher calls scripts/task-context/task_contextctl.py, which does not exist in this repository, so even a correct hex returns deferred / ADAPTER_UNAVAILABLE",
+        "effect": "the signal cannot be applied; the publish result stays successful",
+        "minimal_fix": "do not restore the adapter by default; decide first whether Task Context sync is needed in this repository. Until then record `task_context_signal_not_applied` and never present it as success",
+        "owner": "Task Context owner (new Issue)",
+        "rerun_condition": "scripts/task-context/task_contextctl.py exists AND CLAUDE_CODE_SESSION_ID is bound AND the hex is bare"
+      },
+      {
+        "id": "handoff_status_contradiction",
+        "cause": "the #101 termination report set LOOP_HANDOFF_RESULT_V1.status to refinement_approved although metadata.title_prefix_ready was false and auto_fixes.required[].result was skipped; termination-policy.md allows refinement_approved only when title_prefix_ready is true or a metadata_hygiene / template_hygiene entry is applied with evidence, and routes any skipped auto fix to human_judgment_required / ask_human",
+        "effect": "the comment is audit telemetry only and must not be read as approval; no producer in this repository enforces the invariant",
+        "minimal_fix": "the orchestrator / producer must derive status from the policy table (no hand-set status); a deterministic check of the invariant is a separate Issue",
+        "owner": "issue-refinement-loop handoff owner (new Issue)",
+        "rerun_condition": "a producer or check rejects refinement_approved whenever title_prefix_ready is false and no applied evidence exists; the #101 comment is not edited or re-posted"
+      }
+    ],
+    "dispatch_evidence": "A LOOP_HANDOFF_RESULT_V1 comment never authorizes implementation (termination-policy.md, impl-review-loop preparation.md). The only entry is a same-invocation root transition; root_entry_router.py here contains only capability_preflight_result, so the transition itself is not migrated.",
+    "not_done": [
+      "the #101 comments were not edited or re-posted",
+      "no Task Context signal was re-sent",
+      "no adapter was restored"
+    ],
+    "d103_refinement": {
+      "contract_snapshot": "https://github.com/squne121/agent-platform/issues/103#issuecomment-6768238616",
+      "termination_report": "https://github.com/squne121/agent-platform/issues/103#issuecomment-6768265244",
+      "approved_body_sha256_format": "bare 64-char lowercase hex",
+      "task_context_signal": "deferred / ADAPTER_UNAVAILABLE (recorded, not retried, not reported as success)"
+    }
+  },
+  "test_files": [
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py"
+  ],
+  "required_files": [
+    ".claude/agents/pr-reviewer.md",
+    ".claude/skills/pr-review-judge/SKILL.md",
+    ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py",
+    "docs/dev/stage2-7-terminal-wiring-manifest.json"
+  ],
+  "required_fixtures": [],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 36,
+    "deferred": 0,
+    "ran": 36,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "lane_totals": {
+    "note": "The D8 lane runs the D8 closure file through the runner on this manifest (collected == ran, 0 deferred), then every stage_i4 closure test. No source test is migrated, so no source count is added.",
+    "source_tests_migrated": 0
+  },
+  "earlier_slice_sync": {
+    "d5_totals_kept": {
+      "collected": 108,
+      "ran": 108,
+      "deferred": 0
+    },
+    "d6_totals_kept": {
+      "collected": 173,
+      "ran": 173,
+      "deferred": 0
+    },
+    "d7_closure_ran_kept": 194,
+    "c2_kept": {
+      "ran": 118,
+      "deferred": 1
+    },
+    "note": "The D4 to D7 hook records are reclassified (owner -> none, status intentionally_not_adopted_by_d8) with the D-time owner / reason / rerun_condition kept under historical_pre_d8; observed counts are history and are unchanged."
+  },
+  "supersedes": {
+    "tests/stage_i4/test_i4_4d4_skill_agents_readonly.py": "the expectation that pr-reviewer.md keeps its source hooks is replaced by: re-introducing a hook fails (frontmatter_problems / hooks_forbidden)"
+  },
+  "rollback": "Revert the single D8 PR. It restores the D7 main state (pr-reviewer.md with the hooks reference, the D4 hook-kept expectation and the D5 to D7 records). No hook file, settings file, user / plugin setting or existing Issue / PR content is touched.",
+  "handoff": {
+    "next": "Follow-up Issues (not created here): publisher rows with missing=true; Task Context necessity; handoff status invariant check; D9 real Reviewer dispatch / verdict publish / Final Gate / live acceptance."
+  },
+  "evidence_boundary": {
+    "kind": "static parity + real pytest + read-only audit; the user-settings observation is a local read-only reading",
+    "live_e2e": false,
+    "agent_dispatched": false,
+    "skill_production_invocable": false,
+    "skill_preload_effective": false,
+    "verdict_published": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "github_live_operations": false,
+    "pr_publisher_enabled": false,
+    "task_context_signal_resent": false,
+    "hook_effective_protection": false,
+    "bash_write_denial_verified": false,
+    "disable_model_invocation_released": false
+  }
+}
