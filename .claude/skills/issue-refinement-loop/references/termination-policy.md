@@ -666,9 +666,18 @@ dynamic-fence を含む）は撤去された。orchestrator は次の手順で�
    を直接組み立てる（見出し・termination reason/cause・issue 番号・iteration・
    blockers の箇条書き程度の最小構成。テンプレート/guard/attempt ロジックは持たない）。
 2. `publish_termination_report.py`（`--issue-number` / `--repo` / `--body-file` または stdin）
-   に summary をそのまま渡す。この script は body の空チェックのみ行い（`empty_body` で
-   fail-closed）、`issue_comment.publish` controlled mutation lane（Issue #1633）経由で
-   投稿する。raw `gh issue comment` を直接呼ぶことはない。
+   に summary をそのまま渡す。この script は body の空チェック（`empty_body`）に加え、
+   `LOOP_HANDOFF_RESULT_V1` marker がある場合だけ、本書の既存6条件・evidence・status/routing
+   の内部整合性を controlled executor 呼び出し前に確認する。不整合・malformed・重複や曖昧な
+   YAML は診断付きで fail-closed とし、承認への本文自動変換は行わない。marker 無しの通常
+   Markdown は従来どおり扱う。新しい条件・schema・renderer は追加しない。
+   orchestrator は本書の routing table に従い、hygiene 未適用／skipped は
+   `human_judgment_required / ask_human`、missing/stale/invalidated go・blockers は
+   `blocked / blocked` を組み立てる。title false でも evidence 完備の applied hygiene は許容する。
+   整合した本文を `issue_comment.publish` controlled mutation lane（Issue #1633）経由で投稿し、
+   raw `gh issue comment` を直接呼ぶことはない。これは audit telemetry の検査のみで、
+   live freshness／root dispatch／Task Context adapter の復元ではない。SHA 入力、post-publish
+   best-effort signal、dry-run の既存仕様は変更しない。
 3. `scope_signal_guard.triggered=true` の termination では、`scope_signal_guard_route` /
    `missing_approval_field` / `suggested_contract_patch`（#1090 AC6、`scope_signal_guard_
    decision_v2.scope_delta_approval` 由来）を summary の blockers 箇条書きに含める。

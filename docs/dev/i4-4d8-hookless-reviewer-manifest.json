@@ -210,6 +210,13 @@
       "no Task Context signal was re-sent",
       "no adapter was restored"
     ],
+    "current_d9": {
+      "issue": "squne121/agent-platform#105",
+      "claim_check": "publisher_pre_executor",
+      "policy": ".claude/skills/issue-refinement-loop/references/termination-policy.md",
+      "evidence": "docs/dev/i4-4d9-handoff-claim-consistency-manifest.json",
+      "scope": "Marker-bearing claim consistency only. The defects above are historical #101 facts, not rewritten. Task Context adapter and root transition remain absent; no signal re-send, comment edit or live E2E."
+    },
     "d103_refinement": {
       "contract_snapshot": "https://github.com/squne121/agent-platform/issues/103#issuecomment-6768238616",
       "termination_report": "https://github.com/squne121/agent-platform/issues/103#issuecomment-6768265244",

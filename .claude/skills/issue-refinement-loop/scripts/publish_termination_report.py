@@ -13,7 +13,8 @@ routing state) as a subprocess, then posted its output. That renderer and
 the routing state it depended on have been removed. The orchestrator
 (`plan_refinement_loop.py` / SKILL.md Step 5) now assembles a short plain
 markdown summary directly and passes it to this module as-is -- there is no
-intermediate render/validate step here.
+intermediate renderer here. Marker-bearing bodies receive only the existing
+termination-policy.md claim-consistency check before the controlled executor.
 
 Usage:
     python3 publish_termination_report.py \
@@ -42,10 +43,13 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+import yaml
 
 # ---------------------------------------------------------------------------
 # Issue #1633 / #1639 / #1873 Tranche 3: the isolation worktree agent's
@@ -535,6 +539,96 @@ def _emit_refinement_approved_signal(
         return "deferred", "ADAPTER_UNAVAILABLE"
 
 
+def _handoff_consistency_error(body: str) -> str:
+    """Check only the existing termination-policy.md terminal claim, not dispatch.
+
+    Marker-free Markdown keeps its legacy transport contract. Ambiguous marker
+    framing / YAML cannot establish a claim; never silently choose a duplicate.
+    No body rewriting, live freshness lookup, or Task Context authorization.
+    """
+    name = "LOOP_HANDOFF_RESULT_V1"
+    comments = list(re.finditer(
+        r"<!--(?:(?!-->).)*\bLOOP_HANDOFF_RESULT_V1\b(?:(?!-->).)*(?:-->|$)", body, re.DOTALL
+    ))
+    keys = list(re.finditer(r"(?m)^[ \t]*[\"']?LOOP_HANDOFF_RESULT_V1[\"']?[ \t]*:", body))
+    if not comments and not keys:
+        return ""
+    malformed = "handoff_marker_malformed"
+    if len(comments) != 1 or len(keys) != 1 or comments[0].group() != f"<!-- {name} -->":
+        return malformed
+    block = re.match(
+        r"\s*(`{3,}|~{3,})yaml[ \t]*\n(.*?)\n\1[ \t]*(?:\n|$)",
+        body[comments[0].end() :],
+        re.DOTALL,
+    )
+    if block is None or not (comments[0].end() <= keys[0].start() < comments[0].end() + block.end()):
+        return malformed
+
+    class UniqueLoader(yaml.SafeLoader):
+        pass
+
+    def unique_mapping(loader: yaml.SafeLoader, node: yaml.MappingNode) -> dict:
+        result = {}
+        for key_node, value_node in node.value:
+            key = loader.construct_object(key_node)
+            if not isinstance(key, str) or key in result:
+                raise ValueError("ambiguous mapping")
+            result[key] = loader.construct_object(value_node)
+        return result
+
+    UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping)
+    try:
+        # Aliases / merges obscure which claim was supplied. They are not part
+        # of the policy's literal output format, even if a YAML loader accepts them.
+        if any(isinstance(t, (yaml.tokens.AnchorToken, yaml.tokens.AliasToken)) for t in yaml.scan(block[2])):
+            return malformed
+        document = yaml.load(block[2], Loader=UniqueLoader)
+        if not isinstance(document, dict) or set(document) != {name}:
+            return malformed
+        handoff = document[name]
+        if not isinstance(handoff, dict):
+            return malformed
+    except (yaml.YAMLError, ValueError, TypeError, RecursionError):
+        return malformed
+
+    status = handoff.get("status")
+    route = handoff.get("routing_action")
+    if not isinstance(status, str) or not isinstance(route, str):
+        return malformed
+    if {"human_judgment_required": "ask_human", "blocked": "blocked"}.get(status) == route:
+        return ""
+    if status != "refinement_approved" or route != "none":
+        return "handoff_status_routing_inconsistent"
+
+    # The six existing policy conditions, including complete applied evidence.
+    review = handoff.get("contract_review")
+    metadata = handoff.get("metadata")
+    fixes = handoff.get("auto_fixes")
+    if not isinstance(review, dict) or review.get("gate_result") != "fresh_go" or review.get("status") != "go":
+        return "handoff_contract_review_not_fresh_go"
+    if not isinstance(metadata, dict) or type(metadata.get("title_prefix_ready")) is not bool:
+        return "handoff_metadata_invalid"
+    if not isinstance(fixes, dict) or not isinstance(fixes.get("required"), list) or fixes.get("skipped") != []:
+        return "handoff_auto_fixes_incomplete"
+    hygiene_applied = False
+    for fix in fixes["required"]:
+        if not isinstance(fix, dict) or fix.get("result") != "applied":
+            return "handoff_auto_fixes_incomplete"
+        evidence = fix.get("evidence")
+        if not isinstance(evidence, dict) or any(
+            not isinstance(evidence.get(key), str) or not evidence[key].strip()
+            for key in ("before", "after", "comment_url")
+        ):
+            return "handoff_auto_fix_evidence_missing"
+        if fix.get("kind") in ("metadata_hygiene", "template_hygiene"):
+            hygiene_applied = True
+    if not metadata["title_prefix_ready"] and not hygiene_applied:
+        return "handoff_title_hygiene_unresolved"
+    if handoff.get("blockers") != []:
+        return "handoff_blockers_present"
+    return ""
+
+
 def publish(
     *,
     issue_number: int,
@@ -547,6 +641,11 @@ def publish(
     """Publish a comment, or validate it without posting when dry_run is set."""
     if not isinstance(body, str) or not body.strip():
         _record_artifact(issue_number=issue_number, reason_code="empty_body")
+        return 1
+
+    consistency_error = _handoff_consistency_error(body)
+    if consistency_error:
+        _record_artifact(issue_number=issue_number, reason_code=consistency_error)
         return 1
 
     gh_exit = _post_github_comment(issue_number=issue_number, body=body, repo=repo, dry_run=dry_run)
