@@ -525,6 +525,41 @@ def test_ac2_fix_delta2_scalar_evidence_still_publishes(cli, field, literal):
     )
 
 
+@pytest.mark.parametrize("framing", ["python", "text", "yml", ""])
+@pytest.mark.parametrize("with_claim", [False, True])
+@pytest.mark.parametrize(
+    "content",
+    [
+        'print("LOOP_HANDOFF_RESULT_V1")\ndef f():\n    return None',
+        "LOOP_HANDOFF_RESULT_V1 is audit telemetry.\nDiagnostic: [unfinished",
+    ],
+)
+def test_ac2_fix_delta3_invalid_yaml_nonclaim_still_publishes(cli, framing, with_claim, content):
+    text = body(approved()) if with_claim else "## Notes\n"
+    text += "\n```" + framing + "\n" + content + "\n```\n"
+    proc, root = cli(text)
+    assert proc.returncode == 0, proc.stderr
+    assert (root / "mutation.txt").is_file()
+    assert json.loads((root / "executor.json").read_text())["payload"]["comment_body"].startswith(
+        text
+    )
+
+
+@pytest.mark.parametrize("framing", ["python", "text", "yml", ""])
+@pytest.mark.parametrize(
+    "content",
+    [
+        "LOOP_HANDOFF_RESULT_V1: {status: refinement_approved}\nDiagnostic: [unfinished",
+        '{"LOOP_HANDOFF_RESULT_V1": {metadata: {title_prefix_ready: false}}}\nDiagnostic: [unfinished',
+        'Diagnostic: [unfinished\n{"LOOP_HANDOFF_RESULT_V1": {auto_fixes: {required: [{result: skipped}]}}}',
+        "<!-- LOOP_HANDOFF_RESULT_V1 -->\nDiagnostic: [unfinished",
+        "<!-- LOOP_HANDOFF_RESULT_V1\nDiagnostic: [unfinished",
+    ],
+)
+def test_ac1_fix_delta3_malformed_real_claim_before_executor(cli, framing, content):
+    assert_rejected(cli, body(approved()) + "\n```" + framing + "\n" + content + "\n```\n")
+
+
 @pytest.fixture
 def pub():
     """Load the production module for the two tests moved from the source lane."""

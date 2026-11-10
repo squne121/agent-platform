@@ -561,8 +561,21 @@ def _handoff_consistency_error(body: str) -> str:
         try:
             tokens = list(yaml.scan(fence[2]))
         except yaml.YAMLError:
-            if name in fence[2]:
+            # Arbitrary code/text fences need not be YAML. A name mention alone
+            # is not a claim; retain fail-closed behavior for structural keys or
+            # a standalone marker, even before/after unrelated malformed text.
+            if re.search(r"(?m)^[ \t]*<!--[ \t]*LOOP_HANDOFF_RESULT_V1\b", fence[2]):
                 return malformed
+            for start in re.finditer(r"(?m)^[ \t]*(?=\S)", fence[2]):
+                try:
+                    if any(
+                        isinstance(token, yaml.tokens.ScalarToken) and token.value == name
+                        and isinstance(following, yaml.tokens.ValueToken)
+                        for token, following in pairwise(yaml.scan(fence[2][start.start():]))
+                    ):
+                        return malformed
+                except yaml.YAMLError:
+                    continue
             continue
         # YAML tokens distinguish actual block/flow mapping keys from literal
         # before/after evidence, including block scalars describing old markers.
