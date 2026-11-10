@@ -1,0 +1,22 @@
+[
+  {
+    "name": "build",
+    "bucket": "pass",
+    "state": "SUCCESS",
+    "workflow": "CI",
+    "link": "https://github.com/owner/repo/actions/runs/1001",
+    "event": "push",
+    "startedAt": "2024-01-01T00:00:00Z",
+    "completedAt": "2024-01-01T00:05:00Z"
+  },
+  {
+    "name": "build",
+    "bucket": "pass",
+    "state": "SUCCESS",
+    "workflow": "CI (matrix: ubuntu)",
+    "link": "https://github.com/owner/repo/actions/runs/1003",
+    "event": "push",
+    "startedAt": "2024-01-01T00:00:00Z",
+    "completedAt": "2024-01-01T00:06:00Z"
+  }
+]

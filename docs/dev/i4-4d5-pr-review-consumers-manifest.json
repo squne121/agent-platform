@@ -288,10 +288,10 @@
   "unmigrated_references": {
     "hard_dependencies": [
       {
-        "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py (+ ci_verdict_summary_v2.py, check_pr_review_gates.py, wait_pr_checks.py, generate_ci_test_selection_artifact.py) and their source tests",
-        "owner": "I-4-4D6 or later: pr-review-judge runtime scripts slice",
-        "reason": "the real review procedure and gates execute these; none is migrated, so the reviewer operation is not wired",
-        "rerun_condition": "migrate the scripts with their source tests (unweakened), then run test_pr_reviewer_skill_contract_drift.py and release the temporary disable-model-invocation"
+        "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary_v2.py, generate_ci_test_selection_artifact.py, wait_pr_checks.py and the monolithic test_check_pr_review_gates.py (ci_verdict_summary.py and check_pr_review_gates.py were migrated by I-4-4D6)",
+        "owner": "I-4-4D7 or later: see docs/dev/i4-4d6-pr-review-core-manifest.json unmigrated_references (per-file owner, reason, rerun_condition)",
+        "reason": "the remaining scripts depend on unmigrated shared CI helpers or overlap the authoritative wait_ci_checks.py; the reviewer operation is still not wired",
+        "rerun_condition": "migrate each remaining script with its source tests (unweakened) per the D6 manifest, then run test_pr_reviewer_skill_contract_drift.py and release the temporary disable-model-invocation"
       },
       {
         "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
@@ -319,8 +319,7 @@
       }
     ],
     "not_migrated_references_files": [
-      ".claude/skills/pr-review-judge/references/best-practices.md",
-      ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml"
+      ".claude/skills/pr-review-judge/references/best-practices.md"
     ],
     "note": "Missing files are classified here with owner / reason / rerun_condition; no empty stub stands in for them."
   },
@@ -344,5 +343,30 @@
     "github_live_operations": false,
     "git_ref_mutation": false,
     "hook_effective_protection": false
+  },
+  "historical_pre_d6": {
+    "note": "Measured at I-4-4D5 (#97), before I-4-4D6 (#99) migrated ci_verdict_summary.py, check_pr_review_gates.py and pr-review-gate-result-schema.yml. Kept as history; never the current value.",
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py (+ ci_verdict_summary_v2.py, check_pr_review_gates.py, wait_pr_checks.py, generate_ci_test_selection_artifact.py) and their source tests",
+        "owner": "I-4-4D6 or later: pr-review-judge runtime scripts slice",
+        "reason": "the real review procedure and gates execute these; none is migrated, so the reviewer operation is not wired",
+        "rerun_condition": "migrate the scripts with their source tests (unweakened), then run test_pr_reviewer_skill_contract_drift.py and release the temporary disable-model-invocation"
+      }
+    ],
+    "not_migrated_references_files": [
+      ".claude/skills/pr-review-judge/references/best-practices.md",
+      ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml"
+    ]
+  },
+  "migrated_by_d6": {
+    "manifest": "docs/dev/i4-4d6-pr-review-core-manifest.json",
+    "issue": "squne121/agent-platform#99",
+    "files": [
+      ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py",
+      ".claude/skills/pr-review-judge/scripts/check_pr_review_gates.py",
+      ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml"
+    ],
+    "note": "The D5 totals (108 collected / 108 ran / 0 deferred) are unchanged. The D6 lane runs 173 further source tests."
   }
 }

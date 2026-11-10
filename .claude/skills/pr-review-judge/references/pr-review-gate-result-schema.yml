@@ -1,0 +1,173 @@
+---
+schema_id: PR_REVIEW_GATE_RESULT_V1
+schema_version: "1.1"
+definition: .claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml
+related_issue: "#371"
+producer:
+  - check_pr_review_gates.py (pr-review-judge skill)
+consumer:
+  - pr-review-judge SKILL.md
+  - impl-review-loop orchestrator
+  - GitHub PR verdict comment
+
+description: |
+  Machine-readable output of PR review deterministic gates (G1-G5).
+  Replaces prose gate results with structured JSON/YAML.
+  Enables impl-review-loop to auto-classify gate failures.
+
+schema:
+  $schema: "http://json-schema.org/draft-07/schema#"
+  type: object
+  additionalProperties: false
+  required: [schema_version, generated_at, generated_by, verdict, gates]
+  properties:
+    schema_version:
+      type: string
+      enum: ["PR_REVIEW_GATE_RESULT_V1"]
+      description: "Schema version identifier"
+    generated_at:
+      type: string
+      format: "date-time"
+      description: "ISO 8601 UTC timestamp when check was generated"
+    generated_by:
+      type: string
+      enum: ["check_pr_review_gates.py"]
+      description: "Tool that generated this result"
+    verdict:
+      type: string
+      enum: ["APPROVE", "REQUEST_CHANGES"]
+      description: |
+        Final verdict derived from gate results:
+        - APPROVE: all gates pass or not_applicable
+        - REQUEST_CHANGES: any gate fails (fail ≥ 1)
+    gates:
+      type: array
+      minItems: 5
+      items:
+        type: object
+        additionalProperties: false
+        required: [gate_id, gate_name, status]
+        properties:
+          gate_id:
+            type: string
+            enum: [g1, g2, g3, g4, g5, g6]
+            description: "Gate identifier"
+          gate_name:
+            type: string
+            enum:
+              - ci_test_selection
+              - evidence_binding
+              - implementation_oracle
+              - head_sha_consistency
+              - fixture_guard_path_coverage
+              - allowed_paths_gate_producer_role_presence
+            description: "Human-readable gate name"
+          status:
+            type: string
+            enum: [pass, fail, not_applicable]
+            description: |
+              Gate execution result:
+              - pass: gate requirements satisfied
+              - fail: gate violation detected
+              - not_applicable: gate conditions not triggered (no data)
+          minimal_context:
+            type: string
+            description: |
+              Brief explanation of failure (ONLY for fail gates).
+              Pass/not_applicable gates omit this field.
+          findings:
+            type: array
+            description: "Per-finding evidence references (optional)."
+            items:
+              type: object
+              additionalProperties: false
+              required: [head_sha, source_kind, evidence_refs]
+              properties:
+                head_sha:
+                  type: string
+                  description: "Commit SHA associated with this finding"
+                source_kind:
+                  type: string
+                  enum:
+                    - ci_artifact
+                    - github_api
+                    - github_api_vs_local_git
+                    - pr_body
+                    - python_ast_call
+                    - grep
+                  description: "Origin of evidence"
+                evidence_refs:
+                  type: object
+                  description: "Per-finding evidence reference (flexible structure)."
+                  additionalProperties: true
+        allOf:
+          - if:
+              properties: {status: {const: fail}}
+            then:
+              required: [minimal_context]
+          - if:
+              properties: {status: {enum: [pass, not_applicable]}}
+            then:
+              not: {required: [minimal_context]}
+
+examples:
+  - |
+    {
+      "schema_version": "PR_REVIEW_GATE_RESULT_V1",
+      "generated_at": "2026-05-24T12:30:00Z",
+      "generated_by": "check_pr_review_gates.py",
+      "verdict": "REQUEST_CHANGES",
+      "gates": [
+        {
+          "gate_id": "g1",
+          "gate_name": "ci_test_selection",
+          "status": "fail",
+          "minimal_context": "Uncovered changed test files: src/state/entity.test.ts",
+          "findings": [
+            {
+              "head_sha": "abc123def456",
+              "source_kind": "ci_artifact",
+              "evidence_refs": {
+                "ci_run_ref": {
+                  "url": "https://github.com/owner/repo/actions/runs/123456",
+                  "workflow": "ci.yml",
+                  "job": "python-test",
+                  "command": ["pytest", ".claude/skills/pr-review-judge/scripts/tests/"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "gate_id": "g2",
+          "gate_name": "evidence_binding",
+          "status": "pass"
+        },
+        {
+          "gate_id": "g3",
+          "gate_name": "implementation_oracle",
+          "status": "not_applicable"
+        },
+        {
+          "gate_id": "g4",
+          "gate_name": "head_sha_consistency",
+          "status": "pass"
+        },
+        {
+          "gate_id": "g5",
+          "gate_name": "fixture_guard_path_coverage",
+          "status": "not_applicable"
+        }
+      ]
+    }
+
+validation_commands:
+  - "test -f .claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml && echo 'schema definition exists'"
+  - "rg 'PR_REVIEW_GATE_RESULT_V1' .claude/skills/pr-review-judge/"
+  - "python3 -m json.tool < /path/to/result.json > /dev/null && echo 'JSON output valid'"
+
+notes:
+  - "Per-finding evidence_refs scope avoids top-level required field brittleness"
+  - "Verdict is deterministic: REQUEST_CHANGES if any gate fails, APPROVE otherwise"
+  - "minimal_context omitted for pass/not_applicable to reduce bloat"
+  - "check_pr_review_gates.py is the authoritative producer of this schema"
