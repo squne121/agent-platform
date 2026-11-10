@@ -14,7 +14,8 @@
   },
   "intentional_diff": {
     "publisher": "Minimal pre-executor consistency check of the existing six policy conditions, applied evidence and status/routing. No renderer/schema/wrapper/dispatch authority. Marker-free Markdown and Task Context/SHA/dry-run contracts unchanged.",
-    "publisher_tests": "The 18 existing tests retain all assertions; two additive direct-call tests. D9 closure adds real CLI tests in an isolated minimal tree with a fake controlled executor and no GitHub executable or token.",
+    "publisher_tests": "The 18 existing source tests are byte-identical to pre-D9, preserving Stage2-2's manifest count. The two additive direct-call cases are moved to D9 closure without losing assertions. D9 closure adds real CLI tests in an isolated minimal tree with a fake controlled executor and no GitHub executable or token.",
+    "fix_delta1": "Four independent-review findings: detect second block/flow mapping claims structurally without mistaking literal evidence for a claim; reject contradictory aggregate auto_fixes.result; require kind/executor/result/evidence in applied entries. Real CLI negative/positive regressions added; no new schema or approval conditions.",
     "d8_closure": "Only a current_d9 cross-reference check is added. All historical defect records, source pins and observed counts retained.",
     "docs": "Publisher and orchestrator descriptions synchronized with existing policy; no new approval conditions."
   },
@@ -47,19 +48,19 @@
   ],
   "required_fixtures": [],
   "expected_collect": {
-    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py": 72,
-    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 20,
+    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py": 89,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 18,
     "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
   },
   "expected_ran": {
-    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py": 72,
-    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 20,
+    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py": 89,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 18,
     "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
   },
   "deferred_tests": [],
   "totals": {
-    "collected": 128,
-    "ran": 128,
+    "collected": 143,
+    "ran": 143,
     "deferred": 0,
     "skipped": 0,
     "xfailed": 0,
@@ -67,7 +68,7 @@
     "deselected": 0
   },
   "count_evidence": "Measured pytest --co and actual run; runner independently verifies per-file counts and JUnit outcome. No source test hidden or deselected.",
-  "ci_binding": "CI checkout binds tests to the checked-out head; existing manifest runner pins 128 collected/ran with zero skip/xfail/deselect. No new permissions or runner.",
+  "ci_binding": "CI checkout binds tests to the checked-out head; existing manifest runner pins 143 collected/ran with zero skip/xfail/deselect. No new permissions or runner.",
   "evidence_boundary": {
     "github_live_mutation": false,
     "historical_comment_edited_or_reposted": false,

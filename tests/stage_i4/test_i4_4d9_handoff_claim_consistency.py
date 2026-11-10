@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 import yaml
@@ -90,9 +92,10 @@ def cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
     }
     env.update(
         PATH="",
-        CLAUDE_CODE_SESSION_ID="test-local-only",
         PUBLISH_ARTIFACT_DIR=str(tmp_path / "diagnostics"),
     )
+
+    env["CLAUDE_CODE_SESSION_ID"] = "test-local-only"
 
     def run(text: str, *args: str, stdin: bool = False):
         path = tmp_path / "body.md"
@@ -405,3 +408,97 @@ def test_ac3_ci_and_manifest_are_count_bound():
         for key in ("deferred", "skipped", "xfailed", "xpassed", "deselected")
     )
     assert manifest["totals"]["ran"] == sum(manifest["expected_ran"].values())
+
+
+@pytest.mark.parametrize("quoted", [False, True])
+def test_ac1_fix_delta1_second_flow_claim_before_executor(cli, quoted):
+    name = '"LOOP_HANDOFF_RESULT_V1"' if quoted else "LOOP_HANDOFF_RESULT_V1"
+    second = (
+        "{" + name + ": {status: refinement_approved, routing_action: none, "
+        "metadata: {title_prefix_ready: false}, "
+        "auto_fixes: {required: [{result: skipped}], skipped: []}}}"
+    )
+    assert_rejected(cli, body(approved()) + "\n```yaml\n" + second + "\n```\n")
+
+
+@pytest.mark.parametrize("result", ["blocked", "human_judgment_required"])
+def test_ac1_fix_delta1_aggregate_fix_result_before_executor(cli, result):
+    claim = approved()
+    claim["auto_fixes"]["result"] = result
+    assert_rejected(cli, body(claim))
+
+
+@pytest.mark.parametrize("title_ready", [False, True])
+@pytest.mark.parametrize("missing", [("kind",), ("executor",), ("kind", "executor")])
+def test_ac1_fix_delta1_required_entry_fields_before_executor(cli, title_ready, missing):
+    claim = approved()
+    claim["metadata"]["title_prefix_ready"] = title_ready
+    fix = repair()
+    for key in missing:
+        del fix[key]
+    claim["auto_fixes"]["required"] = [fix]
+    assert_rejected(cli, body(claim))
+
+
+@pytest.mark.parametrize("kind", ["metadata_hygiene", "known_marker_fix"])
+@pytest.mark.parametrize("literal", ["LOOP_HANDOFF_RESULT_V1: broken old marker", MARKER])
+def test_ac2_fix_delta1_literal_evidence_is_not_a_second_claim(cli, kind, literal):
+    claim = approved()
+    claim["metadata"]["title_prefix_ready"] = kind != "metadata_hygiene"
+    claim["auto_fixes"]["required"] = [repair(kind)]
+    text = body(claim).replace("before: missing", "before: |\n          " + literal)
+    assert "before: |" in text
+    proc, root = cli(text)
+    assert proc.returncode == 0, proc.stderr
+    sent = json.loads((root / "executor.json").read_text())["payload"]["comment_body"]
+    assert sent.startswith(text)
+    assert (root / "mutation.txt").is_file()
+
+
+def test_ac2_fix_delta1_flow_claim_and_unrelated_flow_yaml_are_legal(cli):
+    claim = yaml.safe_dump(
+        {"LOOP_HANDOFF_RESULT_V1": approved()}, default_flow_style=True, width=1000
+    )
+    text = MARKER + "\n```yaml\n" + claim + "```\n\n```yaml\n{note: unrelated}\n```\n"
+    proc, root = cli(text, "--dry-run")
+    assert proc.returncode == 0, proc.stderr
+    assert (root / "executor.json").is_file()
+    assert not (root / "mutation.txt").exists()
+
+
+@pytest.fixture
+def pub():
+    """Load the production module for the two tests moved from the source lane."""
+    spec = importlib.util.spec_from_file_location("_publisher_d9_moved_tests", ROOT / PUBLISHER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class TestHandoffClaimConsistency:
+    """D9 direct-call cases moved intact so Stage2-2 retains its 18 source tests."""
+
+    def test_malformed_marker_never_reaches_transport_or_signal(self, tmp_path, monkeypatch, pub):
+        monkeypatch.setattr(pub, "ARTIFACT_DIR", tmp_path)
+        with (
+            patch.object(pub, "_post_github_comment") as post,
+            patch.object(pub, "_emit_refinement_approved_signal") as signal,
+        ):
+            result = pub.publish(
+                issue_number=42,
+                body="<!-- LOOP_HANDOFF_RESULT_V1 -->",
+                repo="squne121/agent-platform",
+                termination_reason="approved",
+                dry_run=True,
+            )
+        assert result == 1
+        post.assert_not_called()
+        signal.assert_not_called()
+        artifact = json.loads(next(tmp_path.glob("*.json")).read_text())
+        assert artifact["reason_code"] == "handoff_marker_malformed"
+
+    def test_marker_free_markdown_is_not_a_new_approval_gate(self, pub):
+        with patch.object(pub, "_post_github_comment", return_value=0) as post:
+            result = pub.publish(issue_number=42, body="## 終了\n", repo="squne121/agent-platform")
+        assert result == 0
+        post.assert_called_once()

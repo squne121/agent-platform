@@ -47,6 +47,7 @@ import re
 import subprocess
 import sys
 from datetime import datetime, timezone
+from itertools import pairwise
 from pathlib import Path
 
 import yaml
@@ -547,21 +548,45 @@ def _handoff_consistency_error(body: str) -> str:
     No body rewriting, live freshness lookup, or Task Context authorization.
     """
     name = "LOOP_HANDOFF_RESULT_V1"
-    comments = list(re.finditer(
-        r"<!--(?:(?!-->).)*\bLOOP_HANDOFF_RESULT_V1\b(?:(?!-->).)*(?:-->|$)", body, re.DOTALL
-    ))
-    keys = list(re.finditer(r"(?m)^[ \t]*[\"']?LOOP_HANDOFF_RESULT_V1[\"']?[ \t]*:", body))
-    if not comments and not keys:
-        return ""
     malformed = "handoff_marker_malformed"
-    if len(comments) != 1 or len(keys) != 1 or comments[0].group() != f"<!-- {name} -->":
+    fences = list(re.finditer(
+        r"(?m)^[ \t]*(`{3,}|~{3,})yaml[ \t]*\n(.*?)\n\1[ \t]*(?:\n|$)", body, re.DOTALL
+    ))
+    key_count = 0
+    outside_parts = []
+    cursor = 0
+    for fence in fences:
+        outside_parts.append(body[cursor:fence.start()])
+        cursor = fence.end()
+        try:
+            tokens = list(yaml.scan(fence[2]))
+        except yaml.YAMLError:
+            if name in fence[2]:
+                return malformed
+            continue
+        # YAML tokens distinguish actual block/flow mapping keys from literal
+        # before/after evidence, including block scalars describing old markers.
+        key_count += sum(
+            isinstance(token, yaml.tokens.ScalarToken) and token.value == name
+            and isinstance(following, yaml.tokens.ValueToken)
+            for token, following in pairwise(tokens)
+        )
+    outside_parts.append(body[cursor:])
+    if re.search(r"(?m)^[ \t]*[\"']?LOOP_HANDOFF_RESULT_V1[\"']?[ \t]*:", "\n".join(outside_parts)):
+        return malformed
+    comments = [match for match in re.finditer(
+        r"<!--(?:(?!-->).)*\bLOOP_HANDOFF_RESULT_V1\b(?:(?!-->).)*(?:-->|$)", body, re.DOTALL
+    ) if not any(fence.start() <= match.start() < fence.end() for fence in fences)]
+    if not comments and not key_count:
+        return ""
+    if len(comments) != 1 or key_count != 1 or comments[0].group() != f"<!-- {name} -->":
         return malformed
     block = re.match(
         r"\s*(`{3,}|~{3,})yaml[ \t]*\n(.*?)\n\1[ \t]*(?:\n|$)",
         body[comments[0].end() :],
         re.DOTALL,
     )
-    if block is None or not (comments[0].end() <= keys[0].start() < comments[0].end() + block.end()):
+    if block is None:
         return malformed
 
     class UniqueLoader(yaml.SafeLoader):
@@ -608,12 +633,15 @@ def _handoff_consistency_error(body: str) -> str:
         return "handoff_contract_review_not_fresh_go"
     if not isinstance(metadata, dict) or type(metadata.get("title_prefix_ready")) is not bool:
         return "handoff_metadata_invalid"
-    if not isinstance(fixes, dict) or not isinstance(fixes.get("required"), list) or fixes.get("skipped") != []:
+    if (not isinstance(fixes, dict) or fixes.get("result") != "auto_fixed"
+            or not isinstance(fixes.get("required"), list) or fixes.get("skipped") != []):
         return "handoff_auto_fixes_incomplete"
     hygiene_applied = False
     for fix in fixes["required"]:
         if not isinstance(fix, dict) or fix.get("result") != "applied":
             return "handoff_auto_fixes_incomplete"
+        if any(not isinstance(fix.get(key), str) or not fix[key].strip() for key in ("kind", "executor")):
+            return "handoff_auto_fix_entry_incomplete"
         evidence = fix.get("evidence")
         if not isinstance(evidence, dict) or any(
             not isinstance(evidence.get(key), str) or not evidence[key].strip()

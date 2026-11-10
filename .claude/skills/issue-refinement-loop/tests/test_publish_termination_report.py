@@ -491,28 +491,3 @@ class TestCliEntryPoint:
 
         exit_code = pub.main()
         assert exit_code == 2
-
-
-class TestHandoffClaimConsistency:
-    """D9: direct callers share the same pre-transport check as the CLI."""
-
-    def test_malformed_marker_never_reaches_transport_or_signal(self, tmp_path, monkeypatch):
-        monkeypatch.setattr(pub, "ARTIFACT_DIR", tmp_path)
-        with patch.object(pub, "_post_github_comment") as post, patch.object(
-            pub, "_emit_refinement_approved_signal"
-        ) as signal:
-            result = pub.publish(
-                issue_number=42, body="<!-- LOOP_HANDOFF_RESULT_V1 -->",
-                repo=TRUSTED_REPO, termination_reason="approved", dry_run=True,
-            )
-        assert result == 1
-        post.assert_not_called()
-        signal.assert_not_called()
-        artifact = json.loads(next(tmp_path.glob("*.json")).read_text())
-        assert artifact["reason_code"] == "handoff_marker_malformed"
-
-    def test_marker_free_markdown_is_not_a_new_approval_gate(self):
-        with patch.object(pub, "_post_github_comment", return_value=0) as post:
-            result = pub.publish(issue_number=42, body="## 終了\n", repo=TRUSTED_REPO)
-        assert result == 0
-        post.assert_called_once()
