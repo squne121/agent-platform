@@ -1,0 +1,348 @@
+{
+  "schema": "I4_4D5_PR_REVIEW_CONSUMERS_MANIFEST_V1",
+  "issue": "squne121/agent-platform#97",
+  "tracker": "squne121/agent-platform#60",
+  "source": {
+    "repository": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "read_only": true
+  },
+  "base": {
+    "commit": "db049d71f42c1e26d240add9e59d570e19b2de34",
+    "note": "D4 merge commit (PR #96)"
+  },
+  "documents": {
+    ".claude/skills/pr-review-judge/SKILL.md": {
+      "source_blob_sha1": "db2ae9d1f17498fa358528f552974f7e2666c8fa",
+      "source_sha256": "72017cd60d93bdcd9c38bc3c94e2e8f46b4c0aeba3aa90fdc229ae27fcde4f76",
+      "source_lines": 336,
+      "moved_sha256": "7124a5777ed1a15c921ab70955d4c059dfc7c52d9bde789d14b7db43764d38e0",
+      "moved_lines": 344,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "disable-model-invocation: true\n",
+          "source": "",
+          "what": "insert migration-status / annotation or temporary frontmatter key"
+        },
+        {
+          "moved": "\n> **移管状況 (I-4-4D5)**: 本 Skill は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名 Skill を最小差分で移管したもの。差分は `docs/dev/i4-4d5-pr-review-consumers-manifest.json` の `intentional_diff` に記録している。\n>\n> - **一時 disable**: frontmatter に `disable-model-invocation: true` を設定している（Claude Code 公式 Skill 仕様では、Claude の自動 invoke と SubAgent への preload が抑止される）。したがって `pr-reviewer.md` の `skills: [pr-review-judge]` による preload は **まだ有効ではない**。これは意図的な deferred であり、本番稼働の証明ではない。動作検証と下記の未移管依存が揃うまで解除しない。\n> - **no-dispatch / no-publish**: 手動 `/pr-review-judge` は disable では防げない。手動 invoke された場合でも、本移管（D5）では実レビュー手順（PR 本文 evaluator・CI provenance script・gate script の実行）と verdict 投稿（`gh pr comment` 等の GitHub 書込）、Reviewer SubAgent の dispatch を **実行しない**（fail-closed）。本文は read-only の documentation として読むに留める。\n> - **未移管の hard dependency**（実レビュー手順が参照するが本 repository には存在しない）: `open-pr` Skill と `validate_pr_body.py`、`pr-review-judge/scripts/ci_verdict_summary.py` / `ci_verdict_summary_v2.py` / `check_pr_review_gates.py` / `wait_pr_checks.py`、`implement-issue` Skill、`gemini-cli-headless-delegation` Skill、`.claude/hooks/pr_reviewer_guard.py`、`docs/dev/workflow.md`、`docs/dev/schema-governance.md`、`.github/pull_request_template.md`。後続の runtime 結線工程の担当である（owner / rerun_condition は manifest の `unmigrated_references`）。移管済みなのは `scripts/allowed_paths_review_gate.py` と `impl-review-loop/scripts/wait_ci_checks.py` のみ。\n> - 現行の正本は `AGENTS.md` / `docs/dev/github-ops.md`。本文中の旧 repository の Issue・PR 番号、`docs/dev/workflow.md`、ゲーム固有の例は移管元の履歴記述であり、現行の実行認可や正本ではない。\n",
+          "source": "",
+          "what": "insert migration-status / annotation or temporary frontmatter key"
+        }
+      ]
+    },
+    ".claude/agents/pr-reviewer-lite.md": {
+      "source_blob_sha1": "7216a760618bc33e90bbcea3ea59dac962e467c5",
+      "source_sha256": "7d1b9d29fafb06f5e832ebbaead9f42d68618bcb9fdc50483509374d10f94ffe",
+      "source_lines": 226,
+      "moved_sha256": "00a9cd58620ea48914fd0c6784a286c63a7d5c55e56ad09e2b70fad90ac0fb3a",
+      "moved_lines": 236,
+      "verbatim": false,
+      "intentional_diff": [
+        {
+          "moved": "> **移管状況 (I-4-4D5)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d5-pr-review-consumers-manifest.json` の `intentional_diff` に記録している。`tools` / `disallowedTools` / `permissionMode` は移管元のまま（緩和なし）。deny-list は本 repository の Python 構成（`scripts/**`・`tests/**`・`config/**`・`pyproject.toml`・`uv.lock` 等）の変更を docs-only の軽量レビュー対象と誤認しないよう最小限に適応した。**D5 ではこの Agent を dispatch しない。** 参照先の `pr-review-judge` Skill は一時 disable 中で、`ci_verdict_summary.py` 等の実レビュー用 script・`.claude/hooks/pr_reviewer_guard.py` hook は未移管のため、本定義の存在は PR review の運用が可能であることを意味しない。\n\nあなたは agent-platform の **軽量 PR レビューを担当する** SubAgent です。\n",
+          "source": "あなたは LOOP_PROTOCOL の **軽量 PR レビューを担当する** SubAgent です。\n",
+          "what": "adapt legacy text to the agent-platform contract"
+        },
+        {
+          "moved": "    - \"src/**\"                          # アプリケーションコード変更\n    - \"scripts/**\"                      # スクリプト（CI・guard・ops）変更\n    - \"tests/**\"                        # テスト変更\n    - \"config/**\"                       # 設定変更\n    - \".github/**\"                      # CI/CD・テンプレート変更\n",
+          "source": "    - \"src/**\"                          # ゲームコード変更\n    - \".github/workflows/**\"            # CI/CD 変更\n",
+          "what": "adapt legacy text to the agent-platform contract"
+        },
+        {
+          "moved": "    - \".claude/hooks/**\"                # hook 変更\n    - \".claude/settings*.json\"          # 権限・hook 設定変更\n    - \"pyproject.toml\"                  # 依存関係・ツール設定変更\n    - \"uv.lock\"                         # ロックファイル変更\n    - \"AGENTS.md\"                       # 開発規約変更\n    - \"CLAUDE.md\"                       # 開発規約変更\n",
+          "source": "    - \"package.json\"                    # 依存関係変更\n    - \"pnpm-lock.yaml\"                  # ロックファイル変更\n",
+          "what": "adapt legacy text to the agent-platform contract"
+        },
+        {
+          "moved": "    - \"docs/dev/*manifest*.json\"        # 契約 manifest 変更\n",
+          "source": "",
+          "what": "insert migration-status / annotation or temporary frontmatter key"
+        }
+      ]
+    }
+  },
+  "verbatim_files": {
+    ".claude/skills/pr-review-judge/references/evidence-policy.md": {
+      "source_blob_sha1": "64607fc3b1f200283faae5cd4542890c132b7505",
+      "source_sha256": "c569110a959ba0326adf0f35b99f4ffc98d87564a9eec69921ebce501ee2ac37",
+      "moved_sha256": "c569110a959ba0326adf0f35b99f4ffc98d87564a9eec69921ebce501ee2ac37",
+      "moved_lines": 100,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/ci-verdict-summary.md": {
+      "source_blob_sha1": "ecb202c60f1eb171b087ff231245b3916ed0a59d",
+      "source_sha256": "eb0f129f23fb5ad7a65c6423cb70abb3e1cc3972e3cda53e255c9b384600f227",
+      "moved_sha256": "eb0f129f23fb5ad7a65c6423cb70abb3e1cc3972e3cda53e255c9b384600f227",
+      "moved_lines": 29,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/ac-evidence-checks.md": {
+      "source_blob_sha1": "e09f874f80c3b30b3931de32cc235dd2d30fdf88",
+      "source_sha256": "b598e8ca6e1475da840652acd2df33986abd657fc5504cc478565aacd8302fc6",
+      "moved_sha256": "b598e8ca6e1475da840652acd2df33986abd657fc5504cc478565aacd8302fc6",
+      "moved_lines": 51,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/schema-consumer-gate.md": {
+      "source_blob_sha1": "055e0416adfdc65059682af0796580e8589770d4",
+      "source_sha256": "a866962c63f91ab3e3697f95af74d1ba0caa79d4542b29920094620ec7c330b7",
+      "moved_sha256": "a866962c63f91ab3e3697f95af74d1ba0caa79d4542b29920094620ec7c330b7",
+      "moved_lines": 20,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/safety-claim-gate.md": {
+      "source_blob_sha1": "de507d91aa8acd89d330e960d1fc1ea7355fbcde",
+      "source_sha256": "c3a6c2bbd0f41c137694c055f5c75beafcb752062930056f5b94484cacd5f59d",
+      "moved_sha256": "c3a6c2bbd0f41c137694c055f5c75beafcb752062930056f5b94484cacd5f59d",
+      "moved_lines": 49,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/loop-verdict-v2-schema.md": {
+      "source_blob_sha1": "4f1b593a95333d0b113a20fc52910ccdfa286e1b",
+      "source_sha256": "37c2fa1a4f30bf301b2b61e0b9cb38a2ae2be62178185cf6f2d6df89eb49a40a",
+      "moved_sha256": "37c2fa1a4f30bf301b2b61e0b9cb38a2ae2be62178185cf6f2d6df89eb49a40a",
+      "moved_lines": 29,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/allowed-paths-gate.md": {
+      "source_blob_sha1": "03d2c4c13166c4209fb7f43e57258d6f0fa1ceb8",
+      "source_sha256": "af61cc03f2c57e1a53a0868782b51955e9c7d4e2e90c88dc79921a5e500ea5d4",
+      "moved_sha256": "af61cc03f2c57e1a53a0868782b51955e9c7d4e2e90c88dc79921a5e500ea5d4",
+      "moved_lines": 150,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/required-auto-actions.md": {
+      "source_blob_sha1": "0d847cce3f9ca436601039716330d4758687fd16",
+      "source_sha256": "37d851073452ef5ae690ff1e8994abb26c276ca39ef7a5990d15dfcd2621e75d",
+      "moved_sha256": "37d851073452ef5ae690ff1e8994abb26c276ca39ef7a5990d15dfcd2621e75d",
+      "moved_lines": 16,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/verdict-output-template.md": {
+      "source_blob_sha1": "4f0a5075595af15daadf5062369b871a0a1d9748",
+      "source_sha256": "aecc3c0334305ac67ca6deada776a679ddac15d068d6a7f5c215ec8636109923",
+      "moved_sha256": "aecc3c0334305ac67ca6deada776a679ddac15d068d6a7f5c215ec8636109923",
+      "moved_lines": 33,
+      "verbatim": true
+    },
+    ".claude/skills/pr-review-judge/references/deterministic-gates.md": {
+      "source_blob_sha1": "8d644a5ac868890e85b8085dc07c232240a37682",
+      "source_sha256": "37f13be19c0cd9662aca9ba5d3aba6b7c969d4afd96232249070ff6bf29375de",
+      "moved_sha256": "37f13be19c0cd9662aca9ba5d3aba6b7c969d4afd96232249070ff6bf29375de",
+      "moved_lines": 11,
+      "verbatim": true
+    }
+  },
+  "decisions": {
+    "slice": "I-4-4D5: migrate pr-review-judge/SKILL.md, pr-reviewer-lite.md and the 10 references the Skill's Reference Loading Map points to, and restore the D4 deferred 3-consumer test unchanged. No wrapper, shared schema or permanent gate is added; the existing runner is reused.",
+    "auto_invocation": "pr-review-judge/SKILL.md carries a temporary `disable-model-invocation: true` (Claude Code official Skill spec: no automatic invocation and no preload into a SubAgent). Consequently the `skills: [pr-review-judge]` declaration of pr-reviewer.md (unchanged) does not preload the Skill yet; this is an intentional deferred state, not proof of production operation. A manual /pr-review-judge is still possible, so the body states the fail-closed rule: no review procedure, no verdict publish, no dispatch in D5. The disable is released only by the slice that completes and verifies the wiring.",
+    "no_dispatch": "Nothing here starts an Agent or SubAgent (pr-reviewer-lite included), runs a review, calls live GitHub write operations, mutates a Git ref or publishes a verdict.",
+    "lite_agent_boundary": "tools (Bash, Read, Grep, Glob), disallowedTools (Agent, Edit, Write, MultiEdit, Skill) and permissionMode dontAsk are unchanged from the source. Only the deny-list was adapted: scripts, tests, config, .github, hooks, settings, pyproject.toml, uv.lock, AGENTS.md, CLAUDE.md and manifest changes now fail closed to the Sonnet pr-reviewer instead of being treated as a docs-only lightweight review.",
+    "legacy_content": "Body text of the Skill and references is kept as source history: legacy Issue / PR numbers, the legacy workflow document, game-specific examples and one legacy repository comment URL are inert here and the migration-status note says so. The 10 references are byte-identical to the source.",
+    "restoration": "The unchanged source test test_canonical_evaluator_consumers_use_same_function now passes under real pytest because the 3 consumers (pr-review-judge/SKILL.md, pr-reviewer-lite.md, steps/step-4-pr-review.md) exist and mention wait_ci_checks. The source test file was not edited.",
+    "production_claim": "Migrating these files does not make PR review, verdict publishing, the Final Gate or LOOP_HANDOFF_RESULT_V1 wiring runnable; real-pytest PASS and document parity are not evidence of Skill preload or Agent dispatch."
+  },
+  "frontmatter": {
+    ".claude/skills/pr-review-judge/SKILL.md": {
+      "name": "pr-review-judge",
+      "disable-model-invocation": true
+    },
+    ".claude/agents/pr-reviewer-lite.md": {
+      "name": "pr-reviewer-lite",
+      "tools": [
+        "Bash",
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "disallowedTools": [
+        "Agent",
+        "Edit",
+        "Write",
+        "MultiEdit",
+        "Skill"
+      ],
+      "model": "haiku",
+      "effort": "medium",
+      "permissionMode": "dontAsk",
+      "skills": null
+    }
+  },
+  "deny_list_must_include": [
+    "scripts/**",
+    "tests/**",
+    "config/**",
+    "pyproject.toml",
+    "uv.lock"
+  ],
+  "test_files": [
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py",
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py"
+  ],
+  "required_files": [
+    ".claude/skills/pr-review-judge/SKILL.md",
+    ".claude/agents/pr-reviewer-lite.md",
+    ".claude/agents/pr-reviewer.md",
+    ".claude/skills/impl-review-loop/steps/step-4-pr-review.md",
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py",
+    ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py",
+    ".claude/skills/pr-review-judge/references/evidence-policy.md",
+    ".claude/skills/pr-review-judge/references/ci-verdict-summary.md",
+    ".claude/skills/pr-review-judge/references/ac-evidence-checks.md",
+    ".claude/skills/pr-review-judge/references/schema-consumer-gate.md",
+    ".claude/skills/pr-review-judge/references/safety-claim-gate.md",
+    ".claude/skills/pr-review-judge/references/loop-verdict-v2-schema.md",
+    ".claude/skills/pr-review-judge/references/allowed-paths-gate.md",
+    ".claude/skills/pr-review-judge/references/required-auto-actions.md",
+    ".claude/skills/pr-review-judge/references/verdict-output-template.md",
+    ".claude/skills/pr-review-judge/references/deterministic-gates.md"
+  ],
+  "required_fixtures": [
+    ".claude/skills/impl-review-loop/tests/fixtures/test_runner_report_smoke_prompt.md"
+  ],
+  "expected_collect": {
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 70,
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
+  },
+  "expected_ran": {
+    ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 70,
+    ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
+    ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
+  },
+  "deferred_tests": [],
+  "totals": {
+    "source_collected": 108,
+    "deferred": 0,
+    "ran": 108,
+    "skipped": 0,
+    "xfailed": 0
+  },
+  "lane_totals": {
+    "note": "The D5 lane runs the 108 D4 source tests (0 deferred) through the runner on this manifest, then the stage_i4 closure tests. closure_tests_ran is measured (pytest --co) for the D5 closure file only.",
+    "source_ran": 108,
+    "closure_tests_ran": 24
+  },
+  "d4_restoration": {
+    "d4_manifest": "docs/dev/i4-4d4-skill-agents-readonly-manifest.json",
+    "restored_by_d5": {
+      "id": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function",
+      "file": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+      "function": "test_canonical_evaluator_consumers_use_same_function",
+      "parametrized_cases": 1,
+      "consumers": [
+        ".claude/skills/pr-review-judge/SKILL.md",
+        ".claude/agents/pr-reviewer-lite.md",
+        ".claude/skills/impl-review-loop/steps/step-4-pr-review.md"
+      ],
+      "note": "The source test file is byte-identical to the pinned source (see verbatim_files / test_files). The 3-consumer assertion runs unchanged and passes under real pytest; the deferral entry is removed (human decision 2026-11-09, #95; restored by #97).",
+      "manifest": "docs/dev/i4-4d5-pr-review-consumers-manifest.json"
+    },
+    "historical_pre_d5": {
+      "note": "Measured at I-4-4D4 (#95), before I-4-4D5 (#97) migrated the two missing consumers. Kept as history; never the current value.",
+      "totals": {
+        "source_collected": 108,
+        "deferred": 1,
+        "ran": 107,
+        "skipped": 0,
+        "xfailed": 0
+      },
+      "expected_ran": {
+        ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py": 69,
+        ".claude/skills/impl-review-loop/tests/test_get_ci_failed_log.py": 30,
+        ".claude/skills/impl-review-loop/tests/test_test_runner_report_contract.py": 8
+      },
+      "lane_totals": {
+        "source_ran": 107,
+        "closure_tests_ran": 47
+      },
+      "deferred_tests": [
+        {
+          "id": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function",
+          "file": ".claude/skills/impl-review-loop/tests/test_wait_ci_checks.py",
+          "function": "test_canonical_evaluator_consumers_use_same_function",
+          "parametrized_cases": 1,
+          "kind": "unmigrated_consumer_documents",
+          "requires_missing_files": [
+            ".claude/skills/pr-review-judge/SKILL.md",
+            ".claude/agents/pr-reviewer-lite.md"
+          ],
+          "reason": "The source test asserts that pr-review-judge/SKILL.md, .claude/agents/pr-reviewer-lite.md and steps/step-4-pr-review.md all exist and mention wait_ci_checks. The first two are not migrated and are outside the D4 Allowed Paths; the test body is deliberately kept unchanged and is not weakened, skipped or xfailed (human decision 2026-11-09, #95).",
+          "owner_stage": "I-4-4D5 or later (the slice that migrates pr-review-judge/SKILL.md and pr-reviewer-lite.md)",
+          "rerun_condition": "when both .claude/skills/pr-review-judge/SKILL.md and .claude/agents/pr-reviewer-lite.md are migrated, remove this entry and re-run the unchanged 3-consumer assertion; the closure test fails while an existing consumer file is still listed here",
+          "deferred_by": "manifest deferred_tests (explicit --deselect by scripts/ci/run_stage1b1_tests.py); not skip, not xfail"
+        }
+      ]
+    },
+    "current": {
+      "source_collected": 108,
+      "ran": 108,
+      "deferred": 0,
+      "skipped": 0
+    }
+  },
+  "unmigrated_references": {
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py (+ ci_verdict_summary_v2.py, check_pr_review_gates.py, wait_pr_checks.py, generate_ci_test_selection_artifact.py) and their source tests",
+        "owner": "I-4-4D6 or later: pr-review-judge runtime scripts slice",
+        "reason": "the real review procedure and gates execute these; none is migrated, so the reviewer operation is not wired",
+        "rerun_condition": "migrate the scripts with their source tests (unweakened), then run test_pr_reviewer_skill_contract_drift.py and release the temporary disable-model-invocation"
+      },
+      {
+        "reference": ".claude/skills/open-pr (validate_pr_body.py linked-Issue reference evaluator, update_pr.py)",
+        "owner": "I-4-4D open-pr slice",
+        "reason": "the Skill delegates the Closes / Refs decision to this single evaluator",
+        "rerun_condition": "migrate open-pr and its evaluator tests"
+      },
+      {
+        "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared by pr-reviewer.md)",
+        "owner": "I-4-4D Agent permission boundary slice",
+        "reason": "the hook layer gives no effective protection yet; the read-only boundary rests on tools / disallowedTools only",
+        "rerun_condition": "migrate the hook with negative controls and verify it live"
+      },
+      {
+        "reference": "implement-issue Skill, gemini-cli-headless-delegation Skill, .github/pull_request_template.md, docs/dev/workflow.md, docs/dev/schema-governance.md, scripts/claude-gpt/runtime_smoke_test.sh",
+        "owner": "I-4-4D later slices",
+        "reason": "referenced as history or procedure by the Skill / references / evidence-policy.md; absent here",
+        "rerun_condition": "migrate or re-point when the owning slice lands"
+      },
+      {
+        "reference": ".claude/skills/pr-review-judge/tests/test_pr_reviewer_skill_contract_drift.py (and other source tests that assume a preloadable Skill)",
+        "owner": "I-4-4D runtime wiring slice",
+        "reason": "it requires disable-model-invocation to be false; D5 keeps the Skill disabled and does not weaken the source assertion",
+        "rerun_condition": "run it unchanged when the Skill may really be preloaded"
+      }
+    ],
+    "not_migrated_references_files": [
+      ".claude/skills/pr-review-judge/references/best-practices.md",
+      ".claude/skills/pr-review-judge/references/pr-review-gate-result-schema.yml"
+    ],
+    "note": "Missing files are classified here with owner / reason / rerun_condition; no empty stub stands in for them."
+  },
+  "supersedes": {
+    "docs/dev/i4-4d4-skill-agents-readonly-manifest.json": "deferred_tests emptied; totals / expected_ran / lane_totals.source_ran edited in place (108/107/1 -> 108/108/0); the previous values are kept as historical_pre_d5 and the restored function is tracked in restored_by_d5.",
+    "docs/dev/i4-4d3-step4-step5-manifest.json": "note_i_4_4d5 added to unmigrated_references; the D3 test now pins the pr-review-judge Skill as existing."
+  },
+  "rollback": "Revert the single D5 PR: it removes pr-review-judge/SKILL.md, pr-reviewer-lite.md, the 10 references, this manifest, the D5 closure test and CI lane, and restores the D3 / D4 manifests, tests and CI pins (D4 108 collected / 107 ran / 1 deferred). No previously migrated file other than those edited manifests / tests / CI is modified.",
+  "handoff": {
+    "next": "D6 and later: pr-review-judge runtime scripts and their source tests, open-pr evaluator, pr_reviewer_guard hook, real SubAgent preload / lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Release the temporary disable-model-invocation only then."
+  },
+  "evidence_boundary": {
+    "kind": "static parity + real pytest on the migrated source tests (fake gh on PATH inside tmp_path)",
+    "live_e2e": false,
+    "agent_dispatched": false,
+    "skill_production_invocable": false,
+    "skill_preload_effective": false,
+    "verdict_published": false,
+    "final_gate_wired": false,
+    "loop_handoff_result_v1_wired": false,
+    "github_live_operations": false,
+    "git_ref_mutation": false,
+    "hook_effective_protection": false
+  }
+}

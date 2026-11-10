@@ -303,10 +303,12 @@ def test_ac1_references_are_classified_with_an_owner_and_really_absent(
     for absent in (
         ROOT / ".claude" / "skills" / "implement-issue",
         ROOT / ".claude" / "skills" / "open-pr",
-        ROOT / ".claude" / "skills" / "pr-review-judge" / "SKILL.md",
         irl / "scripts" / "body_only_repair_plan.py",
     ):
         assert not absent.exists(), absent
+    # I-4-4D5 (#97) migrated the pr-review-judge Skill later; the unmigrated_references above stay
+    # as the D3-time record. Its existence is pinned by the D5 closure test.
+    assert (ROOT / ".claude" / "skills" / "pr-review-judge" / "SKILL.md").is_file()
     for rel in manifest["migrated_dependencies"]:
         assert (ROOT / rel).is_file(), rel
 

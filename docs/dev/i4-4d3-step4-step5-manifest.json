@@ -264,7 +264,8 @@
       "legacy Issue/PR numbers (for example #1873, #2916, #2996)",
       "docs/playtest and tmp/ run-time output path examples"
     ],
-    "note_i_4_4d4": "Historical classification at this slice. I-4-4D4 (#95) later migrated impl-review-loop/SKILL.md, the Agents implementation-worker / test-runner / pr-reviewer, wait_ci_checks.py/.sh, get_ci_failed_log.py/.sh and the two step runbooks; see docs/dev/i4-4d4-skill-agents-readonly-manifest.json. implement-issue, open-pr, pr-review-judge, pr-reviewer-lite, body_only_repair_plan.py and the pr_reviewer_guard hook stay unmigrated."
+    "note_i_4_4d4": "Historical classification at this slice. I-4-4D4 (#95) later migrated impl-review-loop/SKILL.md, the Agents implementation-worker / test-runner / pr-reviewer, wait_ci_checks.py/.sh, get_ci_failed_log.py/.sh and the two step runbooks; see docs/dev/i4-4d4-skill-agents-readonly-manifest.json. implement-issue, open-pr, pr-review-judge, pr-reviewer-lite, body_only_repair_plan.py and the pr_reviewer_guard hook stay unmigrated.",
+    "note_i_4_4d5": "Historical classification at this slice. I-4-4D5 (#97) later migrated pr-review-judge/SKILL.md (temporarily disabled for model invocation) and pr-reviewer-lite.md; see docs/dev/i4-4d5-pr-review-consumers-manifest.json. implement-issue, open-pr, body_only_repair_plan.py and the pr_reviewer_guard hook stay unmigrated."
   },
   "supersedes": {
     "docs/dev/i4-4b1-vc-adjudication-manifest.json": "expected_collect / expected_ran / totals / deferred_source_tests / source_parity / deferred_dependencies edited in place (118 -> 122 ran, 5 -> 1 deferred); the previous values are kept there as historical_pre_d3.",
