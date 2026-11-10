@@ -245,9 +245,15 @@
       },
       {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json / secret_boundary_guard.sh",
-        "owner": "D8: Reviewer hook and permission boundary slice",
-        "reason": "the hook layer is not migrated; the read-only boundary rests on tools / disallowedTools only",
-        "rerun_condition": "migrate the hook with negative controls and verify it live"
+        "owner": "none: not adopted by owner decision (I-4-4D8 #103); no hook re-migration",
+        "reason": "the old Claude Code hook is not re-migrated and pr-reviewer.md no longer declares it; the read-only boundary rests on tools / disallowedTools plus operational instructions, and no technical denial of Bash mutation is claimed",
+        "rerun_condition": "none for the hook (reintroducing it fails the D4/D8 closure tests); a future technical write-denial for a Bash-capable Reviewer needs a new Issue and a live verification",
+        "historical_pre_d8": {
+          "owner": "D8: Reviewer hook and permission boundary slice",
+          "reason": "the hook layer is not migrated; the read-only boundary rests on tools / disallowedTools only",
+          "rerun_condition": "migrate the hook with negative controls and verify it live"
+        },
+        "status": "intentionally_not_adopted_by_d8"
       },
       {
         "reference": ".claude/skills/pr-review-judge/scripts/ci_verdict_summary_v2.py, generate_ci_test_selection_artifact.py, wait_pr_checks.py and the monolithic test_check_pr_review_gates.py",
@@ -274,7 +280,8 @@
   },
   "rollback": "Revert the single D7 PR: it removes validate_pr_body.py, the D7 closure test, this manifest and the D7 CI lane, and restores the D3 / D4 / D5 / D6 absence assertions and the D5 / D6 manifest records to the D6 merge state. No Skill, Agent or other previously migrated file is modified.",
   "handoff": {
-    "next": "D8: open-pr Skill / PR publisher (after confirming PR publication permission), the PR template and the full source lint suite; pr_reviewer_guard.py and the Reviewer hook; CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, merge-time fresh native recheck, Final Gate, live E2E; release disable-model-invocation only then."
+    "next": "D8: open-pr Skill / PR publisher (after confirming PR publication permission), the PR template and the full source lint suite; pr_reviewer_guard.py and the Reviewer hook; CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, merge-time fresh native recheck, Final Gate, live E2E; release disable-model-invocation only then.",
+    "note_i_4_4d8": "I-4-4D8 (#103) did not re-migrate pr_reviewer_guard.py or the Reviewer hook: the hook is intentionally not adopted (owner decision) and pr-reviewer.md no longer declares it. Earlier `next` / owner text naming the hook is D-time history. See docs/dev/i4-4d8-hookless-reviewer-manifest.json."
   },
   "evidence_boundary": {
     "kind": "static source parity + real Python CLI runs over temporary body / facts files (pure evaluator, no network, no gh)",

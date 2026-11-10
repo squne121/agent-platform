@@ -18,9 +18,11 @@
     "no_dispatch": "Nothing here starts an Agent or SubAgent, runs the loop, calls live GitHub write operations, mutates a Git ref or publishes a PR. The read-only helpers are exercised with a fake gh on PATH inside tmp_path.",
     "legacy_content": "Legacy pnpm / game-specific examples in test-runner.md and implementation-worker.md were replaced by the agent-platform contract (uv / pytest / ruff / scripts/check_public_hygiene.sh) and the machine-valid example and its test VC were re-hashed accordingly. The Issue #2656 / #2670 / #2892 specific exception sections and the legacy repository URL citation are kept as historical source text; they are inert here (their targets do not exist) and a migration-status note says so. The single legacy slug assertion in test_test_runner_report_contract.py was shortened so check_no_functional_slug.py keeps its detection power.",
     "limited_deferral": "Human decision 2026-11-09 (#95): test_wait_ci_checks.py::test_canonical_evaluator_consumers_use_same_function checks 3 consumer documents (pr-review-judge/SKILL.md, pr-reviewer-lite.md, steps/step-4-pr-review.md). The first two are not migrated and are outside the D4 Allowed Paths. The source test body and its 3-consumer assertion are kept byte-identical and the single function is listed in deferred_tests (explicit --deselect by the runner; not skip, not xfail). The deferral is not counted as PASS: 108 collected / 107 ran / 1 deferred.",
-    "agent_boundary": "pr-reviewer.md keeps the source hooks (.claude/hooks/pr_reviewer_guard.py) and `skills: [pr-review-judge]` unchanged, and keeps disallowedTools Edit/Write/MultiEdit. Neither the hook file nor the pr-review-judge Skill is migrated, so the hook layer gives no effective protection yet; the read-only boundary currently rests on the tools / disallowedTools declaration only. D4 never dispatches this Agent. Independent review uses another read-only SubAgent.",
+    "agent_boundary": "pr-reviewer.md keeps `skills: [pr-review-judge]`, tools Bash/Read/Grep/Glob and disallowedTools Edit/Write/MultiEdit unchanged, and (I-4-4D8, #103, owner decision) carries NO frontmatter `hooks`: the source hooks (.claude/hooks/pr_reviewer_guard.py) are intentionally not re-migrated and reintroducing them fails frontmatter_problems. Because the Agent has Bash, no technical denial of git / gh mutation is claimed; no-write is an operational instruction plus the trusted-orchestrator posting split. D4 never dispatches this Agent. Independent review uses another read-only SubAgent.",
     "production_claim": "Migrating these files does not make /impl-review-loop, implementation, PR publish, the Final Gate or LOOP_HANDOFF_RESULT_V1 wiring runnable.",
-    "note_i_4_4d5": "I-4-4D5 (#97) migrated pr-review-judge/SKILL.md (temporary disable-model-invocation: true) and pr-reviewer-lite.md and removed the single deferral: 108 collected / 108 ran / 0 deferred. The pre-D5 values 108/107/1 are kept in historical_pre_d5. The pr_reviewer_guard hook is still unmigrated, so evidence_boundary.hook_effective_protection stays false."
+    "note_i_4_4d5": "I-4-4D5 (#97) migrated pr-review-judge/SKILL.md (temporary disable-model-invocation: true) and pr-reviewer-lite.md and removed the single deferral: 108 collected / 108 ran / 0 deferred. The pre-D5 values 108/107/1 are kept in historical_pre_d5. The pr_reviewer_guard hook is still unmigrated, so evidence_boundary.hook_effective_protection stays false.",
+    "agent_boundary_pre_d8": "pr-reviewer.md keeps the source hooks (.claude/hooks/pr_reviewer_guard.py) and `skills: [pr-review-judge]` unchanged, and keeps disallowedTools Edit/Write/MultiEdit. Neither the hook file nor the pr-review-judge Skill is migrated, so the hook layer gives no effective protection yet; the read-only boundary currently rests on the tools / disallowedTools declaration only. D4 never dispatches this Agent. Independent review uses another read-only SubAgent.",
+    "hook_policy_d8": "Superseded the D4 expectation that the hook declaration must stay. See docs/dev/i4-4d8-hookless-reviewer-manifest.json."
   },
   "documents": {
     ".claude/skills/impl-review-loop/SKILL.md": {
@@ -117,16 +119,39 @@
       "source_blob_sha1": "5a83c95aebf9a4af7f1739126c569b8800af0908",
       "source_sha256": "7d1bf03b63062fbfd4d9697958f18e993e25b5bb9216da5bcc95733dfffb830d",
       "source_lines": 87,
-      "moved_sha256": "45d6e716c5b4b0f0aac7c48ac433a9376902e8f2398bce0872ca183142e02187",
-      "moved_lines": 89,
+      "moved_sha256": "cf41fbf35053bd77e02c4c6e564b7963410d81e89f23df60cb46bd5fc6e27c74",
+      "moved_lines": 86,
       "verbatim": false,
       "intentional_diff": [
         {
-          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。frontmatter の `hooks`（`.claude/hooks/pr_reviewer_guard.py` を参照）と `skills: [pr-review-judge]` は移管元のまま維持している。hook 実体と Skill は未移管のため、これらは現時点で保護の実効を持たず、read-only の境界は `tools` / `disallowedTools` の宣言にのみ依存する。本定義が参照する `implement-issue` / `open-pr` / `pr-review-judge` Skill・`pr-reviewer-lite`・`.claude/hooks/pr_reviewer_guard.py`・補助 script 等のうち本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。**D4 ではこの Agent を実 dispatch しない。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
+          "moved": "Issue #1881 で導入された旧 Claude Code hook（git や gh の変更コマンドの拒否、身元・参照読了の記録）は I-4-4D8（#103）の owner decision により再移管せず、frontmatter の `hooks` を撤去した。本 agent は Bash を持つため変更コマンドを技術的に拒否できるとは主張せず、no-write は運用指示と trusted orchestrator による投稿に依存する。",
+          "source": "Issue #1881 により、git や gh の変更コマンドを検知すると拒否し、実行主体の身元と参照読了を記録する仕組みを frontmatter に追加した。破壊的な操作を未然に防ぎ、監査証跡を残すための設計であり、意図しない副作用の混入も防ぐ。",
+          "what": "I-4-4D8: replace the description sentence that presented the Issue #1881 hook as an active guard"
+        },
+        {
+          "moved": "  - pr-review-judge\n---\n",
+          "source": "  - pr-review-judge\nhooks:\n  PreToolUse:\n    - {matcher: \"Bash\", hooks: [{type: command, if: \"Bash(git commit *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(git push *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(git worktree *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr review *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr comment *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr merge *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue edit *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue comment *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue close *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}]}\n  SessionStart:\n    - {hooks: [{type: command, command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"observe-identity\"], timeout: 5}]}\n  PostToolUse:\n    - {matcher: \"Read\", hooks: [{type: command, command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"observe-reference-read\"], timeout: 5}]}\n---\n",
+          "what": "I-4-4D8: remove the frontmatter `hooks` (PreToolUse / SessionStart / PostToolUse -> pr_reviewer_guard.py); the source declaration is restored here only to prove source parity"
+        },
+        {
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。`skills: [pr-review-judge]` と `tools` / `disallowedTools` / `permissionMode` は移管元のまま維持している。\n>\n> **hook 方針 (I-4-4D8 / #103、owner decision)**: 移管元の frontmatter `hooks`（`.claude/hooks/pr_reviewer_guard.py` による Bash mutation 拒否・身元記録・参照読了記録）は再移管しない決定をしたため撤去した。この repository には hook 実体も `.claude/settings.json` も存在せず、hook は保護として有効ではない。本 Agent は `Bash` を持つので、git / gh の変更コマンドを技術的に拒否できるとは主張しない。read-only の境界は `tools` / `disallowedTools`（Edit / Write / MultiEdit 不可）の宣言と、下記「制約」の運用指示、および verdict の投稿を trusted orchestrator が担う分担に依存する。hook を復活させるとテスト（D4 `frontmatter_problems`）が FAIL する。\n>\n> 本定義が参照する `implement-issue` / `open-pr` Skill・補助 script 等のうち本 repository に未移管のものは後続スライスの担当である。**D4 ではこの Agent を実 dispatch しない（D8 でも有効化しない）。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
           "source": "",
-          "what": "insert migration-status / annotation"
+          "what": "insert migration-status / annotation (D4 note rewritten by I-4-4D8: hook not re-migrated, no technical write-denial claim)"
         }
-      ]
+      ],
+      "historical_pre_d8": {
+        "moved_sha256": "45d6e716c5b4b0f0aac7c48ac433a9376902e8f2398bce0872ca183142e02187",
+        "moved_lines": 89,
+        "intentional_diff": [
+          {
+            "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。frontmatter の `hooks`（`.claude/hooks/pr_reviewer_guard.py` を参照）と `skills: [pr-review-judge]` は移管元のまま維持している。hook 実体と Skill は未移管のため、これらは現時点で保護の実効を持たず、read-only の境界は `tools` / `disallowedTools` の宣言にのみ依存する。本定義が参照する `implement-issue` / `open-pr` / `pr-review-judge` Skill・`pr-reviewer-lite`・`.claude/hooks/pr_reviewer_guard.py`・補助 script 等のうち本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。**D4 ではこの Agent を実 dispatch しない。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
+            "source": "",
+            "what": "insert migration-status / annotation"
+          }
+        ],
+        "frontmatter_hooks": "hooks:\n  PreToolUse:\n    - {matcher: \"Bash\", hooks: [{type: command, if: \"Bash(git commit *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(git push *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(git worktree *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr review *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr comment *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr merge *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue edit *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue comment *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue close *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}]}\n  SessionStart:\n    - {hooks: [{type: command, command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"observe-identity\"], timeout: 5}]}\n  PostToolUse:\n    - {matcher: \"Read\", hooks: [{type: command, command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"observe-reference-read\"], timeout: 5}]}",
+        "note": "D4-time record kept as history. At D4 the moved file carried the source frontmatter `hooks` unchanged. I-4-4D8 (#103) removed them; `intentional_diff` below now describes the current file against the unchanged source pin (source_blob_sha1 / source_sha256 did not change)."
+      }
     },
     ".claude/skills/impl-review-loop/steps/context-protocol-and-guardrails.md": {
       "source_blob_sha1": "e96e52840875fad6b0f834d2a6dfe48ba562826a",
@@ -294,14 +319,17 @@
       "skills": [
         "pr-review-judge"
       ],
-      "hook_commands": [
-        "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py"
-      ],
-      "hook_events": [
-        "PreToolUse",
-        "SessionStart",
-        "PostToolUse"
-      ]
+      "historical_pre_d8": {
+        "hook_commands": [
+          "${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py"
+        ],
+        "hook_events": [
+          "PreToolUse",
+          "SessionStart",
+          "PostToolUse"
+        ]
+      },
+      "hooks_forbidden": true
     }
   },
   "test_files": [
@@ -385,7 +413,11 @@
       },
       {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared in pr-reviewer.md frontmatter)",
-        "owner": "I-4-4D Agent permission boundary slice (D5 or later)"
+        "owner": "none: intentionally not adopted (I-4-4D8 #103 owner decision); see docs/dev/i4-4d8-hookless-reviewer-manifest.json",
+        "historical_pre_d8": {
+          "owner": "I-4-4D Agent permission boundary slice (D5 or later)"
+        },
+        "status": "intentionally_not_adopted_by_d8"
       },
       {
         "reference": "impl-review-loop/scripts/body_only_repair_plan.py, finalize_no_diff_issue.py, validate_autonomy_policy_result.py, update_branch.py (mutation-adjacent helpers)",
@@ -428,7 +460,8 @@
   "rollback": "Revert the single D4 PR: it removes the Skill, 3 Agents, 2 runbooks, 4 helper files, 3 source tests, the fixture, this manifest, the D4 closure test and CI lane, and restores the D1-D3 / C2 manifests, tests and CI pins (C2 117 ran / 2 deferred). No previously migrated file other than those edited manifests/tests/CI is modified.",
   "handoff": {
     "next": "D5 and later: implement-issue, open-pr, pr-review-judge (+ pr-reviewer-lite, hook file), body-only / mutation-adjacent helpers, the references directory, real SubAgent lifecycle, Final Gate / LOOP_HANDOFF_RESULT_V1 wiring and live GitHub acceptance. Re-run the deferred 3-consumer test then; then consider releasing the temporary disable-model-invocation.",
-    "note_i_4_4d5": "I-4-4D5 (#97) restored the deferred 3-consumer test; the remaining items of this handoff (implement-issue, open-pr, hook, runtime wiring) stay with later slices."
+    "note_i_4_4d5": "I-4-4D5 (#97) restored the deferred 3-consumer test; the remaining items of this handoff (implement-issue, open-pr, hook, runtime wiring) stay with later slices.",
+    "note_i_4_4d8": "I-4-4D8 (#103) removed the pr-reviewer.md hooks and does not re-migrate pr_reviewer_guard.py; the `hook file` item of the D4/D5 handoff is closed as not adopted."
   },
   "evidence_boundary": {
     "kind": "static parity + real pytest on the migrated source tests + fake gh on PATH inside tmp_path",
@@ -489,5 +522,8 @@
     ],
     "note": "The source test file is byte-identical to the pinned source (see verbatim_files / test_files). The 3-consumer assertion runs unchanged and passes under real pytest; the deferral entry is removed (human decision 2026-11-09, #95; restored by #97).",
     "manifest": "docs/dev/i4-4d5-pr-review-consumers-manifest.json"
+  },
+  "historical_pre_d8": {
+    "note": "documents[pr-reviewer.md], frontmatter[pr-reviewer.md] and decisions.agent_boundary above were rewritten by I-4-4D8; their D4-time values are preserved under the `historical_pre_d8` / `agent_boundary_pre_d8` keys."
   }
 }
