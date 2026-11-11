@@ -226,10 +226,10 @@
   "unmigrated_references": {
     "hard_dependencies": [
       {
-        "reference": ".claude/skills/open-pr/SKILL.md, scripts/open_pr.py, scripts/update_pr.py (PR publisher / updater)",
-        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
-        "reason": "D7 is the pure evaluator only; PR creation / edit is a mutation path that D7 does not enable",
-        "rerun_condition": "confirm PR publication permission, then migrate with their source tests unweakened"
+        "reference": ".claude/skills/open-pr/scripts/update_pr.py (PR updater; the Skill SKILL.md and the minimal caller open_pr.py were migrated by I-4-4D11)",
+        "owner": "later open-pr updater slice (PR body update permission must be confirmed first)",
+        "reason": "update_pr.py edits an existing PR body; D7 is the pure evaluator and D11 only creates / reuses a Draft PR",
+        "rerun_condition": "confirm PR body update permission, then migrate with its source tests unweakened"
       },
       {
         "reference": ".github/pull_request_template.md",
@@ -281,7 +281,8 @@
   "rollback": "Revert the single D7 PR: it removes validate_pr_body.py, the D7 closure test, this manifest and the D7 CI lane, and restores the D3 / D4 / D5 / D6 absence assertions and the D5 / D6 manifest records to the D6 merge state. No Skill, Agent or other previously migrated file is modified.",
   "handoff": {
     "next": "D8: open-pr Skill / PR publisher (after confirming PR publication permission), the PR template and the full source lint suite; pr_reviewer_guard.py and the Reviewer hook; CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, merge-time fresh native recheck, Final Gate, live E2E; release disable-model-invocation only then.",
-    "note_i_4_4d8": "I-4-4D8 (#103) did not re-migrate pr_reviewer_guard.py or the Reviewer hook: the hook is intentionally not adopted (owner decision) and pr-reviewer.md no longer declares it. Earlier `next` / owner text naming the hook is D-time history. See docs/dev/i4-4d8-hookless-reviewer-manifest.json."
+    "note_i_4_4d8": "I-4-4D8 (#103) did not re-migrate pr_reviewer_guard.py or the Reviewer hook: the hook is intentionally not adopted (owner decision) and pr-reviewer.md no longer declares it. Earlier `next` / owner text naming the hook is D-time history. See docs/dev/i4-4d8-hookless-reviewer-manifest.json.",
+    "note_i_4_4d11": "I-4-4D11 (#108) added the manual open-pr Skill and open_pr.py, which call this evaluator unchanged (blob 9ab611caea3b006132d53782d08670ee978bf923). The D7 `next` / scope_limit text above is D7-time history; see historical_pre_d11."
   },
   "evidence_boundary": {
     "kind": "static source parity + real Python CLI runs over temporary body / facts files (pure evaluator, no network, no gh)",
@@ -300,5 +301,29 @@
     "closing_relation_mutated": false,
     "full_source_suite_run": false,
     "disable_model_invocation_released": false
+  },
+  "historical_pre_d11": {
+    "note": "Measured before I-4-4D11 (#108) migrated open-pr/SKILL.md and scripts/open_pr.py. Kept as history; never the current value.",
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/open-pr/SKILL.md, scripts/open_pr.py, scripts/update_pr.py (PR publisher / updater)",
+        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
+        "reason": "D7 is the pure evaluator only; PR creation / edit is a mutation path that D7 does not enable",
+        "rerun_condition": "confirm PR publication permission, then migrate with their source tests unweakened"
+      }
+    ],
+    "scope_limit": "Only the pure evaluator moved. open-pr SKILL.md, open_pr.py / update_pr.py, the PR template, the normal PR body lint entry (it depends on unmigrated artifacts) and the full source test_validate_pr_body.py stay unmigrated and are not claimed as working or as run.",
+    "handoff_next": "D8: open-pr Skill / PR publisher (after confirming PR publication permission), the PR template and the full source lint suite; pr_reviewer_guard.py and the Reviewer hook; CI V2 / generator / wait_pr_checks.py necessity. D9+: real Reviewer preload / dispatch, verdict publish, merge-time fresh native recheck, Final Gate, live E2E; release disable-model-invocation only then."
+  },
+  "migrated_by_d11": {
+    "files": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py"
+    ],
+    "manifest": "docs/dev/i4-4d11-minimal-pr-publisher-manifest.json",
+    "still_unmigrated": [
+      ".claude/skills/open-pr/scripts/update_pr.py"
+    ],
+    "note": "I-4-4D11 (#108) migrated only the manual open-pr Skill entrypoint and a minimal interactive Draft-PR caller (open_pr.py). update_pr.py, the PR template, the full lint, Task Context, the legacy hook and every controlled pr_* route remain unmigrated / unavailable; no Skill or Agent was enabled."
   }
 }

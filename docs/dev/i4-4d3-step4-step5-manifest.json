@@ -211,7 +211,7 @@
         "owner": "I-4-4D implement-issue / open-pr slice"
       },
       {
-        "reference": "open-pr skill, scripts/update_pr.py and validate_pr_body.py (step-5-feedback)",
+        "reference": "open-pr scripts/update_pr.py (step-5-feedback); the open-pr Skill and open_pr.py were migrated by I-4-4D11 and validate_pr_body.py by I-4-4D7",
         "owner": "I-4-4D implement-issue / open-pr slice"
       },
       {
@@ -289,5 +289,25 @@
     "push_capable_replay_executor_enabled": false,
     "merge_tree_oracle_real_evidence": false,
     "test_verdict_publish_enabled": false
+  },
+  "historical_pre_d11": {
+    "note": "Measured before I-4-4D11 (#108) migrated open-pr/SKILL.md and scripts/open_pr.py. Kept as history; never the current value.",
+    "later_i_4_4d_slices": [
+      {
+        "reference": "open-pr skill, scripts/update_pr.py and validate_pr_body.py (step-5-feedback)",
+        "owner": "I-4-4D implement-issue / open-pr slice"
+      }
+    ]
+  },
+  "migrated_by_d11": {
+    "files": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py"
+    ],
+    "manifest": "docs/dev/i4-4d11-minimal-pr-publisher-manifest.json",
+    "still_unmigrated": [
+      ".claude/skills/open-pr/scripts/update_pr.py"
+    ],
+    "note": "I-4-4D11 (#108) migrated only the manual open-pr Skill entrypoint and a minimal interactive Draft-PR caller (open_pr.py). update_pr.py, the PR template, the full lint, Task Context, the legacy hook and every controlled pr_* route remain unmigrated / unavailable; no Skill or Agent was enabled."
   }
 }

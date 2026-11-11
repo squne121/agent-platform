@@ -298,14 +298,15 @@ def test_ac1_references_are_classified_with_an_owner_and_really_absent(
         ROOT / ".claude" / "agents" / "test-runner.md",
         ROOT / ".claude" / "agents" / "implementation-worker.md",
         irl / "scripts" / "wait_ci_checks.py",
+        # I-4-4D11 (#108) migrated the open-pr Skill entrypoint and the minimal interactive caller.
+        ROOT / ".claude" / "skills" / "open-pr" / "SKILL.md",
+        ROOT / ".claude" / "skills" / "open-pr" / "scripts" / "open_pr.py",
     ):
         assert migrated_later.is_file(), migrated_later
     for absent in (
         ROOT / ".claude" / "skills" / "implement-issue",
-        # I-4-4D7 (#101) migrated open-pr/scripts/validate_pr_body.py only; the Skill entrypoint and
-        # the PR publisher / updater stay unmigrated (the open-pr directory itself now exists).
-        ROOT / ".claude" / "skills" / "open-pr" / "SKILL.md",
-        ROOT / ".claude" / "skills" / "open-pr" / "scripts" / "open_pr.py",
+        # I-4-4D7 (#101) migrated validate_pr_body.py and I-4-4D11 (#108) the Skill entrypoint and
+        # the minimal caller; only the updater stays unmigrated (the open-pr directory exists).
         ROOT / ".claude" / "skills" / "open-pr" / "scripts" / "update_pr.py",
         irl / "scripts" / "body_only_repair_plan.py",
     ):

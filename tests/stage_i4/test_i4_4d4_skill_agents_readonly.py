@@ -257,10 +257,8 @@ def reference_problems(m: dict[str, Any], root: Path) -> list[str]:
             problems.append(f"unmigrated reference not recorded: {needed}")
     for absent in (
         ".claude/skills/implement-issue",
-        # I-4-4D7 (#101) migrated open-pr/scripts/validate_pr_body.py only (the Skill entrypoint and
-        # the publisher / updater stay unmigrated), so the directory itself is no longer absent.
-        ".claude/skills/open-pr/SKILL.md",
-        ".claude/skills/open-pr/scripts/open_pr.py",
+        # I-4-4D7 (#101) migrated validate_pr_body.py and I-4-4D11 (#108) migrated
+        # .claude/skills/open-pr/SKILL.md and scripts/open_pr.py; only the updater stays unmigrated.
         ".claude/skills/open-pr/scripts/update_pr.py",
         ".claude/hooks/pr_reviewer_guard.py",
         f"{SCRIPTS}/body_only_repair_plan.py",
@@ -1188,7 +1186,7 @@ def test_ac4_legacy_contract_and_unmigrated_record_tampering_are_detected(
         "later_i_4_4d_slices"
     ][:2]
     assert any("not recorded" in p for p in reference_problems(forgotten, ROOT))
-    faked = tmp_path / ".claude/skills/open-pr/SKILL.md"
+    faked = tmp_path / ".claude/skills/open-pr/scripts/update_pr.py"
     faked.parent.mkdir(parents=True, exist_ok=True)
     faked.write_text("placeholder\n", encoding="utf-8")
     assert any(

@@ -1,0 +1,115 @@
+{
+  "schema": "I4_4D11_MINIMAL_PR_PUBLISHER_V1",
+  "issue": "squne121/agent-platform#108",
+  "tracker": "squne121/agent-platform#60",
+  "base_commit": "80406b859482a81afa896e27d2120102fdd647bd",
+  "source": {
+    "repo": "squne121/loop-protocol",
+    "tag": "pre-split-agent-platform-20261020",
+    "commit": "6fa07b6a0ab932a62f08db6a8d521c0dfded2075",
+    "access": "read-only; the source repository was not written"
+  },
+  "owner_decision": {
+    "option": "A",
+    "summary": "interactive Claude Code's existing human-auth path only; the current Japanese PR body format is kept; no bulk open-pr migration, legacy template or Japanese-ratio enforcement",
+    "research": "https://github.com/squne121/agent-platform/issues/106#issuecomment-6794850505",
+    "approval": "https://github.com/squne121/agent-platform/issues/106#issuecomment-6807794459"
+  },
+  "intentional_diff": {
+    "added": [
+      ".claude/skills/open-pr/SKILL.md (manual only: disable-model-invocation true)",
+      ".claude/skills/open-pr/scripts/open_pr.py (about 500 lines, not the 1300-line source)"
+    ],
+    "from_source": "Ported in spirit, not verbatim: the reference selection (select_linked_issue_reference), the A1 decision-comment fact fetch and the Draft `gh pr create --repo --head --base main --body-file`. find_existing_pr is NOT ported: the source returns None for both a failed lookup and an absent PR, which would turn a lookup failure into a duplicate create.",
+    "not_ported": [
+      "update_pr.py",
+      "PR template and the 9 legacy headings",
+      "LP050-LP058 general lint and the Japanese ratio validator",
+      "Task Context notification",
+      "implementation scope coverage marker",
+      "parent child materialization",
+      "canonical API full_name / rename alias resolution"
+    ]
+  },
+  "reused_unchanged": {
+    ".claude/skills/open-pr/scripts/validate_pr_body.py": "9ab611caea3b006132d53782d08670ee978bf923"
+  },
+  "failure_semantics": {
+    "pr_lookup": "existing | absent | stop. A failed, non-JSON, truncated (>=100), multi-match, foreign-owner / cross-repository or other-base result is a stop with zero writes.",
+    "create": "exactly one `gh pr create`; a failure, timeout or unparseable result is never retried and reports only a read-only probe.",
+    "evaluator": "decision must be closing_required / nonclosing_required with body_verdict valid; exit 0 of the evaluator is not permission.",
+    "race": "a concurrent PR creation between the lookup and the create is not excluded."
+  },
+  "required_files": [
+    ".claude/skills/open-pr/SKILL.md",
+    ".claude/skills/open-pr/scripts/open_pr.py",
+    ".claude/skills/open-pr/scripts/validate_pr_body.py",
+    ".claude/skills/create-issue/scripts/prose_boundary_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    "config/repository_identity.v1.json",
+    "scripts/ci/run_stage1b1_tests.py",
+    "docs/dev/stage2-7-terminal-wiring-manifest.json"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py",
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py",
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py"
+  ],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 69,
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 69,
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 299,
+    "ran": 299,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Behavioural tests drive the real open_pr.py CLI against an isolated Git repository and a fake gh; they verify no live GitHub behaviour.",
+  "earlier_slice_sync": {
+    "tests": [
+      "test_i4_4d3_step4_step5.py",
+      "test_i4_4d4_skill_agents_readonly.py",
+      "test_i4_4d5_pr_review_consumers.py",
+      "test_i4_4d6_pr_review_core.py",
+      "test_i4_4d7_open_pr_reference_evaluator.py",
+      "test_i4_4d8_hookless_reviewer.py"
+    ],
+    "manifests": [
+      "i4-4d3-step4-step5",
+      "i4-4d4-skill-agents-readonly",
+      "i4-4d5-pr-review-consumers",
+      "i4-4d6-pr-review-core",
+      "i4-4d7-open-pr-reference-evaluator",
+      "i4-4d8-hookless-reviewer"
+    ],
+    "rule": "The absence assertions for open-pr/SKILL.md and scripts/open_pr.py became presence/migration records; update_pr.py stays absent. Each manifest keeps its previous record under historical_pre_d11 and gains migrated_by_d11. Totals, source pins and deferred records are untouched."
+  },
+  "rollback": "Revert the single D11 PR: it removes the Skill, open_pr.py, this manifest, the D11 closure and CI lane and restores the D3-D8 records. D7 validate_pr_body.py and the D9 main state are not modified.",
+  "ci_binding": "The d11 job runs this manifest through scripts/ci/run_stage1b1_tests.py and the full tests/stage_i4 directory; no new permissions, runner or secrets.",
+  "evidence_boundary": {
+    "live_pr_created_by_tests": false,
+    "live_pr_authority_verified": false,
+    "controlled_pr_route_registered": false,
+    "bot_or_broker_permission_verified": false,
+    "reviewer_dispatched": false,
+    "pr_review_judge_enabled": false,
+    "impl_review_loop_enabled": false,
+    "final_gate_wired": false,
+    "live_e2e": false,
+    "task_context_restored": false,
+    "legacy_hook_restored": false,
+    "merge_or_auto_merge": false
+  }
+}

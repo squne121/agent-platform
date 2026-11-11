@@ -636,7 +636,14 @@ def test_ac3_publisher_audit_separates_what_exists_from_what_is_missing(
         assert (ROOT / rel).is_file(), rel
     missing = [r["id"] for r in audit["responsibilities"] if r["missing"]]
     assert "closes_refs_reference_policy" not in missing
-    assert len(missing) == 6
+    # I-4-4D11 (#108) added the interactive caller's idempotent reuse; the D8-time count (6) is kept
+    # in historical_pre_d11, and update_pr.py / the lint / Task Context / controlled routes stay missing.
+    assert "idempotency_existing_pr_reuse" not in missing
+    assert len(missing) == 5
+    assert len(manifest["historical_pre_d11"]["publisher_audit"]["responsibilities"]) == 7
+    assert [
+        r["missing"] for r in manifest["historical_pre_d11"]["publisher_audit"]["responsibilities"]
+    ].count(True) == 6
 
 
 def test_ac3_the_pr_routes_really_stay_unavailable() -> None:
