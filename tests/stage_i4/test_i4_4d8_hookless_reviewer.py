@@ -295,6 +295,11 @@ def handoff_problems(m: dict[str, Any], root: Path) -> list[str]:
         problems.append("the boundary claims a signal re-send")
     if (root / "scripts/task-context").exists():
         problems.append("scripts/task-context exists: the adapter-absent record is stale")
+    current = h.get("current_d9", {})
+    if current.get("claim_check") != "publisher_pre_executor":
+        problems.append("D9 current claim check is not distinguished from the historical defects")
+    if current.get("evidence") != "docs/dev/i4-4d9-handoff-claim-consistency-manifest.json":
+        problems.append("D9 current claim-check evidence is missing")
     return problems
 
 

@@ -1,0 +1,86 @@
+{
+  "issue": "squne121/agent-platform#105",
+  "tracker": "squne121/agent-platform#60",
+  "base_commit": "66b39024eca3b67cea1d9fcd4f9f014fd8cff2e1",
+  "policy_reference": ".claude/skills/issue-refinement-loop/references/termination-policy.md",
+  "source_provenance": "D8 and Stage 2-7 manifests retain their original source pins. base_file_sha256 records pre-D9 files; it does not rewrite a migrated-source hash.",
+  "base_file_sha256": {
+    ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py": "eaac6340b59e03f50c2fdde5619274dfb816cb4c24ef51ecfa29ac46c7c2996f",
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": "be0d8e687a5bf02cb8171f0e3a02d57eaabfed2f0dfad2281575346bd1f48907",
+    ".claude/skills/issue-refinement-loop/SKILL.md": "00488a3e6bbc2c3ef57f6b0f86126f222ea1fb9b63ea49e095bff334c98e29f5",
+    ".claude/skills/issue-refinement-loop/references/termination-policy.md": "7fda1b338da575fa694e3a782a9bfae053da06d633cb43ae357304c80ed0ca2f",
+    "docs/dev/i4-4d8-hookless-reviewer-manifest.json": "0ff7eb8cf320770c5fb4c8da35675722c9dc9af8c0fd803f03422a02627d1ae2",
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": "3b5827ba691161ebccbb06037837d4f597539445ad1cf4671c4f6ddc8107615f"
+  },
+  "intentional_diff": {
+    "publisher": "Minimal pre-executor consistency check of the existing six policy conditions, applied evidence and status/routing. No renderer/schema/wrapper/dispatch authority. Marker-free Markdown and Task Context/SHA/dry-run contracts unchanged.",
+    "publisher_tests": "The 18 existing source tests are byte-identical to pre-D9, preserving Stage2-2's manifest count. The two additive direct-call cases are moved to D9 closure without losing assertions. D9 closure adds real CLI tests in an isolated minimal tree with a fake controlled executor and no GitHub executable or token.",
+    "fix_delta1": "Four independent-review findings: detect second block/flow mapping claims structurally without mistaking literal evidence for a claim; reject contradictory aggregate auto_fixes.result; require kind/executor/result/evidence in applied entries. Real CLI negative/positive regressions added; no new schema or approval conditions.",
+    "fix_delta2": "Recognize structurally duplicate claims in fences regardless of language labels and in raw flow mappings; preserve literal scalar evidence and marker mentions. Fifty-six real CLI framing regressions cover reject and publish paths.",
+    "fix_delta3": "YAML scan failures in arbitrary language fences reject structural mapping keys or standalone markers, not mere name mentions. Thirty-six real CLI regressions preserve ordinary invalid-as-YAML code/text while rejecting malformed claims.",
+    "d8_closure": "Only a current_d9 cross-reference check is added. All historical defect records, source pins and observed counts retained.",
+    "docs": "Publisher and orchestrator descriptions synchronized with existing policy; no new approval conditions."
+  },
+  "historical_evidence": {
+    "issue101_snapshot": "https://github.com/squne121/agent-platform/issues/101#issuecomment-6766034634",
+    "issue101_termination": "https://github.com/squne121/agent-platform/issues/101#issuecomment-6766041114",
+    "fact": "Historical refinement_approved + title_prefix_ready:false + required skipped remains unchanged. D9 rejects that combination before executor invocation, does not repair or re-post the old comment.",
+    "approved_contract": "https://github.com/squne121/agent-platform/issues/105#issuecomment-6780654385",
+    "approved_body_sha256": "7c0e01eed2e05f4789b6121c42328359379debbceebbe93702d29f9776f7936e"
+  },
+  "runtime_boundary": "Real publisher CLI + real bridge/materialization + fake controlled executor only. Negative claims fail before request materialization and executor/signal calls. This is not Skill invocation, Reviewer dispatch, real GitHub publish or live E2E.",
+  "task_context": "Adapter absent. bare lowercase hex remains accepted evidence but post-publish signal is deferred / ADAPTER_UNAVAILABLE; prefixed hex remains rejected_evidence / INVALID_APPROVED_BODY_SHA256. Publish succeeds independently. Dry-run does not signal.",
+  "test_files": [
+    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py",
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py",
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py"
+  ],
+  "required_files": [
+    ".claude/skills/issue-refinement-loop/scripts/publish_termination_report.py",
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py",
+    ".claude/skills/issue-refinement-loop/SKILL.md",
+    ".claude/skills/issue-refinement-loop/references/termination-policy.md",
+    "docs/dev/i4-4d8-hookless-reviewer-manifest.json",
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py",
+    "scripts/ci/run_stage1b1_tests.py",
+    "scripts/agent-guards/controlled_skill_mutation_policy.py",
+    "scripts/agent-guards/repo_identity.py",
+    ".claude/skills/issue-refinement-loop/scripts/isolation_issue_comment_bridge.py",
+    "config/repository_identity.v1.json"
+  ],
+  "required_fixtures": [],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py": 181,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 18,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d9_handoff_claim_consistency.py": 181,
+    ".claude/skills/issue-refinement-loop/tests/test_publish_termination_report.py": 18,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 235,
+    "ran": 235,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "count_evidence": "Measured pytest --co and actual run; runner independently verifies per-file counts and JUnit outcome. No source test hidden or deselected.",
+  "ci_binding": "CI checkout binds tests to the checked-out head; existing manifest runner pins 235 collected/ran with zero skip/xfail/deselect. No new permissions or runner.",
+  "evidence_boundary": {
+    "github_live_mutation": false,
+    "historical_comment_edited_or_reposted": false,
+    "task_context_restored": false,
+    "task_context_signal_resent": false,
+    "root_transition_restored": false,
+    "reviewer_dispatched": false,
+    "skill_production_invoked": false,
+    "final_gate_wired": false,
+    "implementation_dispatch_authorized": false,
+    "live_e2e": false
+  }
+}

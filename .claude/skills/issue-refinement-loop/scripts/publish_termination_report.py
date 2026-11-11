@@ -13,7 +13,8 @@ routing state) as a subprocess, then posted its output. That renderer and
 the routing state it depended on have been removed. The orchestrator
 (`plan_refinement_loop.py` / SKILL.md Step 5) now assembles a short plain
 markdown summary directly and passes it to this module as-is -- there is no
-intermediate render/validate step here.
+intermediate renderer here. Marker-bearing bodies receive only the existing
+termination-policy.md claim-consistency check before the controlled executor.
 
 Usage:
     python3 publish_termination_report.py \
@@ -42,10 +43,14 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
+from itertools import pairwise
 from pathlib import Path
+
+import yaml
 
 # ---------------------------------------------------------------------------
 # Issue #1633 / #1639 / #1873 Tranche 3: the isolation worktree agent's
@@ -535,6 +540,150 @@ def _emit_refinement_approved_signal(
         return "deferred", "ADAPTER_UNAVAILABLE"
 
 
+def _handoff_consistency_error(body: str) -> str:
+    """Check only the existing termination-policy.md terminal claim, not dispatch.
+
+    Marker-free Markdown keeps its legacy transport contract. Ambiguous marker
+    framing / YAML cannot establish a claim; never silently choose a duplicate.
+    No body rewriting, live freshness lookup, or Task Context authorization.
+    """
+    name = "LOOP_HANDOFF_RESULT_V1"
+    malformed = "handoff_marker_malformed"
+    fences = list(re.finditer(
+        r"(?m)^[ \t]*(`{3,}|~{3,})[^\n]*\n(.*?)\n\1[ \t]*(?:\n|$)", body, re.DOTALL
+    ))
+    key_count = 0
+    outside_parts = []
+    cursor = 0
+    for fence in fences:
+        outside_parts.append(body[cursor:fence.start()])
+        cursor = fence.end()
+        try:
+            tokens = list(yaml.scan(fence[2]))
+        except yaml.YAMLError:
+            # Arbitrary code/text fences need not be YAML. A name mention alone
+            # is not a claim; retain fail-closed behavior for structural keys or
+            # a standalone marker, even before/after unrelated malformed text.
+            if re.search(r"(?m)^[ \t]*<!--[ \t]*LOOP_HANDOFF_RESULT_V1\b", fence[2]):
+                return malformed
+            for start in re.finditer(r"(?m)^[ \t]*(?=\S)", fence[2]):
+                try:
+                    if any(
+                        isinstance(token, yaml.tokens.ScalarToken) and token.value == name
+                        and isinstance(following, yaml.tokens.ValueToken)
+                        for token, following in pairwise(yaml.scan(fence[2][start.start():]))
+                    ):
+                        return malformed
+                except yaml.YAMLError:
+                    continue
+            continue
+        # YAML tokens distinguish actual block/flow mapping keys from literal
+        # before/after evidence, including block scalars describing old markers.
+        key_count += sum(
+            isinstance(token, yaml.tokens.ScalarToken) and token.value == name
+            and isinstance(following, yaml.tokens.ValueToken)
+            for token, following in pairwise(tokens)
+        )
+    outside_parts.append(body[cursor:])
+    outside = "\n".join(outside_parts)
+    if re.search(r"(?m)^[ \t]*[\"']?LOOP_HANDOFF_RESULT_V1[\"']?[ \t]*:", outside):
+        return malformed
+    # Raw mappings have no fence or language label and may be nested in a
+    # sequence or mapping. Scan lazily from each nonempty Markdown line so a
+    # preceding/trailing prose error cannot erase a structural claim.
+    for start in re.finditer(r"(?m)^[ \t]*(?=\S)", outside):
+        try:
+            if any(
+                isinstance(token, yaml.tokens.ScalarToken) and token.value == name
+                and isinstance(following, yaml.tokens.ValueToken)
+                for token, following in pairwise(yaml.scan(outside[start.start():]))
+            ):
+                return malformed
+        except yaml.YAMLError:
+            continue
+    comments = [match for match in re.finditer(
+        r"<!--(?:(?!-->).)*\bLOOP_HANDOFF_RESULT_V1\b(?:(?!-->).)*(?:-->|$)", body, re.DOTALL
+    ) if not any(fence.start() <= match.start() < fence.end() for fence in fences)]
+    if not comments and not key_count:
+        return ""
+    if len(comments) != 1 or key_count != 1 or comments[0].group() != f"<!-- {name} -->":
+        return malformed
+    block = re.match(
+        r"\s*(`{3,}|~{3,})yaml[ \t]*\n(.*?)\n\1[ \t]*(?:\n|$)",
+        body[comments[0].end() :],
+        re.DOTALL,
+    )
+    if block is None:
+        return malformed
+
+    class UniqueLoader(yaml.SafeLoader):
+        pass
+
+    def unique_mapping(loader: yaml.SafeLoader, node: yaml.MappingNode) -> dict:
+        result = {}
+        for key_node, value_node in node.value:
+            key = loader.construct_object(key_node)
+            if not isinstance(key, str) or key in result:
+                raise ValueError("ambiguous mapping")
+            result[key] = loader.construct_object(value_node)
+        return result
+
+    UniqueLoader.add_constructor(yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping)
+    try:
+        # Aliases / merges obscure which claim was supplied. They are not part
+        # of the policy's literal output format, even if a YAML loader accepts them.
+        if any(isinstance(t, (yaml.tokens.AnchorToken, yaml.tokens.AliasToken)) for t in yaml.scan(block[2])):
+            return malformed
+        document = yaml.load(block[2], Loader=UniqueLoader)
+        if not isinstance(document, dict) or set(document) != {name}:
+            return malformed
+        handoff = document[name]
+        if not isinstance(handoff, dict):
+            return malformed
+    except (yaml.YAMLError, ValueError, TypeError, RecursionError):
+        return malformed
+
+    status = handoff.get("status")
+    route = handoff.get("routing_action")
+    if not isinstance(status, str) or not isinstance(route, str):
+        return malformed
+    if {"human_judgment_required": "ask_human", "blocked": "blocked"}.get(status) == route:
+        return ""
+    if status != "refinement_approved" or route != "none":
+        return "handoff_status_routing_inconsistent"
+
+    # The six existing policy conditions, including complete applied evidence.
+    review = handoff.get("contract_review")
+    metadata = handoff.get("metadata")
+    fixes = handoff.get("auto_fixes")
+    if not isinstance(review, dict) or review.get("gate_result") != "fresh_go" or review.get("status") != "go":
+        return "handoff_contract_review_not_fresh_go"
+    if not isinstance(metadata, dict) or type(metadata.get("title_prefix_ready")) is not bool:
+        return "handoff_metadata_invalid"
+    if (not isinstance(fixes, dict) or fixes.get("result") != "auto_fixed"
+            or not isinstance(fixes.get("required"), list) or fixes.get("skipped") != []):
+        return "handoff_auto_fixes_incomplete"
+    hygiene_applied = False
+    for fix in fixes["required"]:
+        if not isinstance(fix, dict) or fix.get("result") != "applied":
+            return "handoff_auto_fixes_incomplete"
+        if any(not isinstance(fix.get(key), str) or not fix[key].strip() for key in ("kind", "executor")):
+            return "handoff_auto_fix_entry_incomplete"
+        evidence = fix.get("evidence")
+        if not isinstance(evidence, dict) or any(
+            not isinstance(evidence.get(key), str) or not evidence[key].strip()
+            for key in ("before", "after", "comment_url")
+        ):
+            return "handoff_auto_fix_evidence_missing"
+        if fix.get("kind") in ("metadata_hygiene", "template_hygiene"):
+            hygiene_applied = True
+    if not metadata["title_prefix_ready"] and not hygiene_applied:
+        return "handoff_title_hygiene_unresolved"
+    if handoff.get("blockers") != []:
+        return "handoff_blockers_present"
+    return ""
+
+
 def publish(
     *,
     issue_number: int,
@@ -547,6 +696,11 @@ def publish(
     """Publish a comment, or validate it without posting when dry_run is set."""
     if not isinstance(body, str) or not body.strip():
         _record_artifact(issue_number=issue_number, reason_code="empty_body")
+        return 1
+
+    consistency_error = _handoff_consistency_error(body)
+    if consistency_error:
+        _record_artifact(issue_number=issue_number, reason_code=consistency_error)
         return 1
 
     gh_exit = _post_github_comment(issue_number=issue_number, body=body, repo=repo, dry_run=dry_run)

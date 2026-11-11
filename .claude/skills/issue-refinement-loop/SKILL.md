@@ -373,7 +373,7 @@ delivery-rollup parent の child materialization gate と、approve 後の follo
 #1873（bounded review loops）: `render_termination_report.py`（`TERMINATION_REPORT_INPUT_V1` を
 検証する renderer）は撤去された。orchestrator は `decide_next_loop_action.py` の出力
 （`STATUS` / `NEXT_ACTION` / `TERMINATION_CAUSE` / `BLOCKERS`）と loop の経緯から短い
-plain markdown の summary を直接組み立て、`--body-file` または stdin で渡す。
+plain markdown の summary を直接組み立て、`--body-file` または stdin で渡す。orchestrator は正本の routing table に従い、hygiene 未適用／skipped や fixer unavailable は `human_judgment_required / ask_human`、missing/stale/invalidated go・blockers は `blocked / blocked` の marker を組み立てる。title false でも evidence 完備の applied metadata/template hygiene は承認可能であり、presentation label は判定根拠にしない。
 
 ```bash
 # summary.md に組み立て済みの plain markdown を書いてから渡す
@@ -392,7 +392,7 @@ origin が missing/unbound であることは diagnostic であり、この publ
 
 `publish_termination_report.py` は以下の責務を持つ:
 
-1. body が空でないことを確認する（空文字列は `empty_body` で fail-closed）
+1. body の空チェック（`empty_body`）に加え、`LOOP_HANDOFF_RESULT_V1` marker がある場合のみ `references/termination-policy.md` の既存6条件・evidence・status/routing の整合性を controlled executor 呼び出し前に確認する。不整合・malformed・重複や曖昧な YAML は診断付きで fail-closed とし、承認へ自動変換しない。marker 無しの通常 Markdown は従来どおり扱う。これは audit telemetry の内部整合性確認であり、live freshness 検証・root transition・Task Context adapter 復元ではない。SHA 入力・post-publish best-effort signal・dry-run の既存仕様は変更しない。
 2. `issue_comment.publish` controlled mutation lane（Issue #1633）経由で GitHub issue comment を投稿する（raw `gh issue comment` を直接呼ばない）
 3. gh 呼び出しが失敗またはタイムアウトした場合は fail-closed で終了し、reason_code / timestamp をローカル artifact に記録する
 
