@@ -715,6 +715,31 @@ def test_ac4_timeouts_on_create_and_on_reads_are_stops_without_a_second_create(
     assert caught.value.code == "E_LINKED_ISSUE_STATE_UNKNOWN"
 
 
+def test_ac4_gh_never_inherits_a_host_or_repo_override(monkeypatch: pytest.MonkeyPatch) -> None:
+    module = _load_module()
+    monkeypatch.setenv("GH_HOST", "ghe.invalid")
+    monkeypatch.setenv("GH_REPO", "other/repo")
+    monkeypatch.setenv("KEEP_ME", "1")
+    seen = module._run(
+        [
+            sys.executable,
+            "-c",
+            "import os;print(sorted(k for k in os.environ if k in ('GH_HOST','GH_REPO','KEEP_ME')))",
+        ]
+    )
+    assert seen.stdout.strip() == "['KEEP_ME']"
+
+
+def test_ac4_a_stop_after_create_still_reports_the_created_url(rig: Rig) -> None:
+    rig.set_state(view_override={"isDraft": False})
+    proc, out = rig.run()
+    assert proc.returncode == 1 and out["status"] == "stopped"
+    assert out["url"] == f"https://github.com/{REPO}/pull/5" and out["created_unverified"] is True
+    rig.set_state(fail={"pr view": "error"})
+    proc, out = rig.run()  # the PR now exists: a rerun reuses it instead of creating another
+    assert len(rig.creates()) == 1
+
+
 def test_ac4_live_pr_creation_is_unverified_by_this_suite(rig: Rig) -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     assert manifest["evidence_boundary"]["live_pr_created_by_tests"] is False

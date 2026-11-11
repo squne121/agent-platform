@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -62,8 +63,16 @@ class Stop(Exception):
 
 
 def _run(argv: list[str], timeout: int = READ_TIMEOUT) -> subprocess.CompletedProcess[str]:
+    # GH_HOST / GH_REPO could redirect `gh` away from the explicit `--repo`; never inherit them.
+    env = {k: v for k, v in os.environ.items() if k not in {"GH_HOST", "GH_REPO"}}
     return subprocess.run(
-        argv, capture_output=True, text=True, check=False, timeout=timeout, stdin=subprocess.DEVNULL
+        argv,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=timeout,
+        stdin=subprocess.DEVNULL,
+        env=env,
     )
 
 
@@ -436,6 +445,20 @@ def run(args: argparse.Namespace) -> dict[str, object]:
             **_probe(repo, branch, owner),
         )
     number = int(urls[-1].group(2))
+    created_url = urls[-1].group(0)
+    try:
+        return _verify_created(
+            args, repo, branch, head, owner, number, issue_body, final_body, summary, facts
+        )
+    except Stop as stop:  # the PR exists even though verification failed: say so, never re-create
+        stop.extra.setdefault("url", created_url)
+        stop.extra["created_unverified"] = True
+        raise
+
+
+def _verify_created(
+    args, repo, branch, head, owner, number, issue_body, final_body, summary, facts
+):
     pr = read_back(repo, number, branch, head, owner)
     live = pr["body"]
     after = evaluate(live, args.linked_issue, issue_body, facts(live, number))
