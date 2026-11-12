@@ -43,7 +43,7 @@
     "M7 diff and AC evidence",
     "M8 head re-read and output"
   ],
-  "legacy_gate_policy": "check_pr_review_gates.py needs the legacy g1 artifact, g2 findings block and g6 allowed_paths_gate block. Their absence is recorded as a warning (legacy_gate_input_missing); g4 head consistency and schema failure are blockers; M4 / M5 stay the canonical Allowed Paths / CI judges.",
+  "legacy_gate_policy": "check_pr_review_gates.py needs the legacy g1 artifact, g2 findings block and g6 allowed_paths_gate block and fails closed without them. Any g1/g2/g4/g6 fail or indeterminate result is a blocker (REQUEST_CHANGES) and is never demoted to a warning or read as PASS; positive M4 / M5 results do not clear it and APPROVE is forbidden. No legacy artifact is forged and no new schema, wrapper or gate is added.",
   "runtime_acceptance": {
     "status": "UNVERIFIED_UNTIL_HUMAN_INVOKE",
     "rule": "AC4 needs the user to type /pr-review-judge <D13 Draft PR number> in an interactive Claude Code session. Fixture results in this manifest are never a runtime PASS; reading the Skill file or an automatic invoke does not substitute.",

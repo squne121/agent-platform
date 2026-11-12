@@ -51,7 +51,7 @@
       "source_blob_sha1": "db2ae9d1f17498fa358528f552974f7e2666c8fa",
       "source_sha256": "72017cd60d93bdcd9c38bc3c94e2e8f46b4c0aeba3aa90fdc229ae27fcde4f76",
       "d5_moved_sha256": "7124a5777ed1a15c921ab70955d4c059dfc7c52d9bde789d14b7db43764d38e0",
-      "current_moved_sha256": "ba3e3bea45a101ee5b0691660b2409e1a4410d42111d8f7d3952df53ceb6e9dc",
+      "current_moved_sha256": "909affb2fca7f69339548b52c7d898a2f991f6c422e73559c4f3c06ac42ad598",
       "change": "the D5 migration note no longer lists .claude/hooks/pr_reviewer_guard.py as an unmigrated hard dependency; it states the hook is not adopted and makes no technical write-denial claim. frontmatter disable-model-invocation: true is unchanged.",
       "intentional_diff_owner": "docs/dev/i4-4d5-pr-review-consumers-manifest.json documents[pr-review-judge/SKILL.md].intentional_diff[1]",
       "historical_pre_d13": {

@@ -484,12 +484,22 @@ def test_ac2_deterministic_gate_reports_head_mismatch_and_never_exits_zero_on_mi
         return proc.returncode, {g["gate_id"]: g["status"] for g in out.get("gates", [])}
 
     rc, same = run("abc", "abc")
-    assert rc == 1 and same["g4"] == "pass"  # legacy g1/g2/g6 inputs are absent: warnings only
+    assert (
+        rc == 1 and same["g4"] == "pass"
+    )  # legacy g1/g2/g6 inputs are absent: checker fails closed
     assert {same["g1"], same["g2"], same["g6"]} == {"fail"}
     rc, mismatch = run("abc", "def")
     assert rc == 1 and mismatch["g4"] == "fail"
     text = (ROOT / SKILL).read_text(encoding="utf-8")
-    assert "legacy_gate_input_missing" in text and "`g4` の fail は blocker" in text
+    m6 = next(ln for ln in text.splitlines() if "**M6 deterministic gate**" in ln)
+    # Negative control: g1/g2/g6 fail must never be demoted to a warning or reach APPROVE,
+    # even when M4 / M5 are positive.
+    assert "legacy_gate_input_missing" not in text
+    assert "`g1`／`g2`／`g4`／`g6` のいずれかが `fail`／`indeterminate` なら" in m6
+    assert "blocker とし、`REQUEST_CHANGES` を返す" in m6
+    assert "`warnings[]` に降格して blocker を消さない" in m6
+    assert "M4／M5 が肯定的でも G1／G2／G6 の fail は解消されたことにならず、`APPROVE` は禁止" in m6
+    assert "偽造せず" in m6
 
 
 # --- AC3: writes are forbidden and the claim stays bounded -------------------------------------
