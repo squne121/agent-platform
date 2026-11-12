@@ -690,7 +690,7 @@ jobs:
           set -eo pipefail
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d11-minimal-pr-publisher-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
-          grep -Eq "(^|[^0-9])0 deferred with reasons, 301 ran, 0 skipped" runner.out
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 317 ran, 0 skipped" runner.out
       - name: D11 closure with the synchronized D3 to D8 history, no skip / xfail / deselect
         shell: bash
         run: |

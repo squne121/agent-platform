@@ -590,11 +590,77 @@ def test_ac3_ambiguous_foreign_or_conflicting_prs_stop_with_no_write(
     assert rig.creates() == [] and rig.writes() == []
 
 
-def test_ac3_a_pr_for_a_different_head_does_not_block_a_new_create(rig: Rig) -> None:
-    rig.set_state(prs=[mk_pr(rig, number=3, headRefName="someone/else")])
+def test_ac3_a_verified_empty_list_is_the_only_absence_that_creates(rig: Rig) -> None:
+    rig.set_state(prs=[])
     proc, out = rig.run()
     assert proc.returncode == 0 and out["status"] == "created"
     assert len(rig.creates()) == 1
+
+
+def _drop(pr: dict[str, Any], key: str) -> dict[str, Any]:
+    return {k: v for k, v in pr.items() if k != key}
+
+
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "number_only",
+        "different_head",
+        "missing_number",
+        "missing_head_ref",
+        "missing_base_ref",
+        "missing_is_cross_repository",
+        "missing_owner",
+        "missing_state",
+        "string_number",
+        "bool_number",
+        "string_is_cross_repository",
+        "owner_not_an_object",
+        "owner_login_not_a_string",
+        "closed_state_in_list",
+        "non_object_row",
+        "different_head_next_to_the_real_one",
+    ],
+)
+def test_ac3_non_empty_but_incomplete_or_contradictory_lists_never_mean_absent(
+    rig: Rig, scenario: str
+) -> None:
+    pr = mk_pr(rig)
+    rows: list[Any]
+    if scenario == "number_only":
+        rows = [{"number": 5}]
+    elif scenario == "different_head":
+        rows = [mk_pr(rig, number=3, headRefName="someone/else")]
+    elif scenario.startswith("missing_"):
+        key = {
+            "missing_number": "number",
+            "missing_head_ref": "headRefName",
+            "missing_base_ref": "baseRefName",
+            "missing_is_cross_repository": "isCrossRepository",
+            "missing_owner": "headRepositoryOwner",
+            "missing_state": "state",
+        }[scenario]
+        rows = [_drop(pr, key)]
+    elif scenario == "string_number":
+        rows = [mk_pr(rig, number="5")]
+    elif scenario == "bool_number":
+        rows = [mk_pr(rig, number=True)]
+    elif scenario == "string_is_cross_repository":
+        rows = [mk_pr(rig, isCrossRepository="false")]
+    elif scenario == "owner_not_an_object":
+        rows = [mk_pr(rig, headRepositoryOwner="squne121")]
+    elif scenario == "owner_login_not_a_string":
+        rows = [mk_pr(rig, headRepositoryOwner={"login": 7})]
+    elif scenario == "closed_state_in_list":
+        rows = [mk_pr(rig, state="CLOSED")]
+    elif scenario == "non_object_row":
+        rows = ["5"]
+    else:
+        rows = [mk_pr(rig, number=3, headRefName="someone/else"), pr]
+    rig.set_state(list_raw=json.dumps(rows))
+    proc, out = rig.run()
+    stopped(proc, out, "E_PR_LOOKUP_AMBIGUOUS")
+    assert rig.creates() == [] and rig.writes() == []
 
 
 # =============================================================================================

@@ -267,6 +267,22 @@ def require_valid(result: dict[str, object]) -> None:
         )
 
 
+def _is_complete_row(row: dict[str, object], branch: str) -> bool:
+    """A listed row must prove it is an OPEN PR for exactly this head; anything else is ambiguous."""
+    number = row.get("number")
+    owner = row.get("headRepositoryOwner")
+    return (
+        isinstance(number, int)
+        and not isinstance(number, bool)
+        and row.get("state") == "OPEN"
+        and row.get("headRefName") == branch
+        and isinstance(row.get("baseRefName"), str)
+        and isinstance(row.get("isCrossRepository"), bool)
+        and isinstance(owner, dict)
+        and isinstance(owner.get("login"), str)
+    )
+
+
 def find_open_pr(repo: str, branch: str, owner: str) -> dict[str, object] | None:
     """`None` = verified absent. A failed, malformed, foreign or ambiguous lookup is a stop."""
     rows = gh_json(
@@ -290,13 +306,18 @@ def find_open_pr(repo: str, branch: str, owner: str) -> dict[str, object] | None
         or not all(isinstance(r, dict) for r in rows)
     ):
         raise Stop("E_PR_LOOKUP_AMBIGUOUS", "malformed or possibly truncated PR list")
-    same_head = [r for r in rows if r.get("headRefName") == branch]
-    if not same_head:
-        return None
+    if not rows:
+        return None  # the only verified-absent result: a well-formed, empty list
+    for row in rows:
+        if not _is_complete_row(row, branch):
+            raise Stop(
+                "E_PR_LOOKUP_AMBIGUOUS",
+                "a non-empty PR list holds a row that is incomplete, mistyped or not for this head",
+            )
     owner_of = lambda r: (r.get("headRepositoryOwner") or {}).get("login")
-    if len(same_head) > 1:
-        raise Stop("E_PR_LOOKUP_AMBIGUOUS", f"{len(same_head)} open PRs share the head")
-    pr = same_head[0]
+    if len(rows) > 1:
+        raise Stop("E_PR_LOOKUP_AMBIGUOUS", f"{len(rows)} open PRs share the head")
+    pr = rows[0]
     if pr.get("isCrossRepository") is not False or owner_of(pr) != owner:
         raise Stop("E_PR_FOREIGN_HEAD", "an open PR has this head name from another repository")
     if pr.get("baseRefName") != BASE:

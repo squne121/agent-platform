@@ -57,19 +57,19 @@
     "tests/stage_i4/test_i4_4d8_hookless_reviewer.py"
   ],
   "expected_collect": {
-    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 71,
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 87,
     "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194,
     "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
   },
   "expected_ran": {
-    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 71,
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 87,
     "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194,
     "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
   },
   "deferred_tests": [],
   "totals": {
-    "collected": 301,
-    "ran": 301,
+    "collected": 317,
+    "ran": 317,
     "deferred": 0,
     "skipped": 0,
     "xfailed": 0,
