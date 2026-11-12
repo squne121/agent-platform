@@ -77,9 +77,8 @@ STILL_ABSENT = (
     f"{SK}/scripts/tests/test_check_pr_review_gates.py",
     "scripts/ci/ci_job_snapshot.py",
     "scripts/ci/python_test_plan.py",
-    # I-4-4D7 (#101) migrated open-pr/scripts/validate_pr_body.py; the Skill and publisher stay absent.
-    ".claude/skills/open-pr/SKILL.md",
-    ".claude/skills/open-pr/scripts/open_pr.py",
+    # I-4-4D7 (#101) migrated validate_pr_body.py; I-4-4D11 (#108) migrated open-pr/SKILL.md and
+    # scripts/open_pr.py. Only the updater stays absent.
     ".claude/skills/open-pr/scripts/update_pr.py",
     ".claude/hooks/pr_reviewer_guard.py",
 )

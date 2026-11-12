@@ -674,3 +674,26 @@ jobs:
           uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d9-handoff-claim-consistency-manifest.json | tee runner.out
           if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
           grep -Eq "(^|[^0-9])0 deferred with reasons, 235 ran, 0 skipped" runner.out
+
+  i4-4d11-minimal-pr-publisher:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: D11 manifest-pinned lane - real open_pr.py CLI against an isolated Git repository and a fake gh (no live GitHub call or PR; live PR authority stays unverified)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d11-minimal-pr-publisher-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 317 ran, 0 skipped" runner.out
+      - name: D11 closure with the synchronized D3 to D8 history, no skip / xfail / deselect
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out

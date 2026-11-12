@@ -408,7 +408,7 @@
         "owner": "I-4-4D implement-issue / open-pr slice (D5 or later)"
       },
       {
-        "reference": "open-pr Skill and open-pr/scripts/update_pr.py (referenced by SKILL.md and implementation-worker.md)",
+        "reference": "open-pr/scripts/update_pr.py (referenced by implementation-worker.md); the open-pr Skill and open_pr.py were migrated by I-4-4D11",
         "owner": "I-4-4D implement-issue / open-pr slice (D5 or later)"
       },
       {
@@ -525,5 +525,25 @@
   },
   "historical_pre_d8": {
     "note": "documents[pr-reviewer.md], frontmatter[pr-reviewer.md] and decisions.agent_boundary above were rewritten by I-4-4D8; their D4-time values are preserved under the `historical_pre_d8` / `agent_boundary_pre_d8` keys."
+  },
+  "historical_pre_d11": {
+    "note": "Measured before I-4-4D11 (#108) migrated open-pr/SKILL.md and scripts/open_pr.py. Kept as history; never the current value.",
+    "later_i_4_4d_slices": [
+      {
+        "reference": "open-pr Skill and open-pr/scripts/update_pr.py (referenced by SKILL.md and implementation-worker.md)",
+        "owner": "I-4-4D implement-issue / open-pr slice (D5 or later)"
+      }
+    ]
+  },
+  "migrated_by_d11": {
+    "files": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py"
+    ],
+    "manifest": "docs/dev/i4-4d11-minimal-pr-publisher-manifest.json",
+    "still_unmigrated": [
+      ".claude/skills/open-pr/scripts/update_pr.py"
+    ],
+    "note": "I-4-4D11 (#108) migrated only the manual open-pr Skill entrypoint and a minimal interactive Draft-PR caller (open_pr.py). update_pr.py, the PR template, the full lint, Task Context, the legacy hook and every controlled pr_* route remain unmigrated / unavailable; no Skill or Agent was enabled."
   }
 }

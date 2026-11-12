@@ -53,9 +53,9 @@ SOURCE_COMMIT = "6fa07b6a0ab932a62f08db6a8d521c0dfded2075"
 SOURCE_BLOB = "9ab611caea3b006132d53782d08670ee978bf923"
 SOURCE_TEST_BLOB = "61592bd77da739f172aa87836b403c2dbc522d08"
 # Not migrated in D7: they stay absent (no empty stub) and keep an owner in the manifest.
+# I-4-4D11 (#108) later migrated {OPEN_PR}/SKILL.md and scripts/open_pr.py (its own closure pins
+# them); the D7 record of that was synchronized, not weakened.
 STILL_ABSENT = (
-    f"{OPEN_PR}/SKILL.md",
-    f"{OPEN_PR}/scripts/open_pr.py",
     f"{OPEN_PR}/scripts/update_pr.py",
     f"{OPEN_PR}/scripts/tests/test_validate_pr_body.py",
     ".github/pull_request_template.md",
@@ -825,7 +825,8 @@ def test_ac1_unmigrated_dependencies_stay_absent_and_owned(manifest: dict[str, A
     files = sorted(
         p.relative_to(ROOT).as_posix() for p in (ROOT / OPEN_PR).rglob("*") if p.is_file()
     )
-    assert files == [SCRIPT_REL], files  # no empty stub stands in for an unmigrated file
+    # no empty stub stands in for an unmigrated file; D11 added exactly the Skill and the caller
+    assert files == [f"{OPEN_PR}/SKILL.md", f"{OPEN_PR}/scripts/open_pr.py", SCRIPT_REL], files
 
 
 def test_ac1_no_skill_is_enabled_by_the_migration(manifest: dict[str, Any]) -> None:
@@ -1506,7 +1507,7 @@ def test_ac4_stale_absence_assertion_is_detected(tmp_path: Path) -> None:
     d5 = stage / "test_i4_4d5_pr_review_consumers.py"
     d5.write_text(
         d5.read_text("utf-8").replace(
-            '".claude/skills/open-pr/SKILL.md",', '".claude/skills/open-pr",', 1
+            '".claude/skills/open-pr/scripts/update_pr.py",', '".claude/skills/open-pr",', 1
         )
     )
     assert any("d5_pr" in p or "4d5" in p for p in stale_absence_problems(tmp_path))

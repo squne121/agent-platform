@@ -98,11 +98,11 @@
   "publisher_audit": {
     "scope": "read-only comparison of the pinned source open-pr Skill / open_pr.py / update_pr.py with the current repository; nothing is migrated or enabled by D8",
     "current_open_pr_files": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py",
       ".claude/skills/open-pr/scripts/validate_pr_body.py"
     ],
     "not_present_now": [
-      ".claude/skills/open-pr/SKILL.md",
-      ".claude/skills/open-pr/scripts/open_pr.py",
       ".claude/skills/open-pr/scripts/update_pr.py",
       ".github/pull_request_template.md"
     ],
@@ -111,7 +111,7 @@
       {
         "id": "canonical_repository_resolution",
         "source": "open_pr.py resolve_canonical_repository (API full_name, lower-cased, fail-closed)",
-        "current_route": "none (scripts/agent-guards/repo_identity.py only reads a trusted slug from config)",
+        "current_route": "exact trusted slug from config/repository_identity.v1.json via scripts/agent-guards/repo_identity.py (D11); API full_name / rename-alias resolution is still not performed",
         "missing": true,
         "owner": "publisher slice (new Issue)",
         "rerun_condition": "mock-gh real CLI tests for mixed-case / rename alias / API failure fail-closed"
@@ -119,9 +119,9 @@
       {
         "id": "closes_refs_reference_policy",
         "source": "open_pr.py select_linked_issue_reference / run_reference_policy_entrypoint",
-        "current_route": "validate_pr_body.py --evaluate-reference-policy and --evaluate-native-auto-close-risk (D7, byte-for-byte)",
+        "current_route": "open_pr.py (D11) -> validate_pr_body.py --evaluate-reference-policy (D7, byte-for-byte)",
         "missing": false,
-        "gap": "the caller that applies the evaluator result to a PR body is not migrated",
+        "gap": "none for the interactive path: I-4-4D11 open_pr.py applies the evaluator result and re-evaluates the final body (D8-time gap kept in historical_pre_d11)",
         "owner": "publisher slice (new Issue)",
         "rerun_condition": "caller applies closing_required / nonclosing_required / fail_closed without weakening the D7 matrices"
       },
@@ -144,15 +144,15 @@
       {
         "id": "idempotency_existing_pr_reuse",
         "source": "open_pr.py find_existing_pr",
-        "current_route": "none",
-        "missing": true,
-        "owner": "publisher slice (new Issue)",
+        "current_route": "open_pr.py find_open_pr/read_back (D11): existing / absent / error-or-ambiguous are distinct; a lookup failure never means absent",
+        "missing": false,
+        "owner": "I-4-4D11 (#108)",
         "rerun_condition": "mock-gh test: second run reuses the open PR and creates nothing"
       },
       {
         "id": "pr_create_update_execution",
         "source": "open_pr.py create_pr (gh pr create --repo) / update_pr.py update_pr (gh pr edit --body-file)",
-        "current_route": "none through the control plane; pr_create / pr_edit / pr_comment / pr_update_branch are unavailable",
+        "current_route": "interactive `gh pr create --draft` in open_pr.py (D11, the caller's own session); the controlled pr_create / pr_edit / pr_comment / pr_update_branch routes stay unavailable",
         "missing": true,
         "owner": "Stage 2 control-plane owner (new Issue; permission must be verified live first)",
         "rerun_condition": "pr_create / pr_edit registered as controlled routes and the permission verified live; the record stays `unverified` until then"
@@ -294,5 +294,96 @@
     "hook_effective_protection": false,
     "bash_write_denial_verified": false,
     "disable_model_invocation_released": false
+  },
+  "historical_pre_d11": {
+    "note": "Measured before I-4-4D11 (#108) migrated open-pr/SKILL.md and scripts/open_pr.py. Kept as history; never the current value.",
+    "publisher_audit": {
+      "scope": "read-only comparison of the pinned source open-pr Skill / open_pr.py / update_pr.py with the current repository; nothing is migrated or enabled by D8",
+      "current_open_pr_files": [
+        ".claude/skills/open-pr/scripts/validate_pr_body.py"
+      ],
+      "not_present_now": [
+        ".claude/skills/open-pr/SKILL.md",
+        ".claude/skills/open-pr/scripts/open_pr.py",
+        ".claude/skills/open-pr/scripts/update_pr.py",
+        ".github/pull_request_template.md"
+      ],
+      "capability_vs_experience": "A successful `gh pr create` in an existing Claude Code session is a fact about that session's credentials. It is not the trusted control-plane `pr_*` capability, which stays unavailable (stage2-7 mutation_routes.unavailable) and whose permission is unverified.",
+      "responsibilities": [
+        {
+          "id": "canonical_repository_resolution",
+          "source": "open_pr.py resolve_canonical_repository (API full_name, lower-cased, fail-closed)",
+          "current_route": "none (scripts/agent-guards/repo_identity.py only reads a trusted slug from config)",
+          "missing": true,
+          "owner": "publisher slice (new Issue)",
+          "rerun_condition": "mock-gh real CLI tests for mixed-case / rename alias / API failure fail-closed"
+        },
+        {
+          "id": "closes_refs_reference_policy",
+          "source": "open_pr.py select_linked_issue_reference / run_reference_policy_entrypoint",
+          "current_route": "validate_pr_body.py --evaluate-reference-policy and --evaluate-native-auto-close-risk (D7, byte-for-byte)",
+          "missing": false,
+          "gap": "the caller that applies the evaluator result to a PR body is not migrated",
+          "owner": "publisher slice (new Issue)",
+          "rerun_condition": "caller applies closing_required / nonclosing_required / fail_closed without weakening the D7 matrices"
+        },
+        {
+          "id": "pr_body_validation",
+          "source": "open_pr.py _run_pr_body_validator / generate_pr_body.py / validate_pr_body_hygiene.py",
+          "current_route": "none for the general lint (D7 migrated only the pure evaluator entry points)",
+          "missing": true,
+          "owner": "PR body lint slice (new Issue)",
+          "rerun_condition": "the source lint tests pass unchanged against the migrated lint"
+        },
+        {
+          "id": "japanese_content_validation",
+          "source": "open_pr.py _run_japanese_content_validator / create-issue validate_japanese_content.py",
+          "current_route": "none (validate_japanese_content.py is absent from create-issue/scripts)",
+          "missing": true,
+          "owner": "PR body lint slice (new Issue)",
+          "rerun_condition": "validator migrated with its tests"
+        },
+        {
+          "id": "idempotency_existing_pr_reuse",
+          "source": "open_pr.py find_existing_pr",
+          "current_route": "none",
+          "missing": true,
+          "owner": "publisher slice (new Issue)",
+          "rerun_condition": "mock-gh test: second run reuses the open PR and creates nothing"
+        },
+        {
+          "id": "pr_create_update_execution",
+          "source": "open_pr.py create_pr (gh pr create --repo) / update_pr.py update_pr (gh pr edit --body-file)",
+          "current_route": "none through the control plane; pr_create / pr_edit / pr_comment / pr_update_branch are unavailable",
+          "missing": true,
+          "owner": "Stage 2 control-plane owner (new Issue; permission must be verified live first)",
+          "rerun_condition": "pr_create / pr_edit registered as controlled routes and the permission verified live; the record stays `unverified` until then"
+        },
+        {
+          "id": "task_context_notification",
+          "source": "open_pr.py emit_implementation_pr_observed (best-effort)",
+          "current_route": "none; scripts/task-context/ does not exist",
+          "missing": true,
+          "owner": "Task Context owner (new Issue; confirm a contract first)",
+          "rerun_condition": "a Task Context contract and adapter exist in this repository"
+        }
+      ],
+      "decision": "No bulk migration. Only the rows with missing=true are carried forward, each with an owner and a rerun condition. D8 enables no PR publisher and registers no pr_* route.",
+      "unknown": [
+        "whether pr_body_japanese_repair_plan.py is wanted",
+        "whether any current consumer receives emit_implementation_pr_observed"
+      ]
+    }
+  },
+  "migrated_by_d11": {
+    "files": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py"
+    ],
+    "manifest": "docs/dev/i4-4d11-minimal-pr-publisher-manifest.json",
+    "still_unmigrated": [
+      ".claude/skills/open-pr/scripts/update_pr.py"
+    ],
+    "note": "I-4-4D11 (#108) migrated only the manual open-pr Skill entrypoint and a minimal interactive Draft-PR caller (open_pr.py). update_pr.py, the PR template, the full lint, Task Context, the legacy hook and every controlled pr_* route remain unmigrated / unavailable; no Skill or Agent was enabled."
   }
 }

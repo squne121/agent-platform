@@ -300,10 +300,10 @@
         "rerun_condition": "migrate each remaining script with its source tests (unweakened) per the D6 manifest, then run test_pr_reviewer_skill_contract_drift.py and release the temporary disable-model-invocation"
       },
       {
-        "reference": ".claude/skills/open-pr/SKILL.md and scripts/open_pr.py / update_pr.py (validate_pr_body.py was migrated by I-4-4D7)",
-        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
-        "reason": "only the pure reference evaluator landed in D7; the Skill entrypoint, the PR publisher / updater, the PR template and the full source test_validate_pr_body.py are still unmigrated",
-        "rerun_condition": "migrate open-pr SKILL.md, open_pr.py, update_pr.py, the PR template and the full source test_validate_pr_body.py (unweakened) with PR publication permission confirmed; D7 does not enable any of them"
+        "reference": ".claude/skills/open-pr/scripts/update_pr.py (validate_pr_body.py was migrated by I-4-4D7; SKILL.md and open_pr.py were migrated by I-4-4D11)",
+        "owner": "later open-pr updater slice (PR body update permission must be confirmed first); D11 enables no updater",
+        "reason": "update_pr.py edits an existing PR body, a mutation D11 does not enable; the PR template and the full source test_validate_pr_body.py are also still unmigrated",
+        "rerun_condition": "migrate update_pr.py, the PR template and the full source test_validate_pr_body.py (unweakened) with PR body update permission confirmed; D11 enables none of them"
       },
       {
         "reference": ".claude/hooks/pr_reviewer_guard.py and .claude/settings.json hook wiring (declared by pr-reviewer.md)",
@@ -399,5 +399,27 @@
     ],
     "manifest": "docs/dev/i4-4d7-open-pr-reference-evaluator-manifest.json",
     "note": "Only the pure reference / native auto-close risk evaluator was migrated. open-pr SKILL.md, the publisher, the PR template and the full source test suite remain unmigrated; no Skill / Agent was enabled."
+  },
+  "historical_pre_d11": {
+    "note": "Measured before I-4-4D11 (#108) migrated open-pr/SKILL.md and scripts/open_pr.py. Kept as history; never the current value.",
+    "hard_dependencies": [
+      {
+        "reference": ".claude/skills/open-pr/SKILL.md and scripts/open_pr.py / update_pr.py (validate_pr_body.py was migrated by I-4-4D7)",
+        "owner": "D8 or later: open-pr Skill / PR publisher slice (PR publication permission must be confirmed first)",
+        "reason": "only the pure reference evaluator landed in D7; the Skill entrypoint, the PR publisher / updater, the PR template and the full source test_validate_pr_body.py are still unmigrated",
+        "rerun_condition": "migrate open-pr SKILL.md, open_pr.py, update_pr.py, the PR template and the full source test_validate_pr_body.py (unweakened) with PR publication permission confirmed; D7 does not enable any of them"
+      }
+    ]
+  },
+  "migrated_by_d11": {
+    "files": [
+      ".claude/skills/open-pr/SKILL.md",
+      ".claude/skills/open-pr/scripts/open_pr.py"
+    ],
+    "manifest": "docs/dev/i4-4d11-minimal-pr-publisher-manifest.json",
+    "still_unmigrated": [
+      ".claude/skills/open-pr/scripts/update_pr.py"
+    ],
+    "note": "I-4-4D11 (#108) migrated only the manual open-pr Skill entrypoint and a minimal interactive Draft-PR caller (open_pr.py). update_pr.py, the PR template, the full lint, Task Context, the legacy hook and every controlled pr_* route remain unmigrated / unavailable; no Skill or Agent was enabled."
   }
 }
