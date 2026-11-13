@@ -587,6 +587,11 @@ def test_ac2_existing_but_contradicting_legacy_artifacts_stay_blockers(tmp_path:
     assert "g1" in blockers
 
 
+def test_ac2_empty_pr_body_stays_a_blocker() -> None:
+    _, out = run_gates(body="")
+    assert "g2" in m6_outcome(out, m4_ok=True, m5_ok=True, m7_ok=True)[0]
+
+
 def test_ac2_consistent_legacy_artifacts_are_still_reported_as_pass() -> None:
     body = (
         "allowed_paths_gate: {status: ok}\nproducer_role: pr_author\n"
