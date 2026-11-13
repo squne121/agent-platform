@@ -50,9 +50,10 @@ REPO = "owner/repo"
 HEAD = "a" * 40
 OTHER = "b" * 40
 GH_FAKE = """#!{python}
-import json, os, sys
+import json, os, sys, time
 
 scenario = json.load(open(os.environ["FAKE_GH_SCENARIO"]))
+time.sleep(scenario.get("delay", 0))
 args = sys.argv[1:]
 
 
@@ -189,8 +190,10 @@ def scenario(
     required_rows: Any = None,
     runs: Any = None,
     live_head: str = HEAD,
+    delay: float = 0,
 ) -> dict[str, Any]:
     return {
+        "delay": delay,
         "live_head": live_head,
         "ruleset": [[]] if ruleset is None else ruleset,
         "classic": NO_PROTECTION if classic is None else classic,
@@ -200,12 +203,12 @@ def scenario(
 
 
 def m5_helpers(
-    tmp_path: Path, sc: dict[str, Any], *, head: str = HEAD
+    tmp_path: Path, sc: dict[str, Any], *, head: str = HEAD, timeout: str = "1"
 ) -> tuple[dict[str, Any], int, dict[str, Any]]:
     wait_proc = run_with_fake_gh(
         tmp_path,
         [str(WAIT_CI), "--repo", REPO, "--pr", "1", "--head-sha", head]
-        + ["--required", "--interval", "1", "--timeout-seconds", "1"],
+        + ["--required", "--interval", "1", "--timeout-seconds", timeout],
         sc,
     )
     line = next(
@@ -501,6 +504,79 @@ def test_ac1_ambiguous_duplicate_results_do_not_pass(tmp_path: Path) -> None:
     ]  # indistinguishable order: the rerun stays ambiguous
     wait, rc, summary = m5_helpers(tmp_path, scenario(runs=[run("lint"), older, newer]))
     assert m5_ci_ok(wait, rc, summary, HEAD) is None
+
+
+def m5_documented_timeout() -> str:
+    """The --timeout-seconds value the Skill's M5 step tells the Reviewer to pass."""
+    found = re.findall(r"--required --interval 1 --timeout-seconds (\d+)", step(skill_text(), "M5"))
+    assert len(found) == 1, found
+    return found[0]
+
+
+SLOW_API = 1.2  # seconds per gh call: the first read alone exceeds the old 1-second budget
+
+
+def test_ac1_m5_timeout_tolerates_slow_github_api_reads() -> None:
+    m5 = step(skill_text(), "M5")
+    assert int(m5_documented_timeout()) >= 30
+    assert "待機なし" not in m5 and "CI 完了を待つ設定ではない" in m5
+
+
+def test_ac1_slow_first_read_made_the_old_one_second_budget_a_false_timeout(
+    tmp_path: Path,
+) -> None:
+    """Reproduces the D13 live failure: zero required checks, but the API read takes >1s."""
+    wait, rc, summary = m5_helpers(tmp_path, scenario(delay=SLOW_API), timeout="1")
+    assert wait["status"] == "pending_timeout"  # the old M5 setting: the no_checks path is lost
+    assert m5_ci_ok(wait, rc, summary, HEAD) is None
+
+
+def test_ac1_documented_timeout_accepts_zero_required_and_required_pass_under_latency(
+    tmp_path: Path,
+) -> None:
+    timeout = m5_documented_timeout()
+    wait, rc, summary = m5_helpers(tmp_path, scenario(delay=SLOW_API), timeout=timeout)
+    assert wait["status"] == "no_checks"
+    assert m5_ci_ok(wait, rc, summary, HEAD) == "required_zero"
+    required = {
+        "ruleset": [
+            [
+                {
+                    "type": "required_status_checks",
+                    "parameters": {
+                        "required_status_checks": [{"context": "test", "integration_id": 15368}]
+                    },
+                }
+            ]
+        ]
+    }
+    rows = [{"name": "test", "bucket": "pass", "state": "SUCCESS"}]
+    wait, rc, summary = m5_helpers(
+        tmp_path,
+        scenario(**required, required_rows=rows, runs=[run("test")], delay=SLOW_API),
+        timeout=timeout,
+    )
+    assert m5_ci_ok(wait, rc, summary, HEAD) == "required"
+
+
+@pytest.mark.parametrize(
+    ("label", "kwargs"),
+    [
+        ("inventory 403", {"ruleset": {"error": "HTTP 403: Forbidden"}}),
+        ("rollup api error", {"runs": {"error": "HTTP 502: bad gateway"}}),
+        ("empty ci", {"runs": []}),
+        ("ci failed", {"runs": [run("lint"), run("test", conclusion="FAILURE")]}),
+        ("ci pending", {"runs": [run("test", status="in_progress", conclusion=None)]}),
+        ("stale head", {"live_head": OTHER}),
+    ],
+)
+def test_ac1_slow_api_does_not_turn_unhealthy_ci_into_an_approval(
+    tmp_path: Path, label: str, kwargs: dict[str, Any]
+) -> None:
+    wait, rc, summary = m5_helpers(
+        tmp_path, scenario(delay=SLOW_API, **kwargs), timeout=m5_documented_timeout()
+    )
+    assert m5_ci_ok(wait, rc, summary, HEAD) is None, label
 
 
 def test_ac1_required_settings_are_never_written_by_the_procedure() -> None:
