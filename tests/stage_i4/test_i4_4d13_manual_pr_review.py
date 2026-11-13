@@ -492,13 +492,18 @@ def test_ac2_deterministic_gate_reports_head_mismatch_and_never_exits_zero_on_mi
     assert rc == 1 and mismatch["g4"] == "fail"
     text = (ROOT / SKILL).read_text(encoding="utf-8")
     m6 = next(ln for ln in text.splitlines() if "**M6 deterministic gate**" in ln)
-    # Negative control: g1/g2/g6 fail must never be demoted to a warning or reach APPROVE,
-    # even when M4 / M5 are positive.
+    # Negative control (kept through D14): a g1/g2/g6 fail is never silently read as PASS, never
+    # demoted to a warning without the explicit manual-only conditions, and M4 / M5 / M7 stay
+    # mandatory. The D14 conditions themselves are pinned in test_i4_4d14_manual_review_operability.py.
     assert "legacy_gate_input_missing" not in text
-    assert "`g1`／`g2`／`g4`／`g6` のいずれかが `fail`／`indeterminate` なら" in m6
-    assert "blocker とし、`REQUEST_CHANGES` を返す" in m6
-    assert "`warnings[]` に降格して blocker を消さない" in m6
-    assert "M4／M5 が肯定的でも G1／G2／G6 の fail は解消されたことにならず、`APPROVE` は禁止" in m6
+    assert "`g3`／`g4`／`g5` のいずれかが `fail`／`indeterminate` なら blocker とし" in m6
+    assert "`PASS` と報告せず" in m6
+    assert (
+        "(i)〜(iv) のいずれかを満たせない gate の fail は blocker とし `REQUEST_CHANGES` を返す"
+        in m6
+    )
+    assert "M4／M5／M7 のいずれかが否定的・証拠不足なら" in m6
+    assert "`APPROVE` は禁止" in m6
     assert "偽造せず" in m6
 
 
@@ -569,7 +574,8 @@ def test_ac5_the_module_adds_no_skip_xfail_or_deselect() -> None:
 def _mutated(old: str, new: str) -> list[str]:
     text = (ROOT / SKILL).read_text(encoding="utf-8")
     assert text.count(old) >= 1, old
-    return skill_problems(text.replace(old, new, 1))
+    # every occurrence is replaced so a mention that D14 repeats inside M5 cannot hide the removal
+    return skill_problems(text.replace(old, new))
 
 
 @pytest.mark.parametrize(
@@ -579,7 +585,7 @@ def _mutated(old: str, new: str) -> list[str]:
         ("disable-model-invocation: true\n", "", "disable-model"),
         ("`wait_ci_checks.py`", "`other_ci.py`", "wait_ci_checks.py"),
         ("`validate_pr_body.py --evaluate-reference-policy`", "`x`", "validate_pr_body.py"),
-        ("`pending_timeout`／", "", "pending_timeout"),
+        ("pending_timeout", "pt", "pending_timeout"),
         ("status == passed` かつ", "status` かつ", "status passed"),
         ("`gh pr view <PR> --json headRefOid` を再取得し", "head を", "headRefOid"),
         (

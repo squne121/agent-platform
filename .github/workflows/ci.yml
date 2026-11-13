@@ -720,3 +720,26 @@ jobs:
           set -eo pipefail
           uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
           ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
+
+  i4-4d14-manual-review-operability:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: D14 manifest-pinned lane - manual read-only M5 zero-required CI path and M6 legacy-gate applicability, real helper CLIs against a fake gh executable and isolated fixtures (no live GitHub call, Reviewer dispatch or verdict publish; the live manual Skill invoke stays UNVERIFIED until a human runs it)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d14-manual-review-operability-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 231 ran, 0 skipped" runner.out
+      - name: D14 closure with the synchronized D5 / D8 history, no skip / xfail / deselect
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
