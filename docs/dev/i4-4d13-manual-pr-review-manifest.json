@@ -1,0 +1,138 @@
+{
+  "schema": "I4_4D13_MANUAL_PR_REVIEW_V1",
+  "issue": "squne121/agent-platform#111",
+  "research": "squne121/agent-platform#110",
+  "tracker": "squne121/agent-platform#60",
+  "base_commit": "594f5af8780ebfca7789188c5adad81e62620d8d",
+  "owner_decision": {
+    "option": "A",
+    "summary": "enable a manual, read-only review of one existing PR only when the user explicitly types /pr-review-judge <PR>; disable-model-invocation stays true",
+    "research": "https://github.com/squne121/agent-platform/issues/110#issuecomment-6821364956",
+    "not_approved": [
+      "disable-model-invocation: true removal",
+      "Reviewer SubAgent dispatch or preload",
+      "GitHub write by the reviewer (comment / edit / formal review / merge / push)",
+      "impl-review-loop auto start, Step 5 Final Gate, Bot / Broker / controlled pr_* route"
+    ]
+  },
+  "change": {
+    "skill": ".claude/skills/pr-review-judge/SKILL.md",
+    "kind": "one inserted section (Manual Read-only Review (D13)) and two rewritten migration-note sentences; frontmatter unchanged",
+    "reused_unchanged": [
+      ".claude/skills/open-pr/scripts/validate_pr_body.py",
+      ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py",
+      ".claude/skills/pr-review-judge/scripts/check_pr_review_gates.py",
+      ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py",
+      ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py"
+    ],
+    "not_added": [
+      "judge script",
+      "schema",
+      "wrapper",
+      "permanent gate",
+      "legacy full lint or Japanese-ratio validator"
+    ]
+  },
+  "procedure_order": [
+    "M1 repo/PR identity",
+    "M2 linked Issue",
+    "M3 reference evaluator",
+    "M4 Allowed Paths",
+    "M5 head-scoped CI",
+    "M6 deterministic gate",
+    "M7 diff and AC evidence",
+    "M8 head re-read and output"
+  ],
+  "legacy_gate_policy": "check_pr_review_gates.py needs the legacy g1 artifact, g2 findings block and g6 allowed_paths_gate block and fails closed without them. Any g1/g2/g4/g6 fail or indeterminate result is a blocker (REQUEST_CHANGES) and is never demoted to a warning or read as PASS; positive M4 / M5 results do not clear it and APPROVE is forbidden. No legacy artifact is forged and no new schema, wrapper or gate is added.",
+  "runtime_acceptance": {
+    "status": "UNVERIFIED_UNTIL_HUMAN_INVOKE",
+    "rule": "AC4 needs the user to type /pr-review-judge <D13 Draft PR number> in an interactive Claude Code session. Fixture results in this manifest are never a runtime PASS; reading the Skill file or an automatic invoke does not substitute.",
+    "human_command_template": "/pr-review-judge <D13 Draft PR number>"
+  },
+  "required_files": [
+    ".claude/skills/pr-review-judge/SKILL.md",
+    ".claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py",
+    ".claude/skills/pr-review-judge/scripts/check_pr_review_gates.py",
+    ".claude/skills/pr-review-judge/scripts/ci_verdict_summary.py",
+    ".claude/skills/impl-review-loop/scripts/wait_ci_checks.py",
+    ".claude/skills/open-pr/scripts/validate_pr_body.py",
+    ".claude/agents/pr-reviewer.md",
+    "docs/dev/i4-4d5-pr-review-consumers-manifest.json",
+    "docs/dev/i4-4d6-pr-review-core-manifest.json",
+    "docs/dev/i4-4d8-hookless-reviewer-manifest.json",
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "tests/stage_i4/test_i4_4d13_manual_pr_review.py",
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py",
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py",
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py"
+  ],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d13_manual_pr_review.py": 41,
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py": 24,
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py": 64,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d13_manual_pr_review.py": 41,
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py": 24,
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py": 64,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 165,
+    "ran": 165,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Behavioural tests drive the real helper CLIs (validate_pr_body.py, allowed_paths_review_gate.py against an isolated Git repository, check_pr_review_gates.py, wait_ci_checks.py with patched gh reads); they verify no live GitHub behaviour.",
+  "historical_sync": {
+    "tests": [
+      "test_i4_4d5_pr_review_consumers.py",
+      "test_i4_4d8_hookless_reviewer.py"
+    ],
+    "manifests": [
+      "i4-4d5-pr-review-consumers",
+      "i4-4d8-hookless-reviewer"
+    ],
+    "rule": "Only the current pr-review-judge SKILL.md hash / line count and the intentional_diff of the migration note were synchronized. source_blob_sha1 / source_sha256 and the D5-time and D8-time records are kept as historical_pre_d8 / historical_pre_d13. The D6 and D11 manifests are unchanged (their evidence_boundary records the state at their own time)."
+  },
+  "rollback": "Revert the single D13 PR: it removes the manual section, this manifest, the D13 test and CI lane, and restores the D5 / D8 current hashes. D11 open-pr, the D5 / D6 source pins and the hook-free policy are not modified.",
+  "ci_binding": "The i4-4d13 job runs this manifest through scripts/ci/run_stage1b1_tests.py and the full tests/stage_i4 directory; no new permissions, runner or secrets.",
+  "boundary_false": [
+    "reviewer_dispatched",
+    "reviewer_subagent_preloaded",
+    "model_invocation_enabled",
+    "verdict_published",
+    "reviewer_github_write",
+    "impl_review_loop_auto_started",
+    "final_gate_wired",
+    "controlled_pr_actor_enabled",
+    "task_context_restored",
+    "legacy_hook_restored",
+    "live_e2e",
+    "merge_or_auto_merge"
+  ],
+  "evidence_boundary": {
+    "reviewer_dispatched": false,
+    "reviewer_subagent_preloaded": false,
+    "model_invocation_enabled": false,
+    "verdict_published": false,
+    "reviewer_github_write": false,
+    "impl_review_loop_auto_started": false,
+    "final_gate_wired": false,
+    "controlled_pr_actor_enabled": false,
+    "task_context_restored": false,
+    "legacy_hook_restored": false,
+    "live_e2e": false,
+    "merge_or_auto_merge": false,
+    "manual_skill_runtime": "UNVERIFIED_UNTIL_HUMAN_INVOKE",
+    "fixture_result_is_runtime_pass": false
+  }
+}
