@@ -1,0 +1,140 @@
+{
+  "schema": "I4_4D15_SUBAGENT_PR_REVIEW_V1",
+  "issue": "squne121/agent-platform#115",
+  "tracker": "squne121/agent-platform#60",
+  "predecessor": "squne121/agent-platform#113",
+  "base_commit": "22d90d127136af3496060cddc63dec63495d88d5",
+  "approved_scope": {
+    "summary": "release disable-model-invocation of pr-review-judge for D15 only so the pr-reviewer SubAgent can preload it, and let the main session explicitly dispatch pr-reviewer for ONE existing PR to run the D13 M1->M8 read-only review",
+    "allowed_paths_extension": "2026-11-16 JST human approval: D6, D7 and D11 tests added (15 -> 18 paths); only the assertions on the current pr-review-judge frontmatter are changed",
+    "not_approved": [
+      "automatic impl-review-loop start or any automatic Reviewer dispatch",
+      "verdict publication or any Reviewer GitHub write",
+      "Step 5 Final Gate, Bot / Broker / controlled pr_* route or permission changes",
+      "releasing the disable of impl-review-loop or open-pr",
+      "merge or auto-merge",
+      "a hook, permission wrapper or other technical guarantee against automatic Skill invocation"
+    ]
+  },
+  "side_effect_not_hidden": "Releasing disable-model-invocation makes an automatic Claude invoke of pr-review-judge technically possible. The Skill text keeps the operating instruction not to, and this slice claims no technical prevention.",
+  "change": {
+    "skill": ".claude/skills/pr-review-judge/SKILL.md",
+    "agent": ".claude/agents/pr-reviewer.md",
+    "kind": "frontmatter key disable-model-invocation removed; D15 status line in the migration note; one D13 sentence reconciled; new Dispatched Read-only Review (D15) section that reuses D13 M1->M8; Agent D15 note inside the D4 migration-note edit",
+    "not_added": [
+      "judge script",
+      "schema",
+      "wrapper",
+      "permanent gate",
+      "hook",
+      "permission wrapper"
+    ]
+  },
+  "historical_sync": {
+    "tests": [
+      "test_i4_4d6_pr_review_core.py",
+      "test_i4_4d7_open_pr_reference_evaluator.py",
+      "test_i4_4d11_minimal_pr_publisher.py",
+      "test_i4_4d4_skill_agents_readonly.py",
+      "test_i4_4d5_pr_review_consumers.py",
+      "test_i4_4d8_hookless_reviewer.py",
+      "test_i4_4d13_manual_pr_review.py",
+      "test_i4_4d14_manual_review_operability.py"
+    ],
+    "manifests": [
+      "i4-4d4-skill-agents-readonly",
+      "i4-4d5-pr-review-consumers",
+      "i4-4d8-hookless-reviewer"
+    ],
+    "rule": "Only assertions on the CURRENT pr-review-judge frontmatter / current hash were changed (released state; key must stay absent; re-adding it is a negative control). impl-review-loop and open-pr keep their disable assertions. source_blob_sha1 / source_sha256, the D5-time to D14-time records (historical_pre_d8 / d13 / d14) and every test count are kept; the pre-D15 current values are recorded as historical_pre_d15. D6 / D7 / D11 manifests are unchanged and keep their historical evidence boundaries."
+  },
+  "runtime_acceptance": {
+    "status": "OBSERVED_BY_MAIN_SESSION_OUTSIDE_THIS_FILE",
+    "rule": "AC4 is accepted only by the main Claude Code session explicitly dispatching pr-reviewer for the D15 Draft PR (number and HEAD given) and independently checking SubAgent start / terminal payload, the four fields, per-step evidence, effective permission mode, HEAD equality and Reviewer GitHub write 0. A general code-review SubAgent PASS, a fixture result or the Reviewer's own output is never this acceptance."
+  },
+  "required_files": [
+    ".claude/skills/pr-review-judge/SKILL.md",
+    ".claude/agents/pr-reviewer.md",
+    ".claude/skills/impl-review-loop/SKILL.md",
+    ".claude/skills/open-pr/SKILL.md",
+    "docs/dev/i4-4d4-skill-agents-readonly-manifest.json",
+    "docs/dev/i4-4d5-pr-review-consumers-manifest.json",
+    "docs/dev/i4-4d8-hookless-reviewer-manifest.json",
+    "tests/stage_i4/test_i4_4d2_step2_verification.py"
+  ],
+  "required_fixtures": [],
+  "test_files": [
+    "tests/stage_i4/test_i4_4d15_subagent_pr_review.py",
+    "tests/stage_i4/test_i4_4d4_skill_agents_readonly.py",
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py",
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py",
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py",
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py",
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py",
+    "tests/stage_i4/test_i4_4d13_manual_pr_review.py",
+    "tests/stage_i4/test_i4_4d14_manual_review_operability.py"
+  ],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d15_subagent_pr_review.py": 29,
+    "tests/stage_i4/test_i4_4d4_skill_agents_readonly.py": 47,
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py": 24,
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py": 64,
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36,
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 87,
+    "tests/stage_i4/test_i4_4d13_manual_pr_review.py": 41,
+    "tests/stage_i4/test_i4_4d14_manual_review_operability.py": 76
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d15_subagent_pr_review.py": 29,
+    "tests/stage_i4/test_i4_4d4_skill_agents_readonly.py": 47,
+    "tests/stage_i4/test_i4_4d5_pr_review_consumers.py": 24,
+    "tests/stage_i4/test_i4_4d6_pr_review_core.py": 64,
+    "tests/stage_i4/test_i4_4d7_open_pr_reference_evaluator.py": 194,
+    "tests/stage_i4/test_i4_4d8_hookless_reviewer.py": 36,
+    "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py": 87,
+    "tests/stage_i4/test_i4_4d13_manual_pr_review.py": 41,
+    "tests/stage_i4/test_i4_4d14_manual_review_operability.py": 76
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 598,
+    "ran": 598,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Static text / manifest checks only: no GitHub call, no model call and no SubAgent dispatch.",
+  "rollback": "Revert the single D15 PR: it restores the pr-review-judge frontmatter disable, the D13 sentence and the pr-reviewer note, removes this manifest, the D15 test and CI lane, and restores the D4 / D5 / D8 current hashes and the D6 / D7 / D11 / D13 / D14 assertions.",
+  "ci_binding": "The i4-4d15 job runs this manifest through scripts/ci/run_stage1b1_tests.py and the full tests/stage_i4 directory; no new permissions, runner or secrets.",
+  "boundary_false": [
+    "impl_review_loop_auto_started",
+    "verdict_published",
+    "reviewer_github_write",
+    "final_gate_wired",
+    "controlled_pr_actor_enabled",
+    "bot_broker_permission_changed",
+    "task_context_restored",
+    "legacy_hook_restored",
+    "merge_or_auto_merge",
+    "required_settings_changed",
+    "pr_reviewer_lite_enabled"
+  ],
+  "evidence_boundary": {
+    "impl_review_loop_auto_started": false,
+    "verdict_published": false,
+    "reviewer_github_write": false,
+    "final_gate_wired": false,
+    "controlled_pr_actor_enabled": false,
+    "bot_broker_permission_changed": false,
+    "task_context_restored": false,
+    "legacy_hook_restored": false,
+    "merge_or_auto_merge": false,
+    "required_settings_changed": false,
+    "pr_reviewer_lite_enabled": false,
+    "subagent_runtime_acceptance": "OBSERVED_BY_MAIN_SESSION_OUTSIDE_THIS_FILE",
+    "fixture_result_is_runtime_pass": false
+  }
+}

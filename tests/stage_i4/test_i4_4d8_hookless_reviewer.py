@@ -165,10 +165,14 @@ def hookless_problems(d4: dict[str, Any], root: Path) -> list[str]:
         problems.append("the D4 manifest no longer forbids the hook")
     if (root / ".claude/hooks/pr_reviewer_guard.py").exists():
         problems.append("the hook file exists: it is not migrated")
-    for rel in (JUDGE, IRL):
-        sk = root / rel
-        if not sk.is_file() or _frontmatter(sk).get("disable-model-invocation") is not True:
-            problems.append(f"disable-model-invocation was released: {rel}")
+    # I-4-4D15 (#115): pr-review-judge's disable is released for D15 only (current state);
+    # impl-review-loop stays disabled. The D8-time state is kept in the D8 manifest history.
+    judge_sk = root / JUDGE
+    if not judge_sk.is_file() or "disable-model-invocation" in _frontmatter(judge_sk):
+        problems.append(f"D15 released state of the judge Skill changed: {JUDGE}")
+    irl_sk = root / IRL
+    if not irl_sk.is_file() or _frontmatter(irl_sk).get("disable-model-invocation") is not True:
+        problems.append(f"disable-model-invocation was released: {IRL}")
     judge = (root / JUDGE).read_text(encoding="utf-8") if (root / JUDGE).is_file() else ""
     if "`.claude/hooks/pr_reviewer_guard.py`、`docs/dev/workflow.md`" in judge:
         problems.append("the judge Skill still lists the hook as an unmigrated hard dependency")
@@ -464,14 +468,25 @@ def test_ac1_negative_active_protection_claim_fails(tmp_path: Path, claim: str) 
 def test_ac1_negative_skill_temporary_disable_release_fails(tmp_path: Path) -> None:
     d4 = _json(D4_MANIFEST)
     _copy_tree(ROOT, tmp_path)
-    for rel in (JUDGE, IRL):
-        sk = tmp_path / rel
-        original = sk.read_text(encoding="utf-8")
-        sk.write_text(original.replace("disable-model-invocation: true\n", "", 1), encoding="utf-8")
-        assert any(
-            "disable-model-invocation was released" in p for p in hookless_problems(d4, tmp_path)
-        )
-        sk.write_text(original, encoding="utf-8")
+    # impl-review-loop: dropping the disable is detected
+    sk = tmp_path / IRL
+    original = sk.read_text(encoding="utf-8")
+    sk.write_text(original.replace("disable-model-invocation: true\n", "", 1), encoding="utf-8")
+    assert any(
+        "disable-model-invocation was released" in p for p in hookless_problems(d4, tmp_path)
+    )
+    sk.write_text(original, encoding="utf-8")
+    # pr-review-judge: D15 released state; re-adding the key is detected
+    sk = tmp_path / JUDGE
+    original = sk.read_text(encoding="utf-8")
+    sk.write_text(
+        original.replace(
+            "name: pr-review-judge\n", "name: pr-review-judge\ndisable-model-invocation: true\n", 1
+        ),
+        encoding="utf-8",
+    )
+    assert any("D15 released state" in p for p in hookless_problems(d4, tmp_path))
+    sk.write_text(original, encoding="utf-8")
     assert hookless_problems(d4, tmp_path) == []
 
 

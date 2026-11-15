@@ -119,8 +119,8 @@
       "source_blob_sha1": "5a83c95aebf9a4af7f1739126c569b8800af0908",
       "source_sha256": "7d1bf03b63062fbfd4d9697958f18e993e25b5bb9216da5bcc95733dfffb830d",
       "source_lines": 87,
-      "moved_sha256": "cf41fbf35053bd77e02c4c6e564b7963410d81e89f23df60cb46bd5fc6e27c74",
-      "moved_lines": 86,
+      "moved_sha256": "388a768dd1044221f59d748c5d4679ad9c18b79010076280756f74b502321337",
+      "moved_lines": 90,
       "verbatim": false,
       "intentional_diff": [
         {
@@ -134,7 +134,7 @@
           "what": "I-4-4D8: remove the frontmatter `hooks` (PreToolUse / SessionStart / PostToolUse -> pr_reviewer_guard.py); the source declaration is restored here only to prove source parity"
         },
         {
-          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。`skills: [pr-review-judge]` と `tools` / `disallowedTools` / `permissionMode` は移管元のまま維持している。\n>\n> **hook 方針 (I-4-4D8 / #103、owner decision)**: 移管元の frontmatter `hooks`（`.claude/hooks/pr_reviewer_guard.py` による Bash mutation 拒否・身元記録・参照読了記録）は再移管しない決定をしたため撤去した。この repository には hook 実体も `.claude/settings.json` も存在せず、hook は保護として有効ではない。本 Agent は `Bash` を持つので、git / gh の変更コマンドを技術的に拒否できるとは主張しない。read-only の境界は `tools` / `disallowedTools`（Edit / Write / MultiEdit 不可）の宣言と、下記「制約」の運用指示、および verdict の投稿を trusted orchestrator が担う分担に依存する。hook を復活させるとテスト（D4 `frontmatter_problems`）が FAIL する。\n>\n> 本定義が参照する `implement-issue` / `open-pr` Skill・補助 script 等のうち本 repository に未移管のものは後続スライスの担当である。**D4 ではこの Agent を実 dispatch しない（D8 でも有効化しない）。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n",
+          "moved": "\n> **移管状況 (I-4-4D4)**: 本定義は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名定義を最小差分で移管したもの。差分は `docs/dev/i4-4d4-skill-agents-readonly-manifest.json` の `intentional_diff` に記録している。`skills: [pr-review-judge]` と `tools` / `disallowedTools` / `permissionMode` は移管元のまま維持している。\n>\n> **hook 方針 (I-4-4D8 / #103、owner decision)**: 移管元の frontmatter `hooks`（`.claude/hooks/pr_reviewer_guard.py` による Bash mutation 拒否・身元記録・参照読了記録）は再移管しない決定をしたため撤去した。この repository には hook 実体も `.claude/settings.json` も存在せず、hook は保護として有効ではない。本 Agent は `Bash` を持つので、git / gh の変更コマンドを技術的に拒否できるとは主張しない。read-only の境界は `tools` / `disallowedTools`（Edit / Write / MultiEdit 不可）の宣言と、下記「制約」の運用指示、および verdict の投稿を trusted orchestrator が担う分担に依存する。hook を復活させるとテスト（D4 `frontmatter_problems`）が FAIL する。\n>\n> 本定義が参照する `implement-issue` / `open-pr` Skill・補助 script 等のうち本 repository に未移管のものは後続スライスの担当である。**D4 ではこの Agent を実 dispatch しない（D8 でも有効化しない）。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。\n\n> **D15 (#115、owner decision)**: `pr-review-judge` の `disable-model-invocation: true` を D15 限定で解除し、`skills: [pr-review-judge]` が起動時に実際に preload される。上記「D4 では実 dispatch しない（D8 でも有効化しない）」は D4/D8 時点の履歴記述であり、D15 では **main session がユーザーの明示依頼に基づき、単一 PR を指定して** 本 Agent を起動する経路だけを有効化する。`impl-review-loop` の自動 dispatch、verdict の GitHub 投稿、Final Gate、Bot/Broker 権限は有効化しない。Skill の自動 invoke が技術的に可能になる副作用は隠さない。\n>\n> **Dispatched Read-only Review (D15)**: main session から明示 dispatch された場合は、preload 済みの `pr-review-judge` の「Dispatched Read-only Review (D15)」に従い、「Manual Read-only Review (D13)」の M1→M8 を順に実行する（M1〜M8 の複製はここに置かない）。単一 PR・read-only で、GitHub への書込（`gh pr comment|review|edit` 等）と repository のファイル編集はしない。完了時は `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の 4 field と各 step の証拠を main session へ返し、終端してから完了を報告する。\n",
           "source": "",
           "what": "insert migration-status / annotation (D4 note rewritten by I-4-4D8: hook not re-migrated, no technical write-denial claim)"
         }
@@ -151,6 +151,12 @@
         ],
         "frontmatter_hooks": "hooks:\n  PreToolUse:\n    - {matcher: \"Bash\", hooks: [{type: command, if: \"Bash(git commit *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(git push *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(git worktree *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr review *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr comment *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh pr merge *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue edit *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue comment *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}, {type: command, if: \"Bash(gh issue close *)\", command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"deny\"], timeout: 5}]}\n  SessionStart:\n    - {hooks: [{type: command, command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"observe-identity\"], timeout: 5}]}\n  PostToolUse:\n    - {matcher: \"Read\", hooks: [{type: command, command: \"${CLAUDE_PROJECT_DIR}/.claude/hooks/pr_reviewer_guard.py\", args: [\"observe-reference-read\"], timeout: 5}]}",
         "note": "D4-time record kept as history. At D4 the moved file carried the source frontmatter `hooks` unchanged. I-4-4D8 (#103) removed them; `intentional_diff` below now describes the current file against the unchanged source pin (source_blob_sha1 / source_sha256 did not change)."
+      },
+      "historical_pre_d15": {
+        "moved_sha256": "cf41fbf35053bd77e02c4c6e564b7963410d81e89f23df60cb46bd5fc6e27c74",
+        "moved_lines": 86,
+        "intentional_diff_2_moved_sha256": "7eb3b1c3e776f624d701de4824b68b86ae17eeefff35eaeea5d2346fc7d98096",
+        "note": "D8-time record of the pr-reviewer definition. I-4-4D15 (#115) appends one D15 dispatch note to the D4 migration-note edit (intentional_diff[2]); the pinned source and the D8 hook removal are unchanged."
       }
     },
     ".claude/skills/impl-review-loop/steps/context-protocol-and-guardrails.md": {
