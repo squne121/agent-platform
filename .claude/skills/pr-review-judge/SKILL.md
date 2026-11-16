@@ -1,13 +1,13 @@
 ---
 name: pr-review-judge
 description: implementation child issue に紐づく PR をレビューし、linked issue の contract と PR diff / 証跡を照合して APPROVE / REQUEST_CHANGES / HUMAN_REVIEW_REQUIRED を判定する。verdict は `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の最小 convention で呼び出し元へ返す（Issue #1873）。verdict コメントの GitHub 投稿は生の `gh pr review` を呼ばず、control-plane が通常の `gh pr comment --body-file` で行う。self-authored PR でも常に `event: COMMENT`。
-disable-model-invocation: true
 ---
 
 # PR Review Judge（PRレビュー判定）
 
 > **移管状況 (I-4-4D5)**: 本 Skill は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名 Skill を最小差分で移管したもの。差分は `docs/dev/i4-4d5-pr-review-consumers-manifest.json` の `intentional_diff` に記録している。
 >
+> - **現行状態 (I-4-4D15, #115)**: 下記の「一時 disable」「no-dispatch」は D5/D13 時点の履歴記述。D15 の owner decision で `disable-model-invocation: true` は解除済みで、`pr-reviewer` SubAgent への `skills:` preload と main session からの明示 dispatch が可能（「Dispatched Read-only Review (D15)」）。verdict の GitHub 投稿・`impl-review-loop` の自動 dispatch・Final Gate は引き続き未承認。
 > - **一時 disable**: frontmatter に `disable-model-invocation: true` を設定している（Claude Code 公式 Skill 仕様では、Claude の自動 invoke と SubAgent への preload が抑止される）。したがって `pr-reviewer.md` の `skills: [pr-review-judge]` による preload は **まだ有効ではない**。これは意図的な deferred であり、本番稼働の証明ではない。動作検証と下記の未移管依存が揃うまで解除しない。
 > - **no-dispatch / no-publish / 手動 read-only 限定有効化 (I-4-4D13, #111)**: 手動 `/pr-review-judge` は disable では防げない。D13 の owner decision により、**ユーザーが対話的 Claude Code で明示的に `/pr-review-judge <PR>` を手動 invoke した場合に限り**、下記「Manual Read-only Review (D13)」で単一の既存 PR の read-only レビューを実行する。それ以外の経路（Claude 自身の自動 invoke、SubAgent への preload、loop からの dispatch）は引き続き **実行しない**（fail-closed）。Reviewer SubAgent の dispatch と、verdict の GitHub 投稿（`gh pr comment` 等の GitHub 書込）も **実行しない**。手動 read-only 経路が動いたことは、自動 loop・Final Gate・本番稼働の証明ではない。
 > - **未移管の hard dependency**（実レビュー手順が参照するが本 repository には存在しない）: `pr-review-judge/scripts/ci_verdict_summary_v2.py` / `wait_pr_checks.py`、`implement-issue` Skill、`gemini-cli-headless-delegation` Skill、`docs/dev/workflow.md`、`docs/dev/schema-governance.md`、`.github/pull_request_template.md`。後続の runtime 結線工程の担当である（owner / rerun_condition は manifest の `unmigrated_references`）。`ci_verdict_summary.py` / `check_pr_review_gates.py`（D6, #99）、`validate_pr_body.py`（D7, #101）、`open-pr` Skill（D11, #108）、`scripts/allowed_paths_review_gate.py`、`impl-review-loop/scripts/wait_ci_checks.py` は移管済みで、手動 read-only 経路が使うのは `allowed_paths_review_gate.py` / `check_pr_review_gates.py` / `ci_verdict_summary.py` / `impl-review-loop/scripts/wait_ci_checks.py` / `validate_pr_body.py` のみ。 旧 Claude Code hook `.claude/hooks/pr_reviewer_guard.py` は I-4-4D8（#103）の owner decision により再移管しない（`pr-reviewer.md` の `hooks` は撤去済み）ため、未移管の依存としては扱わない。hook がなくても Bash を持つ Reviewer が変更コマンドを技術的に実行できないとは主張しない。
@@ -15,8 +15,8 @@ disable-model-invocation: true
 
 ## Manual Read-only Review (D13)
 
-**適用条件**: ユーザー自身が対話的 Claude Code に明示的に `/pr-review-judge <PR番号|URL>` を入力した場合だけ、この節で単一の既存 PR を read-only でレビューする。
-`disable-model-invocation: true` は維持する。Claude が自分でこの Skill を起動しない。SubAgent（`pr-reviewer` / `pr-reviewer-lite`）へは dispatch も preload もしない。
+**適用条件**: ユーザー自身が対話的 Claude Code に明示的に `/pr-review-judge <PR番号|URL>` を入力した場合だけ、この節で単一の既存 PR を read-only でレビューする。（D15 (#115) 以降は、これに加えて下記「Dispatched Read-only Review (D15)」の main session 明示 dispatch 経路でも、この節の M1→M8 を実行する。）
+D13 時点の方針: `disable-model-invocation: true` は維持する。Claude が自分でこの Skill を起動しない。SubAgent（`pr-reviewer` / `pr-reviewer-lite`）へは dispatch も preload もしない。**D15 (#115) の現行状態**: この D13 時点の `disable-model-invocation: true` 維持と SubAgent への dispatch／preload 禁止は、後述の「Dispatched Read-only Review (D15)」が定める main session の明示 dispatch 経路に限り上書きされている（`pr-reviewer-lite` と、それ以外の自動 invoke／loop dispatch は引き続き禁止）。Claude が自分でこの Skill を起動しない運用方針は維持する。
 入力が無い・複数 PR・PR が存在しない場合は何もせず停止する。これは **運用指示** であり OS／権限による隔離ではない。CLI の tool permission だけで書込が技術的に拒否されるとは主張せず、実行した呼出しの観測で no-write を示す。
 
 **禁止（reviewer 実行中）**: `gh pr comment|edit|review|create|merge|ready|close|reopen|update-branch`、`gh issue comment|edit|close|create`、
@@ -39,6 +39,16 @@ Bot／Broker／controlled `pr_*` route、追加認証、verdict の GitHub 投�
 **verdict**: blocker があれば `REQUEST_CHANGES`。blocker が無く、semantic な判断や未検証の runtime AC が残る場合は `HUMAN_REVIEW_REQUIRED`。`APPROVE` は M1〜M8 がすべて完了し、blocker が 0 件で、CI が current head で `passed`（required 0 件が M5 (b) で確認できた場合は current head の全件 success）、reference／Allowed Paths が肯定的に確認でき、M8 で head が不変のときに限る。不明・stale・foreign・欠落証跡・script 未接続・予期しない出力から `APPROVE` を出さない。
 
 **出力（会話内のみ）**: 人間可読の要約、M1〜M8 を実行順に並べた手順ログ（各 step で実行したコマンドの種類と結果）、実行した read-only 呼出しの一覧、最小 YAML ブロック（`verdict`／`reviewed_head_sha`／`blockers`／`warnings`）。新しい schema field・wrapper・script は追加しない。GitHub にもファイルにも書かない。
+
+## Dispatched Read-only Review (D15)
+
+**適用条件**: 対話的 Claude Code の main session が、ユーザーの明示依頼に基づいて単一の既存 PR を指定し、`pr-reviewer` SubAgent を明示的に起動した場合だけ、この節で read-only レビューを行う。`pr-reviewer` は起動時に本 Skill を `skills:` で preload する（I-4-4D15, #115 の owner decision により `disable-model-invocation: true` を D15 限定で解除した）。
+
+**解除の副作用（隠さない）**: `disable-model-invocation` を外したため、Claude が本 Skill を自動 invoke することが技術的に可能になった。これは自動 dispatch・`impl-review-loop` の自動稼働・verdict 投稿・Final Gate の承認を意味しない。運用指示だけで自動 invoke を技術的に完全阻止できるとは主張せず、新しい hook や権限 wrapper による保証も作らない。`impl-review-loop` Step1/Step2/Step4/Step5 の正規自動 dispatch は引き続き禁止する。
+
+**手順**: 上記「Manual Read-only Review (D13)」の M1→M8（M5 (a)(b) と M6 の manual 適用条件を含む）を **同じ順序・同じ禁止事項で** 実行する。M1〜M8 を省略・並べ替えしない。PR 番号が無い・複数 PR・PR が存在しない場合は何もせず `insufficient_context` で停止する。
+
+**返却**: 最終応答は `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の 4 field と、M1〜M8 各 step の証拠を main session へ返す。GitHub への verdict 投稿、`gh pr review`、PR／Issue への書込、ファイル編集は行わない。SubAgent の返答は main session が独立に照合する。レビュー自身の出力を、その PR の runtime evidence として数えない。終端（terminal completion）前に完了を主張しない。
 
 ## Input（入力）
 

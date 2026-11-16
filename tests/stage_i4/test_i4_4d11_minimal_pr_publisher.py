@@ -861,7 +861,11 @@ def test_ac5_skill_is_manual_only_and_the_reviewer_skills_stay_disabled() -> Non
     assert "disable-model-invocation: true" in frontmatter(SKILL_DIR / "SKILL.md")
     for rel in ("pr-review-judge", "impl-review-loop"):
         fm = frontmatter(ROOT / ".claude" / "skills" / rel / "SKILL.md")
-        assert "disable-model-invocation: true" in fm, rel
+        if rel == "pr-review-judge":
+            # I-4-4D15 (#115): released for D15 only (current runtime state)
+            assert "disable-model-invocation" not in fm, rel
+        else:
+            assert "disable-model-invocation: true" in fm, rel
     assert not (ROOT / ".claude/hooks").exists()
     assert not (ROOT / ".claude/settings.json").exists()
     assert not (ROOT / "scripts/task-context").exists()

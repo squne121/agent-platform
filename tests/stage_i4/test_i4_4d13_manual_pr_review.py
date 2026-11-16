@@ -105,8 +105,10 @@ def skill_problems(text: str) -> list[str]:
     fm = frontmatter(text)
     if fm.get("name") != "pr-review-judge":
         problems.append("Skill name changed")
-    if fm.get("disable-model-invocation") is not True:
-        problems.append("disable-model-invocation: true must stay")
+    # I-4-4D15 (#115): disable-model-invocation was released for D15 only; the current frontmatter
+    # must not carry the key (neither true nor false). The D13 history lives in the manifests.
+    if "disable-model-invocation" in fm:
+        problems.append("disable-model-invocation must stay released (D15)")
     section = manual_section(text)
     if not section:
         return [*problems, "Manual Read-only Review (D13) section is missing"]
@@ -263,11 +265,11 @@ def test_ac1_skill_declares_the_ordered_read_only_manual_procedure() -> None:
 
 
 def test_ac1_model_invocation_stays_disabled_and_nothing_is_preloaded_or_dispatched() -> None:
-    assert (
-        frontmatter((ROOT / SKILL).read_text(encoding="utf-8"))["disable-model-invocation"] is True
-    )
+    # I-4-4D15 (#115): the D13-time disable is released for D15 only (current state); the D13
+    # historical note is still asserted below.
+    assert "disable-model-invocation" not in frontmatter((ROOT / SKILL).read_text(encoding="utf-8"))
     reviewer = frontmatter((ROOT / ".claude/agents/pr-reviewer.md").read_text(encoding="utf-8"))
-    assert reviewer["skills"] == ["pr-review-judge"]  # unchanged declaration, still not preloaded
+    assert reviewer["skills"] == ["pr-review-judge"]  # declaration unchanged; preload is D15
     assert not (ROOT / ".claude/hooks").exists()
     assert not (ROOT / ".claude/settings.json").exists()
     note = (ROOT / SKILL).read_text(encoding="utf-8").split(SECTION, 1)[0]
@@ -581,8 +583,16 @@ def _mutated(old: str, new: str) -> list[str]:
 @pytest.mark.parametrize(
     ("old", "new", "expect"),
     [
-        ("disable-model-invocation: true", "disable-model-invocation: false", "disable-model"),
-        ("disable-model-invocation: true\n", "", "disable-model"),
+        (
+            "name: pr-review-judge\n",
+            "name: pr-review-judge\ndisable-model-invocation: false\n",
+            "disable-model",
+        ),
+        (
+            "name: pr-review-judge\n",
+            "name: pr-review-judge\ndisable-model-invocation: true\n",
+            "disable-model",
+        ),
         ("`wait_ci_checks.py`", "`other_ci.py`", "wait_ci_checks.py"),
         ("`validate_pr_body.py --evaluate-reference-policy`", "`x`", "validate_pr_body.py"),
         ("pending_timeout", "pt", "pending_timeout"),

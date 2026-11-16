@@ -833,7 +833,12 @@ def test_ac1_no_skill_is_enabled_by_the_migration(manifest: dict[str, Any]) -> N
     for rel, name in DISABLED_SKILLS:
         path = ROOT / rel
         assert frontmatter_value(path, "name") == name
-        assert frontmatter_value(path, "disable-model-invocation") == "true", rel
+        if name == "pr-review-judge":
+            # I-4-4D15 (#115): released for D15 only (current runtime state); the D7 manifest
+            # evidence boundary below stays the historical record.
+            assert frontmatter_value(path, "disable-model-invocation") is None, rel
+        else:
+            assert frontmatter_value(path, "disable-model-invocation") == "true", rel
     boundary = manifest["evidence_boundary"]
     for key, value in boundary.items():
         if key == "kind":

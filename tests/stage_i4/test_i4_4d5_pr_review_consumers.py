@@ -155,8 +155,10 @@ def frontmatter_problems(m: dict[str, Any], root: Path) -> list[str]:
     fm = frontmatter(root / SKILL)
     if fm.get("name") != "pr-review-judge":
         problems.append("Skill name changed")
-    if fm.get("disable-model-invocation") is not True:
-        problems.append("Skill must carry disable-model-invocation: true (temporary)")
+    # I-4-4D15 (#115): the D5-time temporary disable was released for D15 only. The manifest
+    # `frontmatter` record stays the historical value; the current Skill must not carry the key.
+    if "disable-model-invocation" in fm:
+        problems.append("Skill must stay released: disable-model-invocation is present (D15)")
     body = (root / SKILL).read_text(encoding="utf-8").split("---", 2)[2]
     for needle in ("disable-model-invocation", "preload", "手動", "dispatch", "未移管"):
         if needle not in body:
@@ -569,13 +571,18 @@ def test_ac4_re_enabling_the_skill_or_widening_the_lite_agent_is_detected(
     assert frontmatter_problems(manifest, tmp_path) == []
     skill = tmp_path / SKILL
     original = skill.read_text(encoding="utf-8")
-    skill.write_text(
-        original.replace("disable-model-invocation: true", "disable-model-invocation: false"),
-        encoding="utf-8",
-    )
-    assert any("disable-model-invocation" in p for p in frontmatter_problems(manifest, tmp_path))
-    skill.write_text(original.replace("disable-model-invocation: true\n", ""), encoding="utf-8")
-    assert any("disable-model-invocation" in p for p in frontmatter_problems(manifest, tmp_path))
+    for value in ("false", "true"):
+        skill.write_text(
+            original.replace(
+                "name: pr-review-judge\n",
+                f"name: pr-review-judge\ndisable-model-invocation: {value}\n",
+                1,
+            ),
+            encoding="utf-8",
+        )
+        assert any(
+            "disable-model-invocation" in p for p in frontmatter_problems(manifest, tmp_path)
+        )
     skill.write_text(original.replace("preload", "load"), encoding="utf-8")
     assert any("fail-closed explanation" in p for p in frontmatter_problems(manifest, tmp_path))
     skill.write_text(original, encoding="utf-8")

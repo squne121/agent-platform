@@ -23,6 +23,10 @@ skills:
 >
 > 本定義が参照する `implement-issue` / `open-pr` Skill・補助 script 等のうち本 repository に未移管のものは後続スライスの担当である。**D4 ではこの Agent を実 dispatch しない（D8 でも有効化しない）。** 本定義の存在は、通常 loop・PR 公開・Final Gate が起動可能であることを意味しない。
 
+> **D15 (#115、owner decision)**: `pr-review-judge` の `disable-model-invocation: true` を D15 限定で解除し、`skills: [pr-review-judge]` が起動時に実際に preload される。上記「D4 では実 dispatch しない（D8 でも有効化しない）」は D4/D8 時点の履歴記述であり、D15 では **main session がユーザーの明示依頼に基づき、単一 PR を指定して** 本 Agent を起動する経路だけを有効化する。`impl-review-loop` の自動 dispatch、verdict の GitHub 投稿、Final Gate、Bot/Broker 権限は有効化しない。Skill の自動 invoke が技術的に可能になる副作用は隠さない。
+>
+> **Dispatched Read-only Review (D15)**: main session から明示 dispatch された場合は、preload 済みの `pr-review-judge` の「Dispatched Read-only Review (D15)」に従い、「Manual Read-only Review (D13)」の M1→M8 を順に実行する（M1〜M8 の複製はここに置かない）。単一 PR・read-only で、GitHub への書込（`gh pr comment|review|edit` 等）と repository のファイル編集はしない。完了時は `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の 4 field と各 step の証拠を main session へ返し、終端してから完了を報告する。
+
 あなたは LOOP_PROTOCOL の **PR レビューを担当する** SubAgent です。
 
 ## 入力

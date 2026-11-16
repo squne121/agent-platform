@@ -323,8 +323,9 @@ def approve_eligible(
 
 def skill_problems(text: str) -> list[str]:
     problems: list[str] = []
-    if "disable-model-invocation: true" not in text.split("---", 2)[1]:
-        problems.append("disable-model-invocation: true must stay")
+    # I-4-4D15 (#115): released for D15 only; the key must not return to the frontmatter
+    if "disable-model-invocation" in text.split("---", 2)[1]:
+        problems.append("disable-model-invocation must stay released (D15)")
     if SECTION not in text:
         return [*problems, "Manual Read-only Review section is missing"]
     m5, m6 = step(text, "M5"), step(text, "M6")
@@ -783,7 +784,7 @@ def test_ac4_fixture_lane_records_the_live_manual_runtime_as_unverified(
 
 def test_ac6_manual_only_no_dispatch_no_publish_are_kept(d13: Any) -> None:
     fm = d13.frontmatter(skill_text())
-    assert fm["disable-model-invocation"] is True
+    assert "disable-model-invocation" not in fm  # I-4-4D15 (#115): released for D15 only
     section = skill_text().split(SECTION, 1)[1].split("\n## ", 1)[0]
     _, steps, rest = d13.split_section(section)
     assert list(steps) == d13.STEP_IDS
@@ -838,7 +839,11 @@ def test_ac5_the_module_adds_no_skip_xfail_or_deselect() -> None:
 @pytest.mark.parametrize(
     ("old", "new", "expect"),
     [
-        ("disable-model-invocation: true", "disable-model-invocation: false", "disable-model"),
+        (
+            "name: pr-review-judge\n",
+            "name: pr-review-judge\ndisable-model-invocation: true\n",
+            "disable-model",
+        ),
         ("Ruleset と Classic 双方", "Ruleset", "Ruleset と Classic"),
         ("`gh pr checks --required` 単独", "`x`", "gh pr checks --required"),
         ("required 設定は変更しない", "", "required 設定"),

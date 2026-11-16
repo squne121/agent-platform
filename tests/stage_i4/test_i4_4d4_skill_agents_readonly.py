@@ -714,7 +714,7 @@ def test_ac2_the_restored_consumer_test_passes_for_real() -> None:
 
 @pytest.mark.parametrize("via", ["sh", "py"])
 def test_ac2_wait_ci_checks_passes_only_for_real_required_checks(tmp_path: Path, via: str) -> None:
-    rc, result, _log = run_wait(tmp_path, _wait_scenario(["pass", "pass"]), via=via)
+    rc, result, _log = run_wait(tmp_path, _wait_scenario(["pass", "pass"]), via=via, timeout=10)
     assert (rc, result["status"]) == (0, "passed")
     assert result["required_only"] is True and result["head_sha"] == HEAD
 

@@ -455,7 +455,13 @@ def boundary_problems(m: dict[str, Any], root: Path) -> list[str]:
         (".claude/skills/impl-review-loop/SKILL.md", "impl-review-loop"),
     ):
         fm = frontmatter(root / rel)
-        if fm.get("name") != name or fm.get("disable-model-invocation") is not True:
+        # I-4-4D15 (#115): pr-review-judge's disable-model-invocation is released for D15 only
+        # (current runtime state). The D6 manifest boundary above stays the historical record;
+        # impl-review-loop remains disabled.
+        if name == "pr-review-judge":
+            if fm.get("name") != name or fm.get("disable-model-invocation") is True:
+                problems.append(f"{name} must carry the D15 released frontmatter")
+        elif fm.get("name") != name or fm.get("disable-model-invocation") is not True:
             problems.append(f"{name} must keep disable-model-invocation: true")
     for rel in (SUMMARY, GATES):
         text = (root / rel).read_text(encoding="utf-8")
