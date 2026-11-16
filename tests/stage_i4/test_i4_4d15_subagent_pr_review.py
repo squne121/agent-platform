@@ -165,6 +165,8 @@ def agent_problems(text: str) -> list[str]:
     ):
         if needle not in body:
             problems.append(f"Agent D15 note lost: {needle}")
+    if "終端してから完了を報告する" not in body:
+        problems.append("Agent no longer forbids claiming completion before termination")
     if "実 dispatch しない" in body and "D4/D8 時点の履歴記述" not in body:
         problems.append("Agent keeps the D4/D8 no-dispatch wording without reconciling it")
     return problems
@@ -349,6 +351,31 @@ def test_neg_agent_regressions_are_detected(old: str, new: str, expect: str) -> 
     text = agent_text()
     assert old in text, old
     assert any(expect in p for p in agent_problems(text.replace(old, new))), expect
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "expect"),
+    [
+        ("skills:\n  - pr-review-judge\n", "skills: pr-review-judge\n", "preloads"),
+        ("skills:\n  - pr-review-judge\n", "skills: []\n", "preloads"),
+        ("終端してから完了を報告する", "完了を報告する", "before termination"),
+    ],
+)
+def test_neg_preload_type_and_premature_completion_are_detected(
+    old: str, new: str, expect: str
+) -> None:
+    text = agent_text()
+    assert old in text, old
+    assert any(expect in p for p in agent_problems(text.replace(old, new))), expect
+
+
+@pytest.mark.parametrize("field", ["verdict", "reviewed_head_sha", "blockers", "warnings"])
+def test_neg_a_missing_return_field_in_the_dispatched_section_is_detected(field: str) -> None:
+    text = skill_text()
+    head, section = text.split(D15_SECTION, 1)
+    body, rest = (section.split("\n## ", 1) + [""])[:2]
+    mutated = head + D15_SECTION + body.replace(field, "x") + ("\n## " + rest if rest else "")
+    assert any(field in p for p in skill_problems(mutated)), field
 
 
 def test_neg_releasing_another_disabled_skill_is_detected(tmp_path: Path) -> None:
