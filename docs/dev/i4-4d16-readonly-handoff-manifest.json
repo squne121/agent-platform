@@ -1,0 +1,92 @@
+{
+  "schema": "I4_4D16_READONLY_HANDOFF_V1",
+  "issue": "squne121/agent-platform#118",
+  "tracker": "squne121/agent-platform#60",
+  "research": "squne121/agent-platform#117",
+  "predecessor": "squne121/agent-platform#115",
+  "base_commit": "72cc9763750e91fed22901a5ac1c415cc2cbe716",
+  "approved_scope": {
+    "summary": "integration test of the EXISTING Step 4 / Step 5 CLIs for a single-PR read-only handoff (extract-vc-metadata -> TEST_VERDICT_MACHINE/v2 -> contract snapshot envelope -> step4-adjudicate -> dispatch_seq -> reviewer_verdict -> step5-terminal-gate), plus a limited real-runtime acceptance run by the main session",
+    "tracked_paths": [
+      "tests/stage_i4/test_i4_4d16_readonly_handoff.py",
+      "docs/dev/i4-4d16-readonly-handoff-manifest.json",
+      ".github/workflows/ci.yml"
+    ],
+    "not_approved": [
+      "automatic impl-review-loop start or any automatic Step 1/2/4/5 dispatch",
+      "verdict publication or any Reviewer GitHub write",
+      "test_verdict.publish live enablement",
+      "Step 5 Final Gate / LOOP_HANDOFF_RESULT_V1 production wiring",
+      "Bot / Broker / controlled pr_* route or permission changes",
+      "new wrapper, schema or permanent gate",
+      "ensure_contract_snapshot dry-run materialize, auto --post or a hand-made snapshot in the runtime acceptance",
+      "merge or auto-merge"
+    ]
+  },
+  "not_changed": [
+    ".claude/skills/impl-review-loop/SKILL.md",
+    ".claude/skills/impl-review-loop/steps/**",
+    ".claude/agents/**",
+    "D1-D15 historical manifests and source pins",
+    "existing production scripts, schemas, wrappers and hooks"
+  ],
+  "required_files": [
+    ".claude/skills/impl-review-loop/SKILL.md",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    ".claude/skills/impl-review-loop/tests/test_step4_contract_snapshot_handoff.py"
+  ],
+  "required_fixtures": [],
+  "test_files": ["tests/stage_i4/test_i4_4d16_readonly_handoff.py"],
+  "expected_collect": {"tests/stage_i4/test_i4_4d16_readonly_handoff.py": 62},
+  "expected_ran": {"tests/stage_i4/test_i4_4d16_readonly_handoff.py": 62},
+  "deferred_tests": [],
+  "totals": {"collected": 62, "ran": 62, "deferred": 0, "skipped": 0, "xfailed": 0, "xpassed": 0, "deselected": 0},
+  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Fixture level only: real CLIs, a stateful fake gh, no real GitHub, no model call, no SubAgent dispatch.",
+  "runtime_acceptance": {
+    "status": "OBSERVED_BY_MAIN_SESSION_OUTSIDE_THIS_FILE",
+    "rule": "Accepted only by the main session against the D16 Draft PR, using an existing trusted GO bound to the current default branch tip. If check-only returns human_judgment or base drift the acceptance is BLOCKED. A fixture result is never a runtime PASS; reaching `approved` is not reported as terminal approval success.",
+    "forbidden_modes": ["dry-run", "auto", "--post", "hand-made snapshot"],
+    "commands": [
+      "adjudicate_vc_result.py extract-vc-metadata --body-file <live issue body>",
+      "ensure_contract_snapshot.py --mode check-only --issue-number <N> --repo <repo> --artifact-dir <dir>",
+      "adjudicate_vc_result.py step4-adjudicate --producer-exit-code <rc> --repo <repo> --expected-issue-number <N> ...",
+      "(main session) Agent(subagent_type=pr-reviewer) for one PR number and HEAD",
+      "gh pr view <PR> --json headRefOid,mergeable,mergeStateStatus",
+      "adjudicate_vc_result.py step5-terminal-gate --dispatch-seq <seq> ..."
+    ]
+  },
+  "residual_constraints": [
+    "main_drift_facts_producer_absent",
+    "diff_summary_manual_construction",
+    "terminal_gate_oracle_cwd",
+    "omitted_four_field_defaults_to_empty",
+    "test_runner_report_to_test_verdict_manual_conversion",
+    "existing_go_requires_default_branch_tip_equal_to_snapshot_base"
+  ],
+  "rollback": "Revert the single D16 PR: it removes this manifest, the D16 test and the CI lane. No production script, document or historical manifest is changed.",
+  "ci_binding": "The i4-4d16-readonly-handoff job runs this manifest through scripts/ci/run_stage1b1_tests.py and the full tests/stage_i4 directory; no new permissions, runner or secrets.",
+  "boundary_false": [
+    "impl_review_loop_auto_started",
+    "verdict_published",
+    "reviewer_github_write",
+    "final_gate_wired",
+    "controlled_pr_actor_enabled",
+    "bot_broker_permission_changed",
+    "test_verdict_publish_enabled",
+    "merge_or_auto_merge"
+  ],
+  "evidence_boundary": {
+    "impl_review_loop_auto_started": false,
+    "verdict_published": false,
+    "reviewer_github_write": false,
+    "final_gate_wired": false,
+    "controlled_pr_actor_enabled": false,
+    "bot_broker_permission_changed": false,
+    "test_verdict_publish_enabled": false,
+    "merge_or_auto_merge": false,
+    "main_drift_facts_fabricated": false,
+    "fixture_result_is_runtime_pass": false
+  }
+}
