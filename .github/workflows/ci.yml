@@ -766,3 +766,26 @@ jobs:
           set -eo pipefail
           uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
           ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
+
+  i4-4d16-readonly-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.29"
+      - run: uv sync --locked
+      - run: uv run --locked python3 -I scripts/ci/check_import_closure.py
+      - name: D16 manifest-pinned lane - single-PR read-only Step 4 / Step 5 handoff integration test (real CLIs against a stateful fake gh; no GitHub call, no model call and no SubAgent dispatch; the real runtime acceptance is observed by the main session outside CI)
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked python3 -I scripts/ci/run_stage1b1_tests.py docs/dev/i4-4d16-readonly-handoff-manifest.json | tee runner.out
+          if grep -Eiq "(^|[^0-9])[1-9][0-9]* (skipped|xfailed|xpassed|deselected)" runner.out; then exit 1; fi
+          grep -Eq "(^|[^0-9])0 deferred with reasons, 62 ran, 0 skipped" runner.out
+      - name: D16 closure with the existing history, no skip / xfail / deselect
+        shell: bash
+        run: |
+          set -eo pipefail
+          uv run --locked pytest -q -rsxX -p no:cacheprovider tests/stage_i4 | tee pytest.out
+          ! grep -Eiq "[0-9]+ (skipped|xfailed|xpassed|deselected)" pytest.out
