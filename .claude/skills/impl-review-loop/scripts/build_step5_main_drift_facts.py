@@ -52,6 +52,17 @@ _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _COMMIT_SPEC = re.compile(r"^[0-9a-f]{40}\^\{commit\}$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FIELDS = re.compile(r"^[A-Za-z,]+$")
+_ENDPOINT = re.compile(
+    r"^repos/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/"
+    r"(git/ref/heads/[A-Za-z0-9_./-]+|issues/[0-9]+/comments\?per_page=100)$"
+)
+_GIT_ENV = (
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+)
 _RECORD_VERSION = 1
 _COMMENTS_JQ = (
     ".[] | {id, html_url, created_at, updated_at, body, "
@@ -96,7 +107,7 @@ def _argv_allowed(argv: Sequence[str]) -> bool:
                 tok == "--method" and rest[i + 1 : i + 2] == ["GET"]
             ):
                 i += 2
-            elif endpoint is None and tok.startswith("repos/") and "graphql" not in tok:
+            elif endpoint is None and _ENDPOINT.fullmatch(tok):
                 endpoint, i = tok, i + 1
             else:
                 return False
@@ -115,17 +126,20 @@ def _argv_allowed(argv: Sequence[str]) -> bool:
             return _SHA40.fullmatch(sub[2]) is not None and _SHA40.fullmatch(sub[3]) is not None
         if len(sub) == 4 and sub[:2] == ["merge-tree", "--write-tree"]:
             return _SHA40.fullmatch(sub[2]) is not None and _SHA40.fullmatch(sub[3]) is not None
-        if len(sub) == 8 and sub[:6] == [
-            "diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z",
+        if len(sub) == 9 and sub[:7] == [
+            "diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv",
+            "--ignore-submodules=none", "-z",
         ]:  # fmt: skip
-            return _SHA40.fullmatch(sub[6]) is not None and _SHA40.fullmatch(sub[7]) is not None
+            return _SHA40.fullmatch(sub[7]) is not None and _SHA40.fullmatch(sub[8]) is not None
     return False
 
 
 def _default_runner(argv: Sequence[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess:
+    env = {k: v for k, v in os.environ.items() if k not in _GIT_ENV}
     return subprocess.run(
         list(argv),
         cwd=str(cwd) if cwd else None,
+        env=env,
         capture_output=True,
         text=True,
         check=False,
@@ -502,6 +516,7 @@ def build(
                     "--no-renames",
                     "--no-ext-diff",
                     "--no-textconv",
+                    "--ignore-submodules=none",
                     "-z",
                     evidence_base,
                     current_base,

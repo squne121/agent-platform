@@ -139,11 +139,20 @@ def test_manifest_allowed_paths_pin_matches_the_introducing_commit() -> None:
         assert have_base, "the D17 CI lane must check out the full history"
     if not have_base:  # other lanes may run this directory on a shallow checkout
         return
+    if (
+        os.environ.get("D17_REQUIRE_BASE") == "1"
+    ):  # the lane that owns the full history: exact match
+        changed = subprocess.run(
+            ["git", "diff", "--name-only", base, "HEAD"],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout.split()  # fmt: skip
+        assert sorted(changed) == sorted(ALLOWED_PATHS), changed
+        return
     commits = subprocess.run(
         ["git", "log", "--reverse", "--format=%H", f"{base}..HEAD", "--", D17_MANIFEST_REL],
         cwd=ROOT, capture_output=True, text=True, check=True,
     ).stdout.split()  # fmt: skip
-    if not commits:  # a descendant history that no longer contains the introducing range
+    if not commits:
         return
     changed = subprocess.run(
         ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", commits[0]],
@@ -845,8 +854,8 @@ def test_producer_never_substitutes_a_current_value_when_history_is_absent(world
         ["gh", "pr", "view", "7", "--repo", REPO, "--json", "number"],
         ["gh", "issue", "view", "1", "--repo", REPO, "--json", "body"],
         ["gh", "api", f"repos/{REPO}/git/ref/heads/main"],
-        ["gh", "api", "--paginate", f"repos/{REPO}/issues/1/comments", "--jq", "."],
-        ["gh", "api", "--method", "GET", f"repos/{REPO}/pulls/1"],
+        ["gh", "api", "--paginate", f"repos/{REPO}/issues/1/comments?per_page=100", "--jq", "."],
+        ["gh", "api", "--method", "GET", f"repos/{REPO}/git/ref/heads/feat/x"],
         ["git", "rev-parse", "HEAD"],
         ["git", "remote", "get-url", "origin"],
         ["git", "cat-file", "-e", S1 + "^{commit}"],
@@ -859,6 +868,7 @@ def test_producer_never_substitutes_a_current_value_when_history_is_absent(world
             "--no-renames",
             "--no-ext-diff",
             "--no-textconv",
+            "--ignore-submodules=none",
             "-z",
             S1,
             S2,
@@ -905,6 +915,7 @@ def test_allowlist_accepts_only_read_shapes(argv: list[str]) -> None:
             "--no-renames",
             "--no-ext-diff",
             "--no-textconv",
+            "--ignore-submodules=none",
             "-z",
             "--output=/tmp/zz",
             S1,
@@ -918,6 +929,10 @@ def test_allowlist_accepts_only_read_shapes(argv: list[str]) -> None:
         ["gh", "api", "repos/x/y/issues/1/comments", "-X=POST"],
         ["gh", "api", "/graphql", "-fquery=x"],
         ["gh", "api", "user"],
+        ["gh", "api", "repos/other/repo/actions/runs/1/rerun"],
+        ["gh", "api", "repos/x/y/pulls/1"],
+        ["gh", "api", "repos/x/y/git/ref/heads/a#b"],
+        ["gh", "api", "repos/x/y/issues/1/comments?per_page=100", "--jq", "-X", "POST"],
         ["gh", "pr", "view", "7", "--web"],
         ["gh", "pr", "view", "7", "--repo", REPO, "--json", "number", "--web"],
         ["git", "rev-parse", "--git-dir"],
