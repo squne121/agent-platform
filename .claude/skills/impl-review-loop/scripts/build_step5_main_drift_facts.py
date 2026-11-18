@@ -49,6 +49,9 @@ from typing import Any
 _HERE = Path(__file__).resolve().parent
 _ROOT = _HERE.parents[3]
 _SHA40 = re.compile(r"^[0-9a-f]{40}$")
+_COMMIT_SPEC = re.compile(r"^[0-9a-f]{40}\^\{commit\}$")
+_REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+_FIELDS = re.compile(r"^[A-Za-z,]+$")
 _RECORD_VERSION = 1
 _COMMENTS_JQ = (
     ".[] | {id, html_url, created_at, updated_at, body, "
@@ -73,32 +76,49 @@ class FactsError(Exception):
 
 
 def _argv_allowed(argv: Sequence[str]) -> bool:
+    """Exact read-only argv shapes only; any other token (attached flags included) is refused."""
     a = list(argv)
-    if len(a) >= 3 and a[0] == "gh" and a[1] in ("pr", "issue") and a[2] == "view":
-        return True
+    if len(a) == 8 and a[0] == "gh" and a[1] in ("pr", "issue") and a[2] == "view":
+        return (
+            a[3].isdigit()
+            and a[4] == "--repo"
+            and _REPO.fullmatch(a[5]) is not None
+            and a[6] == "--json"
+            and _FIELDS.fullmatch(a[7]) is not None
+        )
     if len(a) >= 3 and a[0] == "gh" and a[1] == "api":
-        rest = a[2:]
-        banned = {"-X", "--method", "-f", "-F", "--field", "--raw-field", "--input", "graphql"}
-        if "graphql" in rest:
-            return False
-        for i, tok in enumerate(rest):
-            if tok in banned and not (tok == "--method" and rest[i + 1 : i + 2] == ["GET"]):
+        rest, i, endpoint = a[2:], 0, None
+        while i < len(rest):
+            tok = rest[i]
+            if tok == "--paginate":
+                i += 1
+            elif (tok == "--jq" and i + 1 < len(rest)) or (
+                tok == "--method" and rest[i + 1 : i + 2] == ["GET"]
+            ):
+                i += 2
+            elif endpoint is None and tok.startswith("repos/") and "graphql" not in tok:
+                endpoint, i = tok, i + 1
+            else:
                 return False
-            if tok.startswith("--method=") and tok != "--method=GET":
-                return False
-        return True
+        return endpoint is not None
     if a and a[0] == "git":
         sub = a[1:]
-        if sub[:1] == ["rev-parse"] or sub[:2] == ["remote", "get-url"]:
+        if sub in (
+            ["rev-parse", "--show-toplevel"],
+            ["rev-parse", "HEAD"],
+            ["remote", "get-url", "origin"],
+        ):
             return True
-        if sub[:2] == ["cat-file", "-e"]:
-            return True
-        if sub[:2] == ["merge-base", "--is-ancestor"]:
-            return True
-        if sub[:2] == ["merge-tree", "--write-tree"]:
-            return True
-        if sub[:1] == ["diff"]:
-            return "--no-ext-diff" in sub and "--no-textconv" in sub and "--name-only" in sub
+        if len(sub) == 3 and sub[:2] == ["cat-file", "-e"]:
+            return _COMMIT_SPEC.fullmatch(sub[2]) is not None
+        if len(sub) == 4 and sub[:2] == ["merge-base", "--is-ancestor"]:
+            return _SHA40.fullmatch(sub[2]) is not None and _SHA40.fullmatch(sub[3]) is not None
+        if len(sub) == 4 and sub[:2] == ["merge-tree", "--write-tree"]:
+            return _SHA40.fullmatch(sub[2]) is not None and _SHA40.fullmatch(sub[3]) is not None
+        if len(sub) == 8 and sub[:6] == [
+            "diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z",
+        ]:  # fmt: skip
+            return _SHA40.fullmatch(sub[6]) is not None and _SHA40.fullmatch(sub[7]) is not None
     return False
 
 
@@ -202,6 +222,8 @@ def _observe(run: _Guarded, repo: str, pr: int, issue: int, ens: Any) -> dict[st
             raise FactsError("github_response_incomplete", f"pr.{key}")
     if not isinstance(data.get("isDraft"), bool):
         raise FactsError("github_response_incomplete", "pr.isDraft")
+    if data.get("number") != pr:
+        raise FactsError("pr_number_mismatch", f"{data.get('number')} != {pr}")
     if data["state"] != "OPEN":
         raise FactsError("pr_not_open", data["state"])
     head = _sha(data.get("headRefOid"), "pr.headRefOid")
@@ -258,7 +280,12 @@ def _verify_checkout(run: _Guarded, checkout: Path, repo: str) -> dict[str, str]
     url = _ok(
         run(["git", "remote", "get-url", "origin"], cwd=real), "checkout_invalid", "origin"
     ).strip()
-    if not re.search(r"[:/]" + re.escape(repo) + r"(\.git)?/?$", url):
+    if not re.fullmatch(
+        r"(https://github\.com/|ssh://git@github\.com/|git@github\.com:)"
+        + re.escape(repo)
+        + r"(\.git)?/?",
+        url,
+    ):
         raise FactsError("checkout_repo_mismatch", f"origin does not point at {repo}")
     head = _ok(run(["git", "rev-parse", "HEAD"], cwd=real), "checkout_invalid", "HEAD").strip()
     return {"path": str(real), "head": head}
@@ -321,7 +348,7 @@ def capture_evidence(
     return {"record_path": str(path), "record": rec}
 
 
-def _load_record(path: Path, repo: str, pr: int) -> dict[str, Any]:
+def _load_record(path: Path, repo: str, pr: int, issue: int) -> dict[str, Any]:
     try:
         rec = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
@@ -335,7 +362,7 @@ def _load_record(path: Path, repo: str, pr: int) -> dict[str, Any]:
     _sha(rec.get("base_sha"), "record.base_sha")
     if rec.get("record_sha256") != _record_digest(rec):
         raise FactsError("evidence_record_digest_mismatch", str(path))
-    if rec["repo"] != repo or rec.get("pr_number") != pr:
+    if rec["repo"] != repo or rec.get("pr_number") != pr or rec.get("issue_number") != issue:
         raise FactsError("evidence_record_target_mismatch", f"{rec['repo']}#{rec.get('pr_number')}")
     return rec
 
@@ -438,7 +465,7 @@ def build(
 ) -> dict[str, Any]:
     co = _verify_checkout(run, checkout, repo)
     _outside(output, checkout)
-    rec = _load_record(evidence_file, repo, pr)
+    rec = _load_record(evidence_file, repo, pr, issue)
     first = _observe(run, repo, pr, issue, ens)
     if first["pr"]["baseRefName"] != rec["base_ref_name"]:
         raise FactsError(

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -48,6 +49,7 @@ WRITE_FLAGS = re.compile(
     r"|gh\s+issue\s+(comment|edit|close|create)\b|test_verdict\.publish|git\s+(push|commit)\b"
 )
 REPO = "squne121/agent-platform"
+S1, S2 = "a" * 40, "b" * 40
 PR, ISSUE = 7, 120
 BODY = "## Outcome\n\nx\n\n## Allowed Paths\n\n- `allowed/`\n- `docs/one.md`\n\n## Stop Conditions\n\n- x\n"
 
@@ -118,7 +120,7 @@ def test_manifest_counts_match_collected_tests() -> None:
     assert len(collected) == declared
 
 
-def test_manifest_allowed_paths_pin_matches_tracked_changes() -> None:
+def test_manifest_allowed_paths_pin_matches_the_introducing_commit() -> None:
     m = _manifest()
     assert m["allowed_paths"] == ALLOWED_PATHS
     for rel in ALLOWED_PATHS:
@@ -133,17 +135,21 @@ def test_manifest_allowed_paths_pin_matches_tracked_changes() -> None:
         ).returncode
         == 0
     )
-    if (
-        have_base
-    ):  # a shallow CI checkout may not carry the base commit; the pin check above still ran
-        changed = subprocess.run(
-            ["git", "diff", "--name-only", base, "HEAD"],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.split()
-        assert set(changed) <= set(ALLOWED_PATHS), changed
+    if os.environ.get("D17_REQUIRE_BASE") == "1":
+        assert have_base, "the D17 CI lane must check out the full history"
+    if not have_base:  # other lanes may run this directory on a shallow checkout
+        return
+    commits = subprocess.run(
+        ["git", "log", "--reverse", "--format=%H", f"{base}..HEAD", "--", D17_MANIFEST_REL],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout.split()  # fmt: skip
+    if not commits:  # a descendant history that no longer contains the introducing range
+        return
+    changed = subprocess.run(
+        ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", commits[0]],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout.split()  # fmt: skip
+    assert sorted(changed) == sorted(ALLOWED_PATHS), changed
 
 
 def test_runtime_acceptance_procedure_has_no_write_flag() -> None:
@@ -843,10 +849,20 @@ def test_producer_never_substitutes_a_current_value_when_history_is_absent(world
         ["gh", "api", "--method", "GET", f"repos/{REPO}/pulls/1"],
         ["git", "rev-parse", "HEAD"],
         ["git", "remote", "get-url", "origin"],
-        ["git", "cat-file", "-e", "abc^{commit}"],
-        ["git", "merge-base", "--is-ancestor", "a", "b"],
-        ["git", "merge-tree", "--write-tree", "a", "b"],
-        ["git", "diff", "--name-only", "--no-ext-diff", "--no-textconv", "a", "b"],
+        ["git", "cat-file", "-e", S1 + "^{commit}"],
+        ["git", "merge-base", "--is-ancestor", S1, S2],
+        ["git", "merge-tree", "--write-tree", S1, S2],
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "--no-ext-diff",
+            "--no-textconv",
+            "-z",
+            S1,
+            S2,
+        ],
     ],
 )
 def test_allowlist_accepts_only_read_shapes(argv: list[str]) -> None:
@@ -878,8 +894,35 @@ def test_allowlist_accepts_only_read_shapes(argv: list[str]) -> None:
         ["git", "update-ref", "refs/heads/x", "abc"],
         ["git", "branch", "-D", "x"],
         ["git", "merge-tree", "a", "b"],
+        ["git", "merge-tree", "--write-tree", "a", "b"],
         ["git", "diff", "a", "b"],
         ["git", "diff", "--name-only", "a", "b"],
+        ["git", "diff", "--name-only", "--no-ext-diff", "--no-textconv", S1, S2],
+        [
+            "git",
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "--no-ext-diff",
+            "--no-textconv",
+            "-z",
+            "--output=/tmp/zz",
+            S1,
+            S2,
+        ],
+        ["gh", "api", "-XPOST", "repos/x/y/issues/1/comments"],
+        ["gh", "api", "repos/x/y/issues/1/comments", "-fbody=x"],
+        ["gh", "api", "repos/x/y/issues/1/comments", "--field=body=x"],
+        ["gh", "api", "repos/x/y/issues/1/comments", "--raw-field=body=x"],
+        ["gh", "api", "repos/x/y/issues/1/comments", "--input=f"],
+        ["gh", "api", "repos/x/y/issues/1/comments", "-X=POST"],
+        ["gh", "api", "/graphql", "-fquery=x"],
+        ["gh", "api", "user"],
+        ["gh", "pr", "view", "7", "--web"],
+        ["gh", "pr", "view", "7", "--repo", REPO, "--json", "number", "--web"],
+        ["git", "rev-parse", "--git-dir"],
+        ["git", "remote", "set-url", "origin", "x"],
+        ["git", "cat-file", "-p", S1],
         ["git", "stash"],
         ["git", "worktree", "add", "x"],
         ["rm", "-rf", "x"],
@@ -929,3 +972,211 @@ def test_default_runner_is_a_plain_subprocess_without_shell() -> None:
     assert "shell=True" not in src and "os.system" not in src
     assert isinstance(prod.FactsError("c", "d"), Exception)
     assert types.ModuleType  # the module imports only stdlib + the existing repository modules
+
+
+# --- additional bindings and real-parser coverage ----------------------------------------------
+
+
+def test_evidence_record_is_bound_to_the_issue_and_the_pr_number(
+    world: World, tmp_path: Path
+) -> None:
+    ev = captured(world)
+    rec = json.loads(ev.read_text())
+    other_issue = dict(rec, issue_number=ISSUE + 1)
+    other_issue["record_sha256"] = prod._record_digest(other_issue)
+    p = tmp_path / "i.json"
+    p.write_text(json.dumps(other_issue), encoding="utf-8")
+    assert _code(build(world, p)) == "evidence_record_target_mismatch"
+    world.pr["number"] = PR + 1
+    assert _code(build(world, ev)) == "pr_number_mismatch"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://evil.example/squne121/agent-platform",
+        "https://evil.example/x/squne121/agent-platform.git",
+        "https://github.com.evil.example/squne121/agent-platform",
+        "https://github.com/squne121/agent-platform-fork",
+    ],
+)
+def test_origin_must_be_github_for_the_target_repo(world: World, tmp_path: Path, url: str) -> None:
+    ev = captured(world)
+    other = _repo(tmp_path / "o", url=url)
+    _commit(other, {"a.txt": "a\n"}, "a")
+    assert _code(build(world, ev, checkout=other)) == "checkout_repo_mismatch"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        f"https://github.com/{REPO}.git",
+        f"https://github.com/{REPO}",
+        f"git@github.com:{REPO}.git",
+        f"ssh://git@github.com/{REPO}.git",
+    ],
+)
+def test_origin_url_forms_of_the_target_repo_are_accepted(
+    world: World, tmp_path: Path, url: str
+) -> None:
+    ev = captured(world)
+    _git(world.co, "remote", "set-url", "origin", url)
+    assert build(world, ev)[0] == 0
+
+
+def test_terminal_gate_cli_reads_the_generated_drift_facts(world: World, tmp_path: Path) -> None:
+    ev, _ = _advance_after_capture(world, {"allowed/new.txt": "n\n"}, go_at_new_base=False)
+    live = build(world, ev)[1]
+    for name, content in {
+        "ls.json": {},
+        "rv.json": {
+            "verdict": "APPROVE",
+            "reviewed_head_sha": world.head,
+            "blockers": [],
+            "warnings": [],
+        },
+        "hh.json": [],
+    }.items():
+        (tmp_path / name).write_text(json.dumps(content), encoding="utf-8")
+    done = subprocess.run(
+        [
+            sys.executable, str(CONSUMER), "step5-terminal-gate",
+            "--loop-state-file", str(tmp_path / "ls.json"),
+            "--reviewer-verdict-file", str(tmp_path / "rv.json"),
+            "--live-mergeability-file", live["output"],
+            "--expected-head-sha", world.head,
+            "--expected-contract-body-sha256", "sha256:" + "0" * 64,
+            "--expected-command-hashes-file", str(tmp_path / "hh.json"),
+            "--dispatch-seq", "1",
+        ],
+        cwd=ROOT, capture_output=True, text=True, check=False, timeout=120,
+    )  # fmt: skip
+    payload = json.loads(done.stdout.strip().splitlines()[-1])
+    assert done.returncode != 0 and payload["route"] != "approved"
+    assert payload["reason_code"] == "stale_allowed_paths_snapshot"
+
+
+# a real GO comment, posted by the real ensure_contract_snapshot.py into the existing stateful fake gh
+_h_spec = importlib.util.spec_from_file_location(
+    "d17_handoff_harness", IRL / "tests" / "test_step4_contract_snapshot_handoff.py"
+)
+assert _h_spec is not None and _h_spec.loader is not None
+h = importlib.util.module_from_spec(_h_spec)
+sys.modules[_h_spec.name] = h
+_h_spec.loader.exec_module(h)
+
+
+def _real_go_world(tmp_path: Path) -> tuple[World, Any]:
+    harness = h.World(tmp_path / "harness")
+    harness.run_producer("--mode", "auto", "--post")
+    w = World(tmp_path / "w")
+    w.body = h.ISSUE_BODY
+    lines = []
+    for c in harness.read_state()["comments"]:
+        lines.append(
+            json.dumps(
+                {
+                    "id": c["id"], "html_url": c["html_url"], "created_at": c["created_at"],
+                    "updated_at": c["updated_at"], "body": c["body"], "author": c["user"]["login"],
+                    "author_id": c["user"]["id"], "author_type": c["user"]["type"],
+                    "author_association": c["author_association"],
+                }
+            )
+        )  # fmt: skip
+    w.comments_text = "\n".join(lines) + "\n"
+    return w, harness
+
+
+def _run_with_real_ens(w: World, *args: str) -> tuple[int, dict[str, Any]]:
+    out = _StdoutCapture()
+    rc = out.run(lambda: prod.main([*args], runner=w.runner))
+    return rc, out.payload
+
+
+def _real_args(w: World, action: str, *extra: str) -> list[str]:
+    return [
+        action, "--repo", REPO, "--pr-number", str(PR), "--issue-number", str(h.ISSUE),
+        "--checkout", str(w.co), *extra,
+    ]  # fmt: skip
+
+
+def test_real_parser_and_real_go_are_accepted(tmp_path: Path) -> None:
+    w, _ = _real_go_world(tmp_path)
+    rc, cap = _run_with_real_ens(
+        w, *_real_args(w, "capture-evidence", "--evidence-dir", str(w.art / "ev"))
+    )
+    assert rc == 0, cap
+    rc, payload = _run_with_real_ens(
+        w,
+        *_real_args(
+            w, "build", "--evidence-file", cap["record_path"], "--output", str(w.art / "o.json")
+        ),
+    )
+    assert rc == 0, payload
+    facts = payload["live_mergeability"]["main_drift"]
+    assert facts["allowed_paths_snapshot_base_sha"] == "d" * 40  # the harness GO's recorded base
+    assert payload["provenance"]["go"]["base_ref"] == "main"
+    assert facts["evidence_base_sha"] == w.base != facts["allowed_paths_snapshot_base_sha"]
+
+
+def test_real_parser_rejects_a_later_trusted_blocked_comment(tmp_path: Path) -> None:
+    w, harness = _real_go_world(tmp_path)
+    rc, cap = _run_with_real_ens(
+        w, *_real_args(w, "capture-evidence", "--evidence-dir", str(w.art / "ev"))
+    )
+    assert rc == 0, cap
+    harness.add_trusted_blocked_comment()
+    c = harness.read_state()["comments"][-1]
+    w.comments_text += (
+        json.dumps(
+            {
+                "id": c["id"], "html_url": c["html_url"], "created_at": c["created_at"],
+                "updated_at": c["updated_at"], "body": c["body"], "author": c["user"]["login"],
+                "author_id": c["user"]["id"], "author_type": c["user"]["type"],
+                "author_association": c["author_association"],
+            }
+        )
+        + "\n"
+    )  # fmt: skip
+    rc, payload = _run_with_real_ens(
+        w,
+        *_real_args(
+            w, "build", "--evidence-file", cap["record_path"], "--output", str(w.art / "o.json")
+        ),
+    )
+    assert rc == 1 and payload["code"] == "go_superseded", payload
+
+
+def test_real_is_go_current_rejects_a_go_for_a_different_body(tmp_path: Path) -> None:
+    w, _ = _real_go_world(tmp_path)
+    rc, cap = _run_with_real_ens(
+        w, *_real_args(w, "capture-evidence", "--evidence-dir", str(w.art / "ev"))
+    )
+    assert rc == 0, cap
+    w.body = h.ISSUE_BODY + "\n- changed\n"
+    rc, payload = _run_with_real_ens(
+        w,
+        *_real_args(
+            w, "build", "--evidence-file", cap["record_path"], "--output", str(w.art / "o.json")
+        ),
+    )
+    assert rc == 1 and payload["code"] == "go_body_mismatch", payload
+
+
+def test_real_parser_rejects_an_untrusted_author(tmp_path: Path) -> None:
+    w, _ = _real_go_world(tmp_path)
+    rc, cap = _run_with_real_ens(
+        w, *_real_args(w, "capture-evidence", "--evidence-dir", str(w.art / "ev"))
+    )
+    assert rc == 0, cap
+    forged = [json.loads(line) for line in w.comments_text.splitlines()]
+    for c in forged:
+        c.update(author="mallory", author_id=1, author_association="NONE")
+    w.comments_text = "\n".join(json.dumps(c) for c in forged) + "\n"
+    rc, payload = _run_with_real_ens(
+        w,
+        *_real_args(
+            w, "build", "--evidence-file", cap["record_path"], "--output", str(w.art / "o.json")
+        ),
+    )
+    assert rc == 1 and payload["code"] == "go_missing_or_untrusted", payload

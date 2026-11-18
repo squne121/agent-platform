@@ -62,22 +62,22 @@
     "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py"
   ],
   "expected_collect": {
-    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 93
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 123
   },
   "expected_ran": {
-    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 93
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 123
   },
   "deferred_tests": [],
   "totals": {
-    "collected": 93,
-    "ran": 93,
+    "collected": 123,
+    "ran": 123,
     "deferred": 0,
     "skipped": 0,
     "xfailed": 0,
     "xpassed": 0,
     "deselected": 0
   },
-  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Fixture level only: a real temporary Git repository and an injected fake gh; the trusted GO result is injected through the parser seam; no real GitHub, no model call, no SubAgent dispatch.",
+  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Fixture level only: a real temporary Git repository and an injected fake gh; the trusted GO is injected through the parser seam in most cases and a real GO comment (posted by the real ensure_contract_snapshot.py into the existing stateful fake gh) goes through the real parser and the real is_go_current in the dedicated cases; no real GitHub, no model call, no SubAgent dispatch.",
   "runtime_acceptance": {
     "status": "OBSERVED_BY_MAIN_SESSION_OUTSIDE_THIS_FILE",
     "rule": "Accepted only by the main session against the D17 Draft PR with real GitHub and a real checkout. Input generation, the real Reviewer verdict, the Step 5 real route / reason_code / reached terminal checks, and any production Final Gate are recorded separately. A fixture result is never a runtime PASS; an unreached terminal check stays UNVERIFIED and does not cancel the input-generation result.",
