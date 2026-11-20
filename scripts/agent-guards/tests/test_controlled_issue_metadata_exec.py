@@ -1120,8 +1120,9 @@ class TestContractSnapshotPublish:
             ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py"
         )
 
-    def test_ac8_publisher_invoked_argv_list_shell_false(self, tmp_project, monkeypatch):
+    def test_ac8_publisher_invoked_argv_list_shell_false(self, tmp_project, monkeypatch, capsys):
         monkeypatch.setattr(_exec, "PROJECT_ROOT", tmp_project)
+        monkeypatch.setattr(_exec, "_capture_pre_mutation_snapshot", lambda *args: ({}, None))
         monkeypatch.setenv("LOOP_ISSUE_NUMBER", "1284")
         rel = _write_input(
             tmp_project,
@@ -1143,6 +1144,9 @@ class TestContractSnapshotPublish:
         def _fake_run(cmd, **kwargs):
             captured["cmd"] = cmd
             captured["kwargs"] = kwargs
+            # Model completion after the old 180s deadline without sleeping.
+            if kwargs["timeout"] <= 181.31:
+                raise subprocess.TimeoutExpired(cmd, kwargs["timeout"])
             return fake_proc
 
         with patch.object(_exec, "_find_gh_bin", return_value=("/bin/gh", "")):  # noqa: SIM117
@@ -1179,7 +1183,26 @@ class TestContractSnapshotPublish:
                                             TRUSTED_REPO,
                                         ]
                                     )
+                                    with patch(
+                                        "subprocess.run",
+                                        side_effect=subprocess.TimeoutExpired("publisher", 1860),
+                                    ):
+                                        timeout_rc = _exec.main(
+                                            [
+                                                "--command-id",
+                                                COMMAND_ID_CONTRACT_SNAPSHOT_PUBLISH,
+                                                "--issue-number",
+                                                "1284",
+                                                "--input-file",
+                                                rel,
+                                                "--repo",
+                                                TRUSTED_REPO,
+                                            ]
+                                        )
+        assert timeout_rc == 1
+        assert "publisher_timeout_1860s" in capsys.readouterr().err
         assert rc == 0
+        assert captured["kwargs"]["timeout"] == 1860
         assert isinstance(captured["cmd"], list)
         assert captured["kwargs"].get("shell") is False
         assert str(_exec.PROJECT_ROOT / _exec._ENSURE_CONTRACT_SNAPSHOT_REL) in captured["cmd"]
