@@ -62,15 +62,15 @@
     "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py"
   ],
   "expected_collect": {
-    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 185
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 189
   },
   "expected_ran": {
-    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 185
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 189
   },
   "deferred_tests": [],
   "totals": {
-    "collected": 185,
-    "ran": 185,
+    "collected": 189,
+    "ran": 189,
     "deferred": 0,
     "skipped": 0,
     "xfailed": 0,

@@ -133,7 +133,14 @@ def _assert_d17_pr_scope(root: Path, pr: dict[str, Any]) -> None:
     checkout = git("rev-parse", "HEAD")
     if checkout != head:
         parents = git("rev-list", "--parents", "-n", "1", checkout).split()
-        assert parents[1:] == [base, head], "checkout is neither PR head nor its merge"
+        assert len(parents) == 3 and parents[2] == head, "checkout is neither PR head nor its merge"
+        # The event base may predate the base used to synthesize this merge.
+        # Its first parent must still descend from the immutable event base.
+        ancestry = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", base, parents[1]],
+            cwd=root, capture_output=True, check=False,
+        )  # fmt: skip
+        assert ancestry.returncode == 0, "merge first parent does not descend from event base"
     merge_base = git("merge-base", base, head)
     changed = git("diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z", merge_base, head).split("\0")  # fmt: skip
     assert sorted(p for p in changed if p) == sorted(ALLOWED_PATHS), changed
@@ -245,7 +252,9 @@ def _repo(path: Path, url: str = f"https://github.com/{REPO}.git") -> Path:
     return path
 
 
-@pytest.mark.parametrize("checkout", ["head", "merge", "base", "wrong_merge"])
+@pytest.mark.parametrize(
+    "checkout", ["head", "merge", "advanced_merge", "base", "wrong_base", "wrong_head"]
+)
 @pytest.mark.parametrize("outside", [False, True])
 def test_pr_scope_uses_event_shas_with_advanced_main(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, checkout: str, outside: bool
@@ -259,10 +268,17 @@ def test_pr_scope_uses_event_shas_with_advanced_main(
     head = _commit(repo, files, "D17")
     _git(repo, "checkout", "-q", "main")
     base = _commit(repo, {"unrelated": "main"}, "main advances")
-    if checkout in {"merge", "wrong_merge"}:
-        if checkout == "wrong_merge":
+    if checkout in {"merge", "advanced_merge", "wrong_base", "wrong_head"}:
+        if checkout == "advanced_merge":
             _commit(repo, {"later": "later"}, "another main advance")
-        _git(repo, "merge", "--no-ff", "-q", "-m", "synthetic merge", head)
+        if checkout == "wrong_base":
+            _git(repo, "checkout", "-q", "--detach", initial)
+        merged_head = head
+        if checkout == "wrong_head":
+            _git(repo, "checkout", "-q", "--detach", head)
+            merged_head = _commit(repo, {"extra": "different"}, "different head")
+            _git(repo, "checkout", "-q", "main")
+        _git(repo, "merge", "--no-ff", "-q", "-m", "synthetic merge", merged_head)
     elif checkout == "head":
         _git(repo, "checkout", "-q", "--detach", head)
     event = {
@@ -280,7 +296,7 @@ def test_pr_scope_uses_event_shas_with_advanced_main(
     monkeypatch.setenv("D17_REQUIRE_BASE", "1")
     monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
     monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_path))
-    if outside or checkout in {"base", "wrong_merge"}:
+    if outside or checkout in {"base", "wrong_base", "wrong_head"}:
         with pytest.raises(AssertionError):
             test_manifest_allowed_paths_pin_matches_the_introducing_commit()
     else:
