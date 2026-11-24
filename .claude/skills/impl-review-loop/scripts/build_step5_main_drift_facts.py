@@ -41,6 +41,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import urllib.parse
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
@@ -52,10 +53,12 @@ _SHA40 = re.compile(r"^[0-9a-f]{40}$")
 _COMMIT_SPEC = re.compile(r"^[0-9a-f]{40}\^\{commit\}$")
 _REPO = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 _FIELDS = re.compile(r"^[A-Za-z,]+$")
+_REF_PREFIX = "git/ref/heads/"
 _ENDPOINT = re.compile(
     r"^repos/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/"
-    r"(git/ref/heads/[A-Za-z0-9_./-]+|issues/[0-9]+/comments\?per_page=100)$"
+    r"(git/ref/heads/(?:[A-Za-z0-9_.~/-]|%[0-9A-F]{2})+|issues/[0-9]+/comments\?per_page=100)$"
 )
+_REF_BAD_CHARS = re.compile(r"[\x00-\x20\x7f~^:?*\[\\]")
 _GIT_ENV = (
     "GIT_DIR",
     "GIT_WORK_TREE",
@@ -86,6 +89,37 @@ class FactsError(Exception):
 # --- read-only subprocess seam --------------------------------------------------------------
 
 
+def _valid_branch(name: str) -> bool:
+    """Subset of `git check-ref-format` rules (plus no leading '-'), so a branch cannot forge a path."""
+    if not name or name == "@" or name.startswith(("-", "/")) or name.endswith(("/", ".")):
+        return False
+    if "//" in name or ".." in name or "@{" in name or _REF_BAD_CHARS.search(name):
+        return False
+    return all(c and not c.startswith(".") and not c.endswith(".lock") for c in name.split("/"))
+
+
+def _encode_branch(name: str) -> str:
+    if not _valid_branch(name):
+        raise FactsError("invalid_branch_name", name[:80])
+    try:
+        return urllib.parse.quote(name, safe="/", errors="strict")
+    except UnicodeEncodeError as exc:
+        raise FactsError("invalid_branch_name", "not encodable as UTF-8") from exc
+
+
+def _endpoint_allowed(tok: str) -> bool:
+    if _ENDPOINT.fullmatch(tok) is None:
+        return False
+    if _REF_PREFIX in tok:
+        enc = tok.split(_REF_PREFIX, 1)[1]
+        try:
+            dec = urllib.parse.unquote(enc, errors="strict")
+        except UnicodeDecodeError:
+            return False
+        return _valid_branch(dec) and urllib.parse.quote(dec, safe="/") == enc
+    return True
+
+
 def _argv_allowed(argv: Sequence[str]) -> bool:
     """Exact read-only argv shapes only; any other token (attached flags included) is refused."""
     a = list(argv)
@@ -107,7 +141,7 @@ def _argv_allowed(argv: Sequence[str]) -> bool:
                 tok == "--method" and rest[i + 1 : i + 2] == ["GET"]
             ):
                 i += 2
-            elif endpoint is None and _ENDPOINT.fullmatch(tok):
+            elif endpoint is None and _endpoint_allowed(tok):
                 endpoint, i = tok, i + 1
             else:
                 return False
@@ -142,6 +176,8 @@ def _default_runner(argv: Sequence[str], *, cwd: Path | None = None) -> subproce
         env=env,
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="strict",
         check=False,
         timeout=60,
     )
@@ -163,6 +199,8 @@ class _Guarded:
         self.log.append(list(argv))
         try:
             return self._runner(argv, cwd=cwd if cwd is not None else self._cwd)
+        except UnicodeDecodeError as exc:
+            raise FactsError("command_output_decode_failed", " ".join(argv)) from exc
         except subprocess.TimeoutExpired as exc:
             raise FactsError("command_timeout", " ".join(argv)) from exc
         except OSError as exc:
@@ -210,7 +248,7 @@ def _load(path: Path, name: str):
 def _ref_sha(run: _Guarded, repo: str, branch: str) -> str:
     out = _json(
         _ok(
-            run(["gh", "api", f"repos/{repo}/git/ref/heads/{branch}"]),
+            run(["gh", "api", f"repos/{repo}/git/ref/heads/{_encode_branch(branch)}"]),
             "github_fetch_failed",
             branch,
         ),
@@ -305,11 +343,34 @@ def _verify_checkout(run: _Guarded, checkout: Path, repo: str) -> dict[str, str]
     return {"path": str(real), "head": head}
 
 
+def _git_admin_dirs(checkout: Path) -> list[Path]:
+    """Git dir and common Git dir of the checkout, read from the filesystem (no subprocess)."""
+    root = checkout.resolve()
+    dot = root / ".git"
+    dirs: list[Path] = []
+    try:
+        if dot.is_file():
+            first = dot.read_text(encoding="utf-8", errors="replace").splitlines()[:1]
+            if first and first[0].startswith("gitdir:"):
+                dirs.append((root / first[0][len("gitdir:") :].strip()).resolve())
+        elif dot.is_dir():
+            dirs.append(dot.resolve())
+        for gd in list(dirs):
+            common = gd / "commondir"
+            if common.is_file():
+                text = common.read_text(encoding="utf-8", errors="replace").strip()
+                if text:
+                    dirs.append((gd / text).resolve())
+    except OSError as exc:
+        raise FactsError("checkout_invalid", f"git dir unreadable: {exc}") from exc
+    return dirs
+
+
 def _outside(path: Path, checkout: Path) -> None:
     real = path.resolve()
-    root = checkout.resolve()
-    if real == root or root in real.parents:
-        raise FactsError("artifact_inside_checkout", str(real))
+    for root in [checkout.resolve(), *_git_admin_dirs(checkout)]:
+        if real == root or root in real.parents:
+            raise FactsError("artifact_inside_checkout", str(real))
 
 
 def _has_commit(run: _Guarded, checkout: Path, sha: str) -> bool:
@@ -365,13 +426,19 @@ def capture_evidence(
 def _load_record(path: Path, repo: str, pr: int, issue: int) -> dict[str, Any]:
     try:
         rec = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, RecursionError) as exc:
         raise FactsError("evidence_record_missing_or_invalid", str(path)) from exc
     if not isinstance(rec, dict) or rec.get("record_version") != _RECORD_VERSION:
         raise FactsError("evidence_record_missing_or_invalid", "record_version")
     for key in ("repo", "head_ref_name", "base_ref_name", "captured_at", "record_sha256"):
         if not isinstance(rec.get(key), str) or not rec[key]:
             raise FactsError("evidence_record_missing_or_invalid", key)
+    try:
+        captured_at = datetime.fromisoformat(rec["captured_at"].replace("Z", "+00:00"))
+        if captured_at.utcoffset() is None:
+            raise ValueError("timezone required")
+    except ValueError as exc:
+        raise FactsError("evidence_record_missing_or_invalid", "captured_at") from exc
     _sha(rec.get("head_sha"), "record.head_sha")
     _sha(rec.get("base_sha"), "record.base_sha")
     if rec.get("record_sha256") != _record_digest(rec):
@@ -446,6 +513,7 @@ def _eligible_go(
         "comment_id": go.get("comment_id"),
         "html_url": go.get("html_url"),
         "created_at": go.get("created_at"),
+        "fingerprint": dict(fp),
         "base_ref": fp["base_ref"],
         "base_sha_at_snapshot": _sha(fp.get("base_sha_at_snapshot"), "go.base_sha_at_snapshot"),
     }
@@ -479,6 +547,10 @@ def build(
 ) -> dict[str, Any]:
     co = _verify_checkout(run, checkout, repo)
     _outside(output, checkout)
+    if output.resolve() == evidence_file.resolve() or (
+        output.exists() and evidence_file.exists() and os.path.samefile(output, evidence_file)
+    ):
+        raise FactsError("output_aliases_evidence", str(output))
     rec = _load_record(evidence_file, repo, pr, issue)
     first = _observe(run, repo, pr, issue, ens)
     if first["pr"]["baseRefName"] != rec["base_ref_name"]:
@@ -493,6 +565,8 @@ def build(
     go = _eligible_go(run, ens, repo, issue, first)
 
     evidence_base, current_base = rec["base_sha"], first["base_sha"]
+    if evidence_base == current_base and go["base_sha_at_snapshot"] != current_base:
+        raise FactsError("stale_go_snapshot_base", "GO snapshot base differs from current base")
     expected_old, observed_old = rec["head_sha"], first["observed_old_sha"]
     missing = [
         s
@@ -539,6 +613,9 @@ def build(
 
     second = _observe(run, repo, pr, issue, ens)
     _stable(first, second)
+    final_go = _eligible_go(run, ens, repo, issue, second)
+    if final_go != go:
+        raise FactsError("go_changed_during_collection", "eligible GO changed between samples")
 
     route = _load(_HERE / "route_loop_verdict_v2.py", "_d17_route_loop_verdict_v2")
     facts = {
@@ -554,9 +631,9 @@ def build(
     try:
         live = route.build_step5_live_mergeability(
             {
-                "head_sha": first["head_sha"],
-                "mergeable": first["mergeable"],
-                "merge_state_status": first["merge_state_status"],
+                "head_sha": second["head_sha"],
+                "mergeable": second["mergeable"],
+                "merge_state_status": second["merge_state_status"],
             },
             facts,
         )
@@ -579,9 +656,9 @@ def build(
             },
             "go": go,
             "pr": {
-                **first["pr"],
-                "mergeable": first["mergeable"],
-                "mergeStateStatus": first["merge_state_status"],
+                **second["pr"],
+                "mergeable": second["mergeable"],
+                "mergeStateStatus": second["merge_state_status"],
             },
             "samples": {"first": first["observed_at"], "second": second["observed_at"]},
             "issue": {

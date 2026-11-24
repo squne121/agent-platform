@@ -21,6 +21,7 @@ import re
 import subprocess
 import sys
 import types
+import urllib.parse
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -120,6 +121,24 @@ def test_manifest_counts_match_collected_tests() -> None:
     assert len(collected) == declared
 
 
+def _assert_d17_pr_scope(root: Path, pr: dict[str, Any]) -> None:
+    base, head = pr["base"]["sha"], pr["head"]["sha"]
+    assert all(isinstance(s, str) and re.fullmatch(r"[0-9a-f]{40}", s) for s in (base, head))
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", *args], cwd=root, capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    checkout = git("rev-parse", "HEAD")
+    if checkout != head:
+        parents = git("rev-list", "--parents", "-n", "1", checkout).split()
+        assert parents[1:] == [base, head], "checkout is neither PR head nor its merge"
+    merge_base = git("merge-base", base, head)
+    changed = git("diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv", "-z", merge_base, head).split("\0")  # fmt: skip
+    assert sorted(p for p in changed if p) == sorted(ALLOWED_PATHS), changed
+
+
 def test_manifest_allowed_paths_pin_matches_the_introducing_commit() -> None:
     m = _manifest()
     assert m["allowed_paths"] == ALLOWED_PATHS
@@ -141,13 +160,13 @@ def test_manifest_allowed_paths_pin_matches_the_introducing_commit() -> None:
         return
     if (
         os.environ.get("D17_REQUIRE_BASE") == "1"
-    ):  # the lane that owns the full history: exact match
-        changed = subprocess.run(
-            ["git", "diff", "--name-only", base, "HEAD"],
-            cwd=ROOT, capture_output=True, text=True, check=True,
-        ).stdout.split()  # fmt: skip
-        assert sorted(changed) == sorted(ALLOWED_PATHS), changed
-        return
+        and os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+    ):
+        event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+        assert event["repository"]["full_name"] == "squne121/agent-platform"
+        if event["pull_request"]["number"] == 121:
+            _assert_d17_pr_scope(ROOT, event["pull_request"])
+            return
     commits = subprocess.run(
         ["git", "log", "--reverse", "--format=%H", f"{base}..HEAD", "--", D17_MANIFEST_REL],
         cwd=ROOT, capture_output=True, text=True, check=True,
@@ -224,6 +243,94 @@ def _repo(path: Path, url: str = f"https://github.com/{REPO}.git") -> Path:
     _git(path, "config", "commit.gpgsign", "false")
     _git(path, "remote", "add", "origin", url)
     return path
+
+
+@pytest.mark.parametrize("checkout", ["head", "merge", "base", "wrong_merge"])
+@pytest.mark.parametrize("outside", [False, True])
+def test_pr_scope_uses_event_shas_with_advanced_main(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, checkout: str, outside: bool
+) -> None:
+    repo = _repo(tmp_path / "scope")
+    initial = _commit(repo, {path: "initial" for path in ALLOWED_PATHS}, "base")
+    _git(repo, "checkout", "-q", "-b", "pr")
+    files = {path: "D17" for path in ALLOWED_PATHS}
+    if outside:
+        files["outside scope.txt"] = "not allowed"
+    head = _commit(repo, files, "D17")
+    _git(repo, "checkout", "-q", "main")
+    base = _commit(repo, {"unrelated": "main"}, "main advances")
+    if checkout in {"merge", "wrong_merge"}:
+        if checkout == "wrong_merge":
+            _commit(repo, {"later": "later"}, "another main advance")
+        _git(repo, "merge", "--no-ff", "-q", "-m", "synthetic merge", head)
+    elif checkout == "head":
+        _git(repo, "checkout", "-q", "--detach", head)
+    event = {
+        "repository": {"full_name": REPO},
+        "pull_request": {"number": 121, "base": {"sha": base}, "head": {"sha": head}},
+    }
+    event_path = tmp_path / "event.json"
+    event_path.write_text(json.dumps(event), encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "ROOT", repo)
+    monkeypatch.setattr(
+        sys.modules[__name__],
+        "_manifest",
+        lambda: {"allowed_paths": ALLOWED_PATHS, "base_commit": initial},
+    )
+    monkeypatch.setenv("D17_REQUIRE_BASE", "1")
+    monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+    monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_path))
+    if outside or checkout in {"base", "wrong_merge"}:
+        with pytest.raises(AssertionError):
+            test_manifest_allowed_paths_pin_matches_the_introducing_commit()
+    else:
+        test_manifest_allowed_paths_pin_matches_the_introducing_commit()
+
+
+@pytest.mark.parametrize("later_pr", [False, True])
+@pytest.mark.parametrize("bad_introduction", [False, True])
+def test_pr_scope_historical_after_merge(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, later_pr: bool, bad_introduction: bool
+) -> None:
+    repo = _repo(tmp_path / "historical")
+    base = _commit(repo, {"initial": "base"}, "base")
+    _git(repo, "checkout", "-q", "-b", "d17")
+    files = {path: "D17" for path in ALLOWED_PATHS}
+    if bad_introduction:
+        files["out of scope"] = "bad"
+    _commit(repo, files, "D17 introduction")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "merge", "--no-ff", "-q", "-m", "merge D17", "d17")
+    main = _commit(repo, {"unrelated": "main"}, "main advances")
+    if later_pr:
+        _git(repo, "checkout", "-q", "-b", "later-pr")
+        head = _commit(repo, {"another": "PR"}, "unrelated PR")
+        event_path = tmp_path / "later-event.json"
+        event_path.write_text(
+            json.dumps(
+                {
+                    "repository": {"full_name": REPO},
+                    "pull_request": {"number": 122, "base": {"sha": main}, "head": {"sha": head}},
+                }
+            ),
+            encoding="utf-8",
+        )
+        monkeypatch.setenv("GITHUB_EVENT_NAME", "pull_request")
+        monkeypatch.setenv("GITHUB_EVENT_PATH", str(event_path))
+    else:
+        monkeypatch.setenv("GITHUB_EVENT_NAME", "push")
+    monkeypatch.setenv("D17_REQUIRE_BASE", "1")
+    monkeypatch.setattr(sys.modules[__name__], "ROOT", repo)
+    monkeypatch.setattr(
+        sys.modules[__name__],
+        "_manifest",
+        lambda: {"allowed_paths": ALLOWED_PATHS, "base_commit": base},
+    )
+    if bad_introduction:
+        with pytest.raises(AssertionError):
+            test_manifest_allowed_paths_pin_matches_the_introducing_commit()
+    else:
+        test_manifest_allowed_paths_pin_matches_the_introducing_commit()
 
 
 class World:
@@ -322,7 +429,7 @@ class World:
         if argv[1] == "api" and "/git/ref/heads/" in argv[2]:
             if "ref" in self.fail:
                 return done("", 1)
-            branch = argv[2].split("/git/ref/heads/")[1]
+            branch = urllib.parse.unquote(argv[2].split("/git/ref/heads/")[1])
             return done(json.dumps({"object": {"sha": self.refs[branch]}}))
         if argv[1] == "api" and "--paginate" in argv:
             if "comments" in self.fail:
@@ -476,6 +583,123 @@ def test_capture_evidence_records_observed_values_write_once(world: World) -> No
     assert rc2 == 1 and again["code"] == "evidence_record_exists"
 
 
+@pytest.mark.parametrize("invalid", ["utf8", "datetime", "timezone", "deep", "huge_integer"])
+def test_build_rejects_invalid_evidence(world: World, invalid: str) -> None:
+    ev = captured(world)
+    if invalid == "utf8":
+        ev.write_bytes(b"\xff")
+    elif invalid == "deep":
+        ev.write_text("[" * 10000 + "]" * 10000, encoding="utf-8")
+    elif invalid == "huge_integer":
+        ev.write_text("9" * 5000, encoding="utf-8")
+    else:
+        record = json.loads(ev.read_text(encoding="utf-8"))
+        record["captured_at"] = "not-a-date" if invalid == "datetime" else "2026-11-24T12:00:00"
+        record["record_sha256"] = prod._record_digest(record)
+        ev.write_text(json.dumps(record), encoding="utf-8")
+    rc, result = build(world, ev)
+    assert rc != 0 and result["code"] == "evidence_record_missing_or_invalid"
+    assert not (world.art / "out" / "live.json").exists()
+
+
+def test_build_refuses_output_alias_of_evidence(world: World) -> None:
+    ev = captured(world)
+    original = ev.read_bytes()
+    rc, result = build(world, ev, output=ev)
+    assert rc == 1 and result["code"] == "output_aliases_evidence"
+    assert ev.read_bytes() == original
+
+
+def test_build_uses_latest_mergeability_observation(world: World) -> None:
+    ev = captured(world)
+    calls = 0
+    gh = world.gh
+
+    def changed_gh(argv: list[str]) -> subprocess.CompletedProcess:
+        nonlocal calls
+        if argv[1:3] == ["pr", "view"]:
+            calls += 1
+            if calls == 2:
+                world.pr["mergeStateStatus"] = "BLOCKED"
+        return gh(argv)
+
+    world.gh = changed_gh
+    rc, result = build(world, ev)
+    assert rc == 0, result
+    assert result["live_mergeability"]["merge_state_status"] == "BLOCKED"
+    assert result["provenance"]["pr"]["mergeStateStatus"] == "BLOCKED"
+
+
+def test_same_evidence_fresh_build_observes_base_and_recapture_is_write_once(world: World) -> None:
+    ev = captured(world)
+    original = ev.read_bytes()
+    first = build(world, ev, output=world.art / "first.json")
+    assert first[0] == 0, first
+    new = world.advance_main({"allowed/new.txt": "n\n"})
+    world.set_go(base_sha=new)
+    rc, again = capture(world)
+    assert rc == 1 and again["code"] == "evidence_record_exists"
+    assert ev.read_bytes() == original
+    rc, second = build(world, ev, output=world.art / "second.json")
+    assert rc == 0, second
+    facts = second["live_mergeability"]["main_drift"]
+    assert facts["evidence_base_sha"] == world.base and facts["current_base_sha"] == new
+    assert facts["latest_main_net_diff"] == ["allowed/new.txt"]
+    assert decide(second["live_mergeability"]).reason_code == "main_drift_scope_clean"
+    assert ev.read_bytes() == original
+
+
+@pytest.mark.parametrize("change", ["head", "body", "blocked"])
+def test_same_evidence_fresh_build_observes_changes(world: World, change: str) -> None:
+    ev = captured(world)
+    original = ev.read_bytes()
+    assert build(world, ev, output=world.art / "first.json")[0] == 0
+    if change == "head":
+        world.pr["headRefOid"] = world.base
+        world.refs["pr"] = world.base
+        rc, result = build(world, ev, output=world.art / "second.json")
+        assert rc == 0, result
+        assert result["live_mergeability"]["main_drift"]["observed_old_sha"] == world.base
+        assert decide(result["live_mergeability"]).reason_code == "expected_old_cas_mismatch"
+    elif change == "body":
+        world.body += "\nchanged\n"
+        assert _code(build(world, ev, output=world.art / "second.json")) == "go_body_mismatch"
+    else:
+        world.go_results.append(
+            {
+                "comment_id": 2,
+                "created_at": "2026-11-19T00:00:00Z",
+                "status": "blocked",
+                "is_trusted_author": True,
+            }
+        )
+        assert _code(build(world, ev, output=world.art / "second.json")) == "go_superseded"
+    assert ev.read_bytes() == original
+
+
+def test_later_blocked_between_go_samples_is_refused(world: World) -> None:
+    ev = captured(world)
+    calls = 0
+
+    def add_blocked_on_second_read() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            world.go_results.append(
+                {
+                    "comment_id": 2,
+                    "created_at": "2026-11-19T00:00:00Z",
+                    "status": "blocked",
+                    "is_trusted_author": True,
+                }
+            )
+
+    world.on_comments = add_blocked_on_second_read
+    assert _code(build(world, ev)) == "go_superseded"
+    assert calls == 2
+    assert not (world.art / "out" / "live.json").exists()
+
+
 def test_build_base_unchanged_generates_exact_facts_and_consumer_accepts(world: World) -> None:
     rc, payload = build(world, captured(world))
     assert rc == 0, payload
@@ -508,6 +732,15 @@ def test_build_base_unchanged_generates_exact_facts_and_consumer_accepts(world: 
     assert prov["checkout"]["path"] == str(world.co.resolve())
     assert prov["semantic_ambiguity_oracle"]["result"] is False
     assert "drift_rebind_attempts" in prov["manual_inputs_remaining"]
+
+
+def test_fresh_evidence_with_stale_go_snapshot_is_refused(world: World) -> None:
+    ev = captured(world)
+    world.set_go(base_sha=world.head)
+    rc, result = build(world, ev)
+    assert rc == 1 and result["status"] == "error"
+    assert result["code"] == "stale_go_snapshot_base"
+    assert not (world.art / "out" / "live.json").exists()
 
 
 def test_existing_router_routes_generated_input(world: World) -> None:
@@ -1083,8 +1316,11 @@ _h_spec.loader.exec_module(h)
 
 def _real_go_world(tmp_path: Path) -> tuple[World, Any]:
     harness = h.World(tmp_path / "harness")
-    harness.run_producer("--mode", "auto", "--post")
     w = World(tmp_path / "w")
+    state = harness.read_state()
+    state["base_sha"] = w.base
+    harness.write_state(state)
+    harness.run_producer("--mode", "auto", "--post")
     w.body = h.ISSUE_BODY
     lines = []
     for c in harness.read_state()["comments"]:
@@ -1129,9 +1365,35 @@ def test_real_parser_and_real_go_are_accepted(tmp_path: Path) -> None:
     )
     assert rc == 0, payload
     facts = payload["live_mergeability"]["main_drift"]
-    assert facts["allowed_paths_snapshot_base_sha"] == "d" * 40  # the harness GO's recorded base
+    assert facts["allowed_paths_snapshot_base_sha"] == w.base
     assert payload["provenance"]["go"]["base_ref"] == "main"
-    assert facts["evidence_base_sha"] == w.base != facts["allowed_paths_snapshot_base_sha"]
+    assert facts["evidence_base_sha"] == w.base == facts["current_base_sha"]
+
+
+def test_real_parser_rejects_fingerprint_change_between_samples(tmp_path: Path) -> None:
+    w, _ = _real_go_world(tmp_path)
+    rc, cap = _run_with_real_ens(
+        w, *_real_args(w, "capture-evidence", "--evidence-dir", str(w.art / "ev"))
+    )
+    assert rc == 0, cap
+    calls = 0
+
+    def change_snapshot_base() -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            assert w.comments_text is not None and w.base in w.comments_text
+            w.comments_text = w.comments_text.replace(w.base, w.head)
+
+    w.on_comments = change_snapshot_base
+    rc, result = _run_with_real_ens(
+        w,
+        *_real_args(
+            w, "build", "--evidence-file", cap["record_path"], "--output", str(w.art / "o.json")
+        ),
+    )
+    assert rc == 1 and result["code"] == "go_changed_during_collection", result
+    assert not (w.art / "o.json").exists()
 
 
 def test_real_parser_rejects_a_later_trusted_blocked_comment(tmp_path: Path) -> None:
@@ -1195,3 +1457,179 @@ def test_real_parser_rejects_an_untrusted_author(tmp_path: Path) -> None:
         ),
     )
     assert rc == 1 and payload["code"] == "go_missing_or_untrusted", payload
+
+
+# --- P1: Git-managed areas are never artifact destinations -----------------------------------
+
+
+def _linked_worktree(w: World) -> Path:
+    lw = w.tmp / "lw"
+    _git(w.co, "worktree", "add", "-q", "--detach", str(lw), "main")
+    return lw
+
+
+def _files_snapshot(root: Path) -> dict[str, bytes]:
+    return {
+        str(p.relative_to(root)): p.read_bytes() for p in sorted(root.rglob("*")) if p.is_file()
+    }
+
+
+def test_artifact_destinations_inside_git_dirs_are_refused(world: World) -> None:
+    lw = _linked_worktree(world)
+    git_dir = Path(_git(lw, "rev-parse", "--absolute-git-dir"))
+    common = Path(_git(lw, "rev-parse", "--path-format=absolute", "--git-common-dir"))
+    assert git_dir != common and git_dir.is_dir()
+    ev = captured(world)
+    before = (_files_snapshot(git_dir), _files_snapshot(common))
+    link = world.tmp / "alias-to-refs"
+    link.symlink_to(common / "refs")
+    targets = [git_dir / "probe", common / "probe", common / "refs" / "probe", link / "probe"]
+    for target in targets:
+        rc, result = capture(world, checkout=lw, out_dir=target)
+        assert rc == 1 and result["code"] == "artifact_inside_checkout", target
+        rc, result = build(world, ev, checkout=lw, output=target / "live.json")
+        assert rc == 1 and result["code"] == "artifact_inside_checkout", target
+    index_alias = world.tmp / "alias-to-head"
+    index_alias.symlink_to(git_dir / "HEAD")
+    rc, result = build(world, ev, checkout=lw, output=index_alias)
+    assert rc == 1 and result["code"] == "artifact_inside_checkout"
+    assert not any(t.exists() for t in targets)
+    assert (_files_snapshot(git_dir), _files_snapshot(common)) == before
+
+
+def test_artifacts_outside_git_dirs_are_still_written_for_a_linked_worktree(world: World) -> None:
+    lw = _linked_worktree(world)
+    rc, payload = capture(world, checkout=lw)
+    assert rc == 0, payload
+    rc, result = build(world, Path(payload["record_path"]), checkout=lw)
+    assert rc == 0, result
+    assert (world.art / "out" / "live.json").is_file()
+
+
+# --- P2: valid branch names reach the read-only endpoint, forged ones do not ------------------
+
+
+def test_branch_with_plus_is_encoded_and_accepted(world: World) -> None:
+    branch = "feature/a+b"
+    world.pr["headRefName"] = branch
+    world.refs[branch] = world.head
+    rc, payload = capture(world)
+    assert rc == 0, payload
+    assert payload["record"]["head_ref_name"] == branch
+    rc, result = build(world, Path(payload["record_path"]))
+    assert rc == 0, result
+    endpoints = [c[2] for c in world.gh_calls if c[1] == "api" and "/git/ref/heads/" in c[2]]
+    assert f"repos/{REPO}/git/ref/heads/feature/a%2Bb" in endpoints
+    assert not any("+" in e for e in endpoints)
+
+
+@pytest.mark.parametrize(
+    "branch",
+    [
+        "a/../b",
+        "-x",
+        "a b",
+        "a//b",
+        "x.lock",
+        "a/.hidden",
+        "a..b",
+        "a@{b",
+        "a?b",
+        "a\\b",
+        "@",
+        "a/",
+    ],
+)
+def test_forged_or_invalid_branch_names_are_refused(world: World, branch: str) -> None:
+    world.pr["headRefName"] = branch
+    world.refs[branch] = world.head
+    assert _code(capture(world)) == "invalid_branch_name"
+    assert not any(
+        c[1] == "api" and "/git/ref/heads/" in c[2] and branch in c[2] for c in world.gh_calls
+    )
+
+
+@pytest.mark.parametrize(
+    "endpoint, allowed",
+    [
+        (f"repos/{REPO}/git/ref/heads/feature/a%2Bb", True),
+        (f"repos/{REPO}/git/ref/heads/feature/a%25b", True),
+        (f"repos/{REPO}/git/ref/heads/a%2Fb", False),
+        (f"repos/{REPO}/git/ref/heads/a%2e%2e/b", False),
+        (f"repos/{REPO}/git/ref/heads/a%2b", False),
+        (f"repos/{REPO}/git/ref/heads/a+b", False),
+        (f"repos/{REPO}/git/ref/heads/a/../b", False),
+        (f"repos/{REPO}/git/ref/heads/a%00b", False),
+        (f"repos/{REPO}/git/ref/heads/a%FFb", False),
+        (f"repos/{REPO}/git/ref/heads/a?x=1", False),
+    ],
+)
+def test_endpoint_allowlist_for_encoded_refs(endpoint: str, allowed: bool) -> None:
+    assert prod._argv_allowed(["gh", "api", endpoint]) is allowed
+
+
+@pytest.mark.parametrize(
+    "argv",
+    [
+        ["gh", "api", "--method", "POST", f"repos/{REPO}/git/ref/heads/a"],
+        ["gh", "api", f"repos/{REPO}/git/ref/heads/a", "-f", "x=1"],
+        ["gh", "api", f"repos/{REPO}/git/ref/heads/a", "--input", "-"],
+    ],
+)
+def test_encoded_ref_support_adds_no_write_or_generic_api_shape(argv: list[str]) -> None:
+    assert prod._argv_allowed(argv) is False
+
+
+# --- P2: non-UTF-8 Git output is a structured error, never an empty diff -----------------------
+
+
+def test_non_utf8_git_path_is_a_structured_error(world: World) -> None:
+    ev = captured(world)
+    _git(world.co, "checkout", "-q", "main")
+    raw = os.fsencode(str(world.co / "allowed")) + b"/bad\xff.txt"
+    with open(raw, "wb") as fh:
+        fh.write(b"x\n")
+    _git(world.co, "add", "-A")
+    _git(world.co, "commit", "-q", "-m", "non-utf8 path")
+    new = _git(world.co, "rev-parse", "HEAD")
+    world.refs["main"] = new
+    world.pr["baseRefOid"] = new
+    world.set_go(base_sha=new)
+    rc, result = build(world, ev)
+    assert rc == 1 and result["code"] == "command_output_decode_failed", result
+    assert not (world.art / "out" / "live.json").exists()
+
+
+def test_default_runner_decode_failure_is_not_an_empty_diff(world: World) -> None:
+    raw = os.fsencode(str(world.co / "allowed")) + b"/bad\xff.txt"
+    with open(raw, "wb") as fh:
+        fh.write(b"x\n")
+    _git(world.co, "add", "-A")
+    _git(world.co, "commit", "-q", "-m", "non-utf8 path")
+    new = _git(world.co, "rev-parse", "HEAD")
+    guarded = prod._Guarded(prod._default_runner, None)
+    argv = [
+        "git", "diff", "--name-only", "--no-renames", "--no-ext-diff", "--no-textconv",
+        "--ignore-submodules=none", "-z", world.base, new,
+    ]  # fmt: skip
+    with pytest.raises(prod.FactsError) as exc:
+        guarded(argv, cwd=world.co)
+    assert exc.value.code == "command_output_decode_failed"
+
+
+def test_lone_surrogate_branch_is_a_structured_error() -> None:
+    with pytest.raises(prod.FactsError) as exc:
+        prod._encode_branch("a\ud800")
+    assert exc.value.code == "invalid_branch_name"
+
+
+def test_default_runner_pins_utf8_decoding(monkeypatch: pytest.MonkeyPatch) -> None:
+    seen: dict[str, Any] = {}
+
+    def fake_run(argv: Any, **kw: Any) -> subprocess.CompletedProcess:
+        seen.update(kw)
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    monkeypatch.setattr(prod.subprocess, "run", fake_run)
+    prod._default_runner(["git", "rev-parse", "HEAD"])
+    assert seen["encoding"] == "utf-8" and seen["errors"] == "strict"

@@ -62,15 +62,15 @@
     "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py"
   ],
   "expected_collect": {
-    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 127
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 185
   },
   "expected_ran": {
-    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 127
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 185
   },
   "deferred_tests": [],
   "totals": {
-    "collected": 127,
-    "ran": 127,
+    "collected": 185,
+    "ran": 185,
     "deferred": 0,
     "skipped": 0,
     "xfailed": 0,
@@ -86,10 +86,11 @@
       "git fetch origin (preparation by the caller; recorded, never run by the producer)",
       "build_step5_main_drift_facts.py capture-evidence --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-dir <dir outside the worktree>",
       "ensure_contract_snapshot.py --mode check-only --issue-number <N> --repo <repo> --artifact-dir <dir>",
-      "build_step5_main_drift_facts.py build --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-file <record> --output <live_mergeability.json>",
+      "build_step5_main_drift_facts.py build --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-file <record> --output <reviewer_before_live_mergeability.json>",
       "adjudicate_vc_result.py step4-adjudicate --producer-exit-code <rc> --repo <repo> --expected-issue-number <N> ...",
       "(main session) Agent(subagent_type=pr-reviewer) for one PR number and HEAD",
-      "adjudicate_vc_result.py step5-terminal-gate --live-mergeability-file <live_mergeability.json> --dispatch-seq <seq> ..."
+      "(after Reviewer) build_step5_main_drift_facts.py build --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-file <same record> --output <fresh_live_mergeability.json>",
+      "adjudicate_vc_result.py step5-terminal-gate --live-mergeability-file <fresh_live_mergeability.json> --dispatch-seq <seq> ..."
     ]
   },
   "residual_constraints": [
@@ -98,6 +99,9 @@
     "git fetch is a caller-side preparation and is never run by the producer; git merge-tree may write tree objects to the object database, so this is not claimed as zero writes",
     "the live PR HEAD moving between capture and build is passed through (expected_old_sha != observed_old_sha) so that the router returns expected_old_cas_mismatch; a change between the two samples inside one build is refused",
     "the runtime on a PR whose base did not move exercises only the fresh path; the drift routes are fixture-only",
+    "fresh build reuses the same write-once record without changing its historical base; if a new evidence epoch is required, runtime recovery is BLOCKED, not an AC6 pass",
+    "the main session must establish the relationship between any reused evidence record and independent VC; the producer does not enforce that relationship",
+    "GO authority is checked again near the final live observation; this is not an atomic guarantee against later changes",
     "fork PRs (a head branch outside the base repository) cannot be read by the head-ref lookup and are refused"
   ],
   "rollback": "Revert the single D17 PR: it removes the producer, this manifest, the D17 test and the CI lane. No existing script, document or historical manifest is changed.",
