@@ -3897,13 +3897,15 @@ def _run_contract_snapshot_publish(args, input_data, gh_bin, _fail, _ok) -> int:
             cmd,
             capture_output=True,
             text=True,
-            timeout=180,
+            # 360s contract review plus up to 48 bounded 30s GitHub calls
+            # (including postcondition reconciliation), and 60s local overhead.
+            timeout=1860,
             cwd=str(PROJECT_ROOT),
             shell=False,
             env=sanitized_env,
         )
     except subprocess.TimeoutExpired:
-        return _fail("publisher_timeout_180s", status="failed")
+        return _fail("publisher_timeout_1860s", status="failed")
     except Exception as exc:  # noqa: BLE001
         return _fail(f"publisher_launch_error: {exc}", status="failed")
 
