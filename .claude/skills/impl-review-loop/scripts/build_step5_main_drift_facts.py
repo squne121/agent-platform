@@ -16,7 +16,7 @@ adds no judgement of its own.  Anything missing, inconsistent or not retrievable
 structured error and exit 1; a current value never stands in for a historical one.
 
 Fact provenance (see Issue #120):
-  current_base_sha                 live ref tip of the PR's baseRefName (== PR baseRefOid)
+  current_base_sha                 live ref tip of the PR's baseRefName (raw PR baseRefOid must equal or precede it)
   evidence_base_sha                base tip recorded by ``capture-evidence`` (NOT the GO base)
   allowed_paths_snapshot_base_sha  ``base_sha_at_snapshot`` of an eligible trusted GO
   allowed_paths                    live linked Issue body ``## Allowed Paths`` (canonical grammar)
@@ -43,6 +43,7 @@ import sys
 import tempfile
 import urllib.parse
 from collections.abc import Callable, Sequence
+from contextlib import suppress
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -73,8 +74,18 @@ _COMMENTS_JQ = (
     "author_type: .user.type, author_association}"
 )
 _PR_FIELDS = (
-    "number,state,isDraft,headRefOid,headRefName,baseRefName,baseRefOid,mergeable,mergeStateStatus"
+    "number,state,isDraft,isCrossRepository,headRefOid,headRefName,baseRefName,baseRefOid,"
+    "mergeable,mergeStateStatus"
 )
+_MERGE_DRIVER_CONFIG = (
+    "git",
+    "config",
+    "--includes",
+    "--name-only",
+    "--get-regexp",
+    r"^merge\..*\.driver$",
+)
+_MERGE_DRIVER_KEY = re.compile(r"merge\.[^\x00-\x1f\x7f]*\.driver")
 
 Runner = Callable[..., subprocess.CompletedProcess]
 
@@ -147,6 +158,8 @@ def _argv_allowed(argv: Sequence[str]) -> bool:
                 return False
         return endpoint is not None
     if a and a[0] == "git":
+        if tuple(a) == _MERGE_DRIVER_CONFIG:
+            return True
         sub = a[1:]
         if sub in (
             ["rev-parse", "--show-toplevel"],
@@ -170,6 +183,10 @@ def _argv_allowed(argv: Sequence[str]) -> bool:
 
 def _default_runner(argv: Sequence[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess:
     env = {k: v for k, v in os.environ.items() if k not in _GIT_ENV}
+    if argv[0] == "git":
+        # GIT_CONFIG は git config だけの参照先を変え、merge-tree には効かない。
+        env.pop("GIT_CONFIG", None)
+        env.update(GIT_NO_LAZY_FETCH="1", GIT_NO_REPLACE_OBJECTS="1")
     return subprocess.run(
         list(argv),
         cwd=str(cwd) if cwd else None,
@@ -198,13 +215,19 @@ class _Guarded:
             raise FactsError("read_only_violation", " ".join(argv))
         self.log.append(list(argv))
         try:
-            return self._runner(argv, cwd=cwd if cwd is not None else self._cwd)
+            proc = self._runner(argv, cwd=cwd if cwd is not None else self._cwd)
         except UnicodeDecodeError as exc:
             raise FactsError("command_output_decode_failed", " ".join(argv)) from exc
         except subprocess.TimeoutExpired as exc:
             raise FactsError("command_timeout", " ".join(argv)) from exc
         except OSError as exc:
             raise FactsError("command_unavailable", f"{argv[0]}: {exc}") from exc
+        if tuple(argv[:3]) == ("git", "merge-tree", "--write-tree") and proc.returncode not in (
+            0,
+            1,
+        ):
+            _ok(proc, "merge_tree_failed", "merge-tree --write-tree")
+        return proc
 
 
 def _ok(proc: subprocess.CompletedProcess, code: str, what: str) -> str:
@@ -213,6 +236,27 @@ def _ok(proc: subprocess.CompletedProcess, code: str, what: str) -> str:
             code, f"{what}: exit {proc.returncode}: {(proc.stderr or '').strip()[:200]}"
         )
     return proc.stdout or ""
+
+
+def _reject_external_merge_drivers(run: _Guarded, checkout: Path) -> None:
+    proc = run(_MERGE_DRIVER_CONFIG, cwd=checkout)
+    if proc.returncode == 1 and not proc.stdout and not proc.stderr:
+        return  # git config の正常な no-match
+    if proc.returncode not in (0, 1) or proc.stderr:
+        raise FactsError(
+            "merge_driver_config_read_failed",
+            f"exit {proc.returncode}: {proc.stderr.strip()[:200]}",
+        )
+    keys = proc.stdout.removesuffix("\n").split("\n")
+    if (
+        proc.returncode != 0
+        or not proc.stdout.endswith("\n")
+        or not all(_MERGE_DRIVER_KEY.fullmatch(key) for key in keys)
+    ):
+        raise FactsError(
+            "merge_driver_config_invalid", f"unexpected output (exit {proc.returncode})"
+        )
+    raise FactsError("external_merge_driver_configured", "git config found a merge driver")
 
 
 def _json(text: str, code: str) -> Any:
@@ -258,7 +302,9 @@ def _ref_sha(run: _Guarded, repo: str, branch: str) -> str:
     return _sha(obj.get("sha") if isinstance(obj, dict) else None, f"ref:{branch}")
 
 
-def _observe(run: _Guarded, repo: str, pr: int, issue: int, ens: Any) -> dict[str, Any]:
+def _observe(
+    run: _Guarded, repo: str, pr: int, issue: int, ens: Any, checkout: Path
+) -> dict[str, Any]:
     data = _json(
         _ok(
             run(["gh", "pr", "view", str(pr), "--repo", repo, "--json", _PR_FIELDS]),
@@ -274,6 +320,10 @@ def _observe(run: _Guarded, repo: str, pr: int, issue: int, ens: Any) -> dict[st
             raise FactsError("github_response_incomplete", f"pr.{key}")
     if not isinstance(data.get("isDraft"), bool):
         raise FactsError("github_response_incomplete", "pr.isDraft")
+    if not isinstance(data.get("isCrossRepository"), bool):
+        raise FactsError("github_response_incomplete", "pr.isCrossRepository")
+    if data["isCrossRepository"]:
+        raise FactsError("fork_pr_not_supported", "pr.isCrossRepository")
     if data.get("number") != pr:
         raise FactsError("pr_number_mismatch", f"{data.get('number')} != {pr}")
     if data["state"] != "OPEN":
@@ -282,7 +332,13 @@ def _observe(run: _Guarded, repo: str, pr: int, issue: int, ens: Any) -> dict[st
     base_oid = _sha(data.get("baseRefOid"), "pr.baseRefOid")
     base_tip = _ref_sha(run, repo, data["baseRefName"])
     if base_tip != base_oid:
-        raise FactsError("base_ref_oid_mismatch", f"ref tip {base_tip} != baseRefOid {base_oid}")
+        missing = [sha for sha in (base_oid, base_tip) if not _has_commit(run, checkout, sha)]
+        if missing:
+            raise FactsError("git_object_missing", ",".join(missing))
+        ancestry = run(["git", "merge-base", "--is-ancestor", base_oid, base_tip], cwd=checkout)
+        if ancestry.returncode == 1:
+            raise FactsError("base_ref_oid_not_ancestor", f"{base_oid}..{base_tip}")
+        _ok(ancestry, "git_error", "merge-base (raw baseRefOid to live tip)")
     head_ref = _ref_sha(run, repo, data["headRefName"])
     if head_ref != head:
         raise FactsError("head_ref_mismatch", f"head ref {head_ref} != headRefOid {head}")
@@ -302,6 +358,7 @@ def _observe(run: _Guarded, repo: str, pr: int, issue: int, ens: Any) -> dict[st
         "pr": {k: data[k] for k in ("number", "state", "isDraft", "headRefName", "baseRefName")},
         "head_sha": head,
         "base_sha": base_tip,
+        "raw_base_ref_oid": base_oid,
         "observed_old_sha": head_ref,
         "mergeable": data["mergeable"],
         "merge_state_status": data["mergeStateStatus"],
@@ -312,11 +369,18 @@ def _observe(run: _Guarded, repo: str, pr: int, issue: int, ens: Any) -> dict[st
 
 
 def _stable(first: dict[str, Any], second: dict[str, Any]) -> None:
-    for key in ("head_sha", "base_sha", "observed_old_sha", "issue_body_sha256"):
+    for key in (
+        "head_sha",
+        "base_sha",
+        "raw_base_ref_oid",
+        "observed_old_sha",
+        "issue_body_sha256",
+    ):
         if first[key] != second[key]:
             raise FactsError("live_state_changed_during_collection", key)
-    if first["pr"]["baseRefName"] != second["pr"]["baseRefName"]:
-        raise FactsError("live_state_changed_during_collection", "baseRefName")
+    for key in ("baseRefName", "headRefName"):
+        if first["pr"][key] != second["pr"][key]:
+            raise FactsError("live_state_changed_during_collection", key)
 
 
 # --- checkout -------------------------------------------------------------------------------
@@ -366,11 +430,15 @@ def _git_admin_dirs(checkout: Path) -> list[Path]:
     return dirs
 
 
-def _outside(path: Path, checkout: Path) -> None:
-    real = path.resolve()
+def _outside(path: Path, checkout: Path, *, replace_entry: bool = False) -> None:
+    candidates = [path.resolve()]
+    if replace_entry:
+        # os.replace は末尾の symlink を辿らず、ディレクトリエントリを置換する。
+        candidates.append(path.parent.resolve() / path.name)
     for root in [checkout.resolve(), *_git_admin_dirs(checkout)]:
-        if real == root or root in real.parents:
-            raise FactsError("artifact_inside_checkout", str(real))
+        for candidate in candidates:
+            if candidate == root or root in candidate.parents:
+                raise FactsError("artifact_inside_checkout", str(candidate))
 
 
 def _has_commit(run: _Guarded, checkout: Path, sha: str) -> bool:
@@ -396,9 +464,12 @@ def capture_evidence(
     run: _Guarded, ens: Any, repo: str, pr: int, issue: int, checkout: Path, out_dir: Path
 ) -> dict[str, Any]:
     _verify_checkout(run, checkout, repo)
-    _outside(out_dir, checkout)
-    first = _observe(run, repo, pr, issue, ens)
-    second = _observe(run, repo, pr, issue, ens)
+    try:
+        _outside(out_dir, checkout)
+    except OSError as exc:
+        raise FactsError("artifact_io_failed", f"evidence path: {exc}") from exc
+    first = _observe(run, repo, pr, issue, ens, checkout)
+    second = _observe(run, repo, pr, issue, ens, checkout)
     _stable(first, second)
     rec: dict[str, Any] = {
         "record_version": _RECORD_VERSION,
@@ -412,15 +483,22 @@ def capture_evidence(
         "captured_at": first["observed_at"],
     }
     rec["record_sha256"] = _record_digest(rec)
-    out_dir.mkdir(parents=True, exist_ok=True)
     path = out_dir / _record_name(repo, pr, rec["head_sha"])
     try:
-        fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
-    except FileExistsError as exc:
-        raise FactsError("evidence_record_exists", str(path)) from exc
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(json.dumps(rec, sort_keys=True, ensure_ascii=True) + "\n")
-    return {"record_path": str(path), "record": rec}
+        out_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            fd = os.open(str(path), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o644)
+        except FileExistsError as exc:
+            raise FactsError("evidence_record_exists", str(path)) from exc
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", closefd=False) as fh:
+                fh.write(json.dumps(rec, sort_keys=True, ensure_ascii=True) + "\n")
+        finally:
+            os.close(fd)
+    except OSError as exc:
+        # 途中まで書いた記録も write-once のため残す。
+        raise FactsError("artifact_io_failed", f"evidence record: {exc}") from exc
+    return {"record_path": str(path), "record": rec, "raw_base_ref_oid": first["raw_base_ref_oid"]}
 
 
 def _load_record(path: Path, repo: str, pr: int, issue: int) -> dict[str, Any]:
@@ -434,7 +512,7 @@ def _load_record(path: Path, repo: str, pr: int, issue: int) -> dict[str, Any]:
         if not isinstance(rec.get(key), str) or not rec[key]:
             raise FactsError("evidence_record_missing_or_invalid", key)
     try:
-        captured_at = datetime.fromisoformat(rec["captured_at"].replace("Z", "+00:00"))
+        captured_at = datetime.fromisoformat(rec["captured_at"].replace("Z", "+00:00"))  # noqa: FURB162
         if captured_at.utcoffset() is None:
             raise ValueError("timezone required")
     except ValueError as exc:
@@ -546,13 +624,18 @@ def build(
     output: Path,
 ) -> dict[str, Any]:
     co = _verify_checkout(run, checkout, repo)
-    _outside(output, checkout)
-    if output.resolve() == evidence_file.resolve() or (
-        output.exists() and evidence_file.exists() and os.path.samefile(output, evidence_file)
-    ):
-        raise FactsError("output_aliases_evidence", str(output))
+    try:
+        _outside(output, checkout, replace_entry=True)
+        if output.resolve() == evidence_file.resolve() or (
+            output.exists() and evidence_file.exists() and os.path.samefile(output, evidence_file)
+        ):
+            raise FactsError("output_aliases_evidence", str(output))
+        if re.fullmatch(r"step5-evidence-[A-Za-z0-9_.-]+-pr[0-9]+-[0-9a-f]{12}\.json", output.name):
+            raise FactsError("output_reserved_for_evidence", str(output))
+    except OSError as exc:
+        raise FactsError("artifact_io_failed", f"output path: {exc}") from exc
     rec = _load_record(evidence_file, repo, pr, issue)
-    first = _observe(run, repo, pr, issue, ens)
+    first = _observe(run, repo, pr, issue, ens, checkout)
     if first["pr"]["baseRefName"] != rec["base_ref_name"]:
         raise FactsError(
             "base_ref_name_changed", f"{rec['base_ref_name']} -> {first['pr']['baseRefName']}"
@@ -607,11 +690,12 @@ def build(
     oracle = _load(
         _ROOT / "scripts" / "agent-ops" / "pr_head_replay_publish_exec.py", "_d17_oracle"
     )
+    _reject_external_merge_drivers(run, checkout)
     semantic = bool(
         oracle.compute_semantic_ambiguity(current_base, expected_old, cwd=checkout, runner=run)
     )
 
-    second = _observe(run, repo, pr, issue, ens)
+    second = _observe(run, repo, pr, issue, ens, checkout)
     _stable(first, second)
     final_go = _eligible_go(run, ens, repo, issue, second)
     if final_go != go:
@@ -639,11 +723,23 @@ def build(
         )
     except ValueError as exc:
         raise FactsError("consumer_rejected_facts", str(exc)) from exc
-    output.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=str(output.parent), prefix=".live_mergeability-")
-    with os.fdopen(fd, "w", encoding="utf-8") as fh:
-        fh.write(json.dumps(live, sort_keys=True, ensure_ascii=True) + "\n")
-    os.replace(tmp, output)
+    tmp = None
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=str(output.parent), prefix=".live_mergeability-")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", closefd=False) as fh:
+                fh.write(json.dumps(live, sort_keys=True, ensure_ascii=True) + "\n")
+        finally:
+            os.close(fd)
+        os.replace(tmp, output)
+        tmp = None
+    except OSError as exc:
+        raise FactsError("artifact_io_failed", f"live mergeability output: {exc}") from exc
+    finally:
+        if tmp is not None:
+            with suppress(OSError):
+                os.unlink(tmp)
     return {
         "output": str(output),
         "live_mergeability": live,
@@ -657,6 +753,8 @@ def build(
             "go": go,
             "pr": {
                 **second["pr"],
+                "baseRefOid": second["raw_base_ref_oid"],
+                "live_base_sha": second["base_sha"],
                 "mergeable": second["mergeable"],
                 "mergeStateStatus": second["merge_state_status"],
             },

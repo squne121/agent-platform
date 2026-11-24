@@ -23,6 +23,7 @@ import sys
 import types
 import urllib.parse
 from collections.abc import Callable
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
@@ -376,6 +377,7 @@ class World:
             "number": PR,
             "state": "OPEN",
             "isDraft": False,
+            "isCrossRepository": False,
             "headRefOid": self.head,
             "headRefName": "pr",
             "baseRefName": "main",
@@ -458,14 +460,7 @@ class World:
     def runner(self, argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess:
         if argv[0] == "gh":
             return self.gh(argv)
-        return subprocess.run(
-            argv,
-            cwd=str(cwd) if cwd else None,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=60,
-        )
+        return prod._default_runner(argv, cwd=cwd)
 
 
 class _ParserProxy:
@@ -963,7 +958,7 @@ def test_pr_not_open_is_refused(world: World) -> None:
 def test_inconsistent_ref_observations_are_refused(world: World) -> None:
     ev = captured(world)
     world.pr["baseRefOid"] = world.head
-    assert _code(build(world, ev)) == "base_ref_oid_mismatch"
+    assert _code(build(world, ev)) == "base_ref_oid_not_ancestor"
     world.pr["baseRefOid"] = world.base
     world.refs["pr"] = world.base
     assert _code(build(world, ev)) == "head_ref_mismatch"
@@ -982,9 +977,20 @@ def test_base_branch_retarget_after_capture_is_refused(world: World) -> None:
     assert _code(build(world, ev)) == "base_ref_name_changed"
 
 
-@pytest.mark.parametrize("what", ["head", "base", "body"])
-def test_change_during_collection_is_refused(world: World, what: str) -> None:
+@pytest.mark.parametrize(
+    ("what", "detail"),
+    [
+        ("head", "head_sha"),
+        ("base", "base_sha"),
+        ("raw", "raw_base_ref_oid"),
+        ("body", "issue_body_sha256"),
+    ],
+)
+def test_change_during_collection_is_refused(world: World, what: str, detail: str) -> None:
     ev = captured(world)
+    if what == "raw":
+        world.advance_main({"allowed/first.txt": "f\n"})
+        world.set_go()
 
     def change_between_the_two_samples() -> None:
         if what == "head":
@@ -992,11 +998,114 @@ def test_change_during_collection_is_refused(world: World, what: str) -> None:
             world.refs["pr"] = world.base
         elif what == "base":
             world.advance_main({"allowed/late.txt": "l\n"})
+            world.pr["baseRefOid"] = world.base
+        elif what == "raw":
+            world.pr["baseRefOid"] = world.base
         else:
             world.body = world.body + "\nchanged\n"
 
     world.on_comments = change_between_the_two_samples
-    assert _code(build(world, ev)) == "live_state_changed_during_collection"
+    result = build(world, ev)
+    assert _code(result) == "live_state_changed_during_collection"
+    assert result[1]["detail"] == detail
+    assert not (world.art / "out" / "live.json").exists()
+
+
+@pytest.mark.parametrize("raw_lags", [False, True])
+def test_capture_and_build_distinguish_raw_base_and_live_tip(world: World, raw_lags: bool) -> None:
+    live_tip = world.advance_main({"allowed/main-only.txt": "new\n"})
+    raw = world.base if raw_lags else live_tip
+    world.pr["baseRefOid"] = raw
+    world.set_go()
+
+    rc, evidence = capture(world)
+    assert rc == 0, evidence
+    assert evidence["raw_base_ref_oid"] == raw
+    record = evidence["record"]
+    assert record["base_sha"] == live_tip
+    assert set(record) == {
+        "record_version",
+        "repo",
+        "pr_number",
+        "issue_number",
+        "head_sha",
+        "head_ref_name",
+        "base_ref_name",
+        "base_sha",
+        "captured_at",
+        "record_sha256",
+    }
+    assert record["record_sha256"] == prod._record_digest(record)
+    rc, result = build(world, Path(evidence["record_path"]))
+    assert rc == 0, result
+    assert result["provenance"]["pr"]["baseRefOid"] == raw
+    assert result["provenance"]["pr"]["live_base_sha"] == live_tip
+    facts = result["live_mergeability"]["main_drift"]
+    assert facts["current_base_sha"] == facts["evidence_base_sha"] == live_tip
+    assert facts["latest_main_net_diff"] == []
+    assert facts["semantic_ambiguity"] is False
+
+
+@pytest.mark.parametrize("missing", ["raw", "live"])
+def test_differing_base_observations_require_both_commit_objects(
+    world: World, missing: str
+) -> None:
+    live_tip = world.advance_main({"allowed/new.txt": "n\n"})
+    world.pr["baseRefOid"] = S1 if missing == "raw" else world.base
+    world.refs["main"] = S1 if missing == "live" else live_tip
+    result = capture(world)
+    assert _code(result) == "git_object_missing"
+    assert result[1]["detail"] == S1
+    assert not (world.art / "ev").exists()
+
+
+def test_raw_to_live_ancestry_git_error_is_not_a_conflict(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    world.advance_main({"allowed/new.txt": "n\n"})
+    world.pr["baseRefOid"] = world.base
+    original = world.runner
+
+    def run(argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        if argv[:3] == ["git", "merge-base", "--is-ancestor"]:
+            return subprocess.CompletedProcess(argv, 128, "", "ancestry probe failed")
+        return original(argv, cwd=cwd)
+
+    monkeypatch.setattr(world, "runner", run)
+    result = capture(world)
+    assert _code(result) == "git_error"
+    assert "exit 128: ancestry probe failed" in result[1]["detail"]
+    assert not (world.art / "ev").exists()
+
+
+@pytest.mark.parametrize("drift", [False, True])
+def test_real_merge_tree_error_with_present_commits_is_rejected_before_consumer(
+    world: World, monkeypatch: pytest.MonkeyPatch, drift: bool
+) -> None:
+    ev = captured(world)
+    if drift:
+        world.advance_main({"allowed/new.txt": "n\n"})
+        world.set_go()
+    tree = _git(world.co, "rev-parse", f"{world.head}^{{tree}}")
+    (world.co / ".git" / "objects" / tree[:2] / tree[2:]).unlink()
+    live = world.refs["main"]
+    for sha in (live, world.head):
+        _git(world.co, "cat-file", "-e", f"{sha}^{{commit}}")
+    actual = world.runner(["git", "merge-tree", "--write-tree", live, world.head], cwd=world.co)
+    assert actual.returncode not in (0, 1) and actual.stderr.strip()
+
+    original = prod._load
+
+    def load(path: Path, name: str) -> Any:
+        assert path != ROUTE, "consumer reached despite merge-tree error"
+        return original(path, name)
+
+    monkeypatch.setattr(prod, "_load", load)
+    result = build(world, ev)
+    assert _code(result) == "merge_tree_failed"
+    detail = result[1]["detail"]
+    assert f"exit {actual.returncode}: {actual.stderr.strip()[:200]}" in detail
+    assert "live_mergeability" not in result[1]
     assert not (world.art / "out" / "live.json").exists()
 
 
@@ -1647,5 +1756,260 @@ def test_default_runner_pins_utf8_decoding(monkeypatch: pytest.MonkeyPatch) -> N
         return subprocess.CompletedProcess(argv, 0, "", "")
 
     monkeypatch.setattr(prod.subprocess, "run", fake_run)
+    monkeypatch.setenv("GIT_NO_LAZY_FETCH", "0")
+    monkeypatch.setenv("GIT_NO_REPLACE_OBJECTS", "0")
     prod._default_runner(["git", "rev-parse", "HEAD"])
     assert seen["encoding"] == "utf-8" and seen["errors"] == "strict"
+    assert seen["env"]["GIT_NO_LAZY_FETCH"] == seen["env"]["GIT_NO_REPLACE_OBJECTS"] == "1"
+
+
+def test_merge_driver_config_allowlist_is_exact() -> None:
+    cmd = list(prod._MERGE_DRIVER_CONFIG)
+    assert prod._argv_allowed(cmd)
+    assert not prod._argv_allowed(cmd + ["--local"])
+    assert not prod._argv_allowed(cmd[:-1] + [".*"])
+    assert not prod._argv_allowed(["git", "config", "merge.fixture.driver", "true"])
+
+
+@pytest.mark.parametrize("scope", ["local", "include", "system", "global", "worktree", "redirect"])
+def test_real_merge_driver_config_refuses_before_oracle(
+    world: World, monkeypatch: pytest.MonkeyPatch, scope: str
+) -> None:
+    ev = captured(world)
+    original = world.runner
+    seen = []
+
+    def run(argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        assert argv[:3] != ["git", "merge-tree", "--write-tree"]
+        result = original(argv, cwd=cwd)
+        if tuple(argv) == prod._MERGE_DRIVER_CONFIG:
+            assert cwd == world.co
+            seen.append((result.returncode, result.stdout, result.stderr))
+        return result
+
+    monkeypatch.setattr(world, "runner", run)
+    if scope in ("include", "system", "global"):
+        config = world.co / ".git" / f"{scope}.cfg"
+        config.write_text('[merge "fixture"]\n\tdriver = true\n', encoding="utf-8")
+        if scope == "include":
+            _git(world.co, "config", "include.path", config.name)
+        else:
+            if scope == "system":
+                monkeypatch.delenv("GIT_CONFIG_NOSYSTEM", raising=False)
+            monkeypatch.setenv(f"GIT_CONFIG_{scope.upper()}", str(config))
+    elif scope == "worktree":
+        _git(world.co, "config", "extensions.worktreeConfig", "true")
+        _git(world.co, "config", "--worktree", "merge.fixture.driver", "true")
+    else:
+        _git(world.co, "config", "merge.fixture.driver", "true")
+        if scope == "redirect":
+            empty = world.art / "empty.cfg"
+            empty.touch()
+            monkeypatch.setenv("GIT_CONFIG", str(empty))
+    assert _code(build(world, ev)) == "external_merge_driver_configured"
+    assert seen == [(0, "merge.fixture.driver\n", "")]
+    assert not (world.art / "out").exists()
+
+
+def test_real_merge_driver_config_distinguishes_no_match_and_read_error(world: World) -> None:
+    run = prod._Guarded(prod._default_runner, world.co)
+    proc = run(prod._MERGE_DRIVER_CONFIG)
+    assert (proc.returncode, proc.stdout, proc.stderr) == (1, "", "")
+    prod._reject_external_merge_drivers(run, world.co)
+
+    config = world.co / ".git" / "unreadable.cfg"
+    config.write_text("[unterminated\n", encoding="utf-8")
+    _git(world.co, "config", "include.path", config.name)
+    proc = run(prod._MERGE_DRIVER_CONFIG)
+    assert proc.returncode != 0 and proc.stderr
+    with pytest.raises(prod.FactsError) as exc:
+        prod._reject_external_merge_drivers(run, world.co)
+    assert exc.value.code == "merge_driver_config_read_failed"
+
+
+@pytest.mark.parametrize(
+    ("rc", "stdout", "stderr", "code"),
+    [
+        (0, "", "", "merge_driver_config_invalid"),
+        (0, "other.key\n", "", "merge_driver_config_invalid"),
+        (1, "merge.fixture.driver\n", "", "merge_driver_config_invalid"),
+        (1, "", "read warning", "merge_driver_config_read_failed"),
+    ],
+)
+def test_config_probe_refuses_invalid_result_before_merge_tree(
+    world: World, monkeypatch: pytest.MonkeyPatch, rc: int, stdout: str, stderr: str, code: str
+) -> None:
+    ev = captured(world)
+    original = world.runner
+
+    def run(argv: list[str], *, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        if tuple(argv) == prod._MERGE_DRIVER_CONFIG:
+            return subprocess.CompletedProcess(argv, rc, stdout, stderr)
+        assert argv[:3] != ["git", "merge-tree", "--write-tree"]
+        return original(argv, cwd=cwd)
+
+    monkeypatch.setattr(world, "runner", run)
+    assert _code(build(world, ev)) == code
+
+
+def test_real_missing_promisor_object_does_not_fetch(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    ev = captured(world)
+    local_remote = world.tmp / "local.git"
+    _git(world.co, "clone", "--quiet", "--bare", "--no-hardlinks", str(world.co), str(local_remote))
+    _git(world.co, "remote", "add", "local", str(local_remote))
+    _git(world.co, "config", "extensions.partialClone", "local")
+    _git(world.co, "config", "remote.local.promisor", "true")
+    tree = _git(world.co, "rev-parse", f"{world.head}^{{tree}}")
+    assert _git(local_remote, "cat-file", "-t", tree) == "tree"
+    obj = world.co / ".git" / "objects" / tree[:2] / tree[2:]
+    obj.unlink()
+    trace = world.art / "git-trace.jsonl"
+    monkeypatch.setenv("GIT_TRACE2_EVENT", str(trace))
+    monkeypatch.setenv("GIT_NO_LAZY_FETCH", "0")
+
+    assert _code(build(world, ev)) == "merge_tree_failed"
+    events = [json.loads(line) for line in trace.read_text().splitlines()]
+    assert any(event.get("name") == "merge-tree" for event in events)
+    assert all("fetch" not in event.get("argv", []) for event in events)
+    assert not obj.exists()
+    assert not (world.art / "out").exists()
+
+
+def test_real_replace_ref_cannot_change_base_ancestry(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    tree = _git(world.co, "rev-parse", f"{world.head}^{{tree}}")
+    unrelated = _git(world.co, "commit-tree", tree, "-m", "independent root")
+    _git(world.co, "replace", unrelated, world.head)
+    world.refs["main"] = unrelated
+    monkeypatch.setenv("GIT_NO_REPLACE_OBJECTS", "0")
+
+    assert _code(capture(world)) == "base_ref_oid_not_ancestor"
+    assert _git(world.co, "rev-parse", f"refs/replace/{unrelated}") == world.head
+    assert not (world.art / "ev").exists()
+
+
+def test_same_name_same_sha_fork_is_refused(world: World) -> None:
+    assert world.refs[world.pr["headRefName"]] == world.pr["headRefOid"]
+    world.pr["isCrossRepository"] = True
+    assert _code(capture(world)) == "fork_pr_not_supported"
+    assert len(world.gh_calls) == 1
+    assert "isCrossRepository" in world.gh_calls[0][-1].split(",")
+
+
+@pytest.mark.parametrize("value", [None, 0, "false", []])
+def test_invalid_cross_repository_flag_is_refused(world: World, value: Any) -> None:
+    world.pr["isCrossRepository"] = value
+    assert _code(capture(world)) == "github_response_incomplete"
+
+
+def test_missing_cross_repository_flag_is_refused(world: World) -> None:
+    ev = captured(world)
+    del world.pr["isCrossRepository"]
+    result = build(world, ev)
+    assert _code(result) == "github_response_incomplete"
+    assert result[1]["detail"] == "pr.isCrossRepository"
+
+
+def test_artifact_mkdir_error_is_structured_and_preserves_file(world: World) -> None:
+    existing = world.art / "file"
+    existing.write_bytes(b"existing")
+    assert _code(capture(world, out_dir=existing)) == "artifact_io_failed"
+    ev = captured(world)
+    before = ev.read_bytes()
+    assert _code(build(world, ev, output=existing / "live.json")) == "artifact_io_failed"
+    assert ev.read_bytes() == before
+    assert existing.read_bytes() == b"existing"
+
+
+def test_artifact_open_error_is_structured_without_record(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    original = os.open
+
+    def open_file(path: str, flags: int, *args: Any, **kwargs: Any) -> int:
+        if str(path).startswith(str(world.art / "ev")):
+            raise PermissionError("fixture open refusal")
+        return original(path, flags, *args, **kwargs)
+
+    monkeypatch.setattr(prod.os, "open", open_file)
+    assert _code(capture(world)) == "artifact_io_failed"
+    assert not list((world.art / "ev").iterdir())
+
+
+def test_partial_capture_remains_write_once_on_io_failure(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    @contextmanager
+    def fail_after_first_bytes(fd: int, *_args: Any, **_kwargs: Any):
+        os.write(fd, b"partial")
+        raise OSError("fixture write failure")
+        yield
+
+    with monkeypatch.context() as context:
+        context.setattr(prod.os, "fdopen", fail_after_first_bytes)
+        assert _code(capture(world)) == "artifact_io_failed"
+    (path,) = (world.art / "ev").iterdir()
+    assert path.read_bytes() == b"partial"
+    assert _code(capture(world)) == "evidence_record_exists"
+    assert path.read_bytes() == b"partial"
+
+
+@pytest.mark.parametrize("operation", ["write", "replace"])
+def test_failed_output_write_or_replace_preserves_existing_artifacts(
+    world: World, monkeypatch: pytest.MonkeyPatch, operation: str
+) -> None:
+    ev = captured(world)
+    before = ev.read_bytes()
+    output = world.art / "live.json"
+    output.write_bytes(b"previous output")
+    unrelated = world.art / ".live_mergeability-existing"
+    unrelated.write_bytes(b"other temporary file")
+
+    def fail(*_args: Any, **_kwargs: Any) -> Any:
+        raise OSError(f"fixture {operation} failure")
+
+    if operation == "write":
+
+        class BrokenWriter:
+            write = staticmethod(fail)
+
+        @contextmanager
+        def broken_stream(*_args: Any, **_kwargs: Any):
+            yield BrokenWriter()
+
+        monkeypatch.setattr(prod.os, "fdopen", broken_stream)
+    else:
+        monkeypatch.setattr(prod.os, "replace", fail)
+    assert _code(build(world, ev, output=output)) == "artifact_io_failed"
+    assert ev.read_bytes() == before
+    assert output.read_bytes() == b"previous output"
+    assert unrelated.read_bytes() == b"other temporary file"
+    assert list(world.art.glob(".live_mergeability-*")) == [unrelated]
+
+
+def test_build_refuses_output_symlink_entry_inside_checkout(world: World) -> None:
+    ev = captured(world)
+    outside = world.art / "external.json"
+    outside.write_bytes(b"existing output")
+    link = world.co / "output.json"
+    link.symlink_to(outside)
+    assert _code(build(world, ev, output=link)) == "artifact_inside_checkout"
+    assert link.is_symlink() and link.readlink() == outside
+    assert outside.read_bytes() == b"existing output"
+
+
+def test_build_cannot_replace_another_write_once_record(world: World) -> None:
+    ev = captured(world)
+    before = ev.read_bytes()
+    record = json.loads(before)
+    record["head_sha"] = S1
+    record["record_sha256"] = prod._record_digest(record)
+    other = ev.with_name(prod._record_name(REPO, PR, S1))
+    other_before = json.dumps(record).encode()
+    other.write_bytes(other_before)
+    assert _code(build(world, ev, output=other)) == "output_reserved_for_evidence"
+    assert other.read_bytes() == other_before
+    assert ev.read_bytes() == before
