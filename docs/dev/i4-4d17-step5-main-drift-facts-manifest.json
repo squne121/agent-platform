@@ -1,0 +1,139 @@
+{
+  "schema": "I4_4D17_STEP5_MAIN_DRIFT_FACTS_V1",
+  "issue": "squne121/agent-platform#120",
+  "tracker": "squne121/agent-platform#60",
+  "research": "squne121/agent-platform#117",
+  "predecessor": "squne121/agent-platform#118",
+  "base_commit": "be030a9fc24cc20c93d67a4c9ae41372372c5221",
+  "approved_scope": {
+    "summary": "a read-only producer of the Step 5 main_drift facts (capture-evidence / build) that emits the live_mergeability mapping accepted by the EXISTING build_step5_live_mergeability() and read by step5-terminal-gate, plus a limited real-runtime acceptance run by the main session",
+    "tracked_paths": [
+      ".claude/skills/impl-review-loop/scripts/build_step5_main_drift_facts.py",
+      "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py",
+      "docs/dev/i4-4d17-step5-main-drift-facts-manifest.json",
+      ".github/workflows/ci.yml"
+    ],
+    "design_choice": "a single new script: adding to adjudicate_vc_result.py (designed to start no subprocess, many historical pins) or route_loop_verdict_v2.py (pure by design, pinned) would break an invariant or force historical pin re-sync; no existing source is changed",
+    "not_approved": [
+      "automatic impl-review-loop start or any automatic Step 1/2/4/5 dispatch",
+      "verdict publication or any Reviewer GitHub write",
+      "test_verdict.publish live enablement",
+      "Step 5 Final Gate / LOOP_HANDOFF_RESULT_V1 production wiring",
+      "Bot / Broker / controlled pr_* / secret / permission changes",
+      "branch update, replay, push, force push, merge, auto-merge, Ready, Issue close"
+    ]
+  },
+  "allowed_paths": [
+    ".claude/skills/impl-review-loop/scripts/build_step5_main_drift_facts.py",
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py",
+    "docs/dev/i4-4d17-step5-main-drift-facts-manifest.json",
+    ".github/workflows/ci.yml"
+  ],
+  "not_changed": [
+    ".claude/skills/impl-review-loop/SKILL.md",
+    ".claude/skills/impl-review-loop/steps/**",
+    ".claude/agents/**",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    "scripts/agent-ops/main_drift_policy.py",
+    "scripts/agent-ops/pr_head_replay_publish_exec.py",
+    "D1-D16 historical manifests and source pins"
+  ],
+  "required_files": [
+    ".claude/skills/impl-review-loop/SKILL.md",
+    ".claude/skills/impl-review-loop/scripts/adjudicate_vc_result.py",
+    ".claude/skills/impl-review-loop/scripts/ensure_contract_snapshot.py",
+    ".claude/skills/impl-review-loop/scripts/route_loop_verdict_v2.py",
+    "scripts/agent-ops/main_drift_policy.py",
+    "scripts/agent-ops/pr_head_replay_publish_exec.py"
+  ],
+  "required_fixtures": [],
+  "fact_provenance": {
+    "current_base_sha": "live ref tip of the PR baseRefName; differing raw baseRefOid is kept separately and must be an ancestor with both commit objects present",
+    "evidence_base_sha": "base tip recorded by capture-evidence at evidence-collection time (not the GO base)",
+    "allowed_paths_snapshot_base_sha": "base_sha_at_snapshot of an eligible trusted GO (5 eligibility checks)",
+    "allowed_paths": "live linked Issue body Allowed Paths entries as written (read twice)",
+    "latest_main_net_diff": "git diff --name-only evidence_base..current_base in the target checkout (ancestor required)",
+    "expected_old_sha": "PR HEAD recorded by capture-evidence (the old ref)",
+    "observed_old_sha": "live PR head branch ref re-read in the same cycle",
+    "semantic_ambiguity": "real two-commit git merge-tree --write-tree oracle (current_base vs expected_old); only exit 0/1 reach the oracle; missing commits and execution errors fail before the consumer on fresh and drift paths"
+  },
+  "test_files": [
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py"
+  ],
+  "expected_collect": {
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 225
+  },
+  "expected_ran": {
+    "tests/stage_i4/test_i4_4d17_step5_main_drift_facts.py": 225
+  },
+  "deferred_tests": [],
+  "totals": {
+    "collected": 225,
+    "ran": 225,
+    "deferred": 0,
+    "skipped": 0,
+    "xfailed": 0,
+    "xpassed": 0,
+    "deselected": 0
+  },
+  "count_evidence": "Measured with pytest --co and a real run; the runner independently verifies per-file counts and JUnit outcome. Fixture level only: a real temporary Git repository and an injected fake gh; the trusted GO is injected through the parser seam in most cases and a real GO comment (posted by the real ensure_contract_snapshot.py into the existing stateful fake gh) goes through the real parser and the real is_go_current in the dedicated cases; no real GitHub, no model call, no SubAgent dispatch.",
+  "runtime_acceptance": {
+    "status": "OBSERVED_BY_MAIN_SESSION_OUTSIDE_THIS_FILE",
+    "rule": "Accepted only by the main session against the D17 Draft PR with real GitHub and a real checkout. Input generation, the real Reviewer verdict, the Step 5 real route / reason_code / reached terminal checks, and any production Final Gate are recorded separately. A fixture result is never a runtime PASS; an unreached terminal check stays UNVERIFIED and does not cancel the input-generation result.",
+    "forbidden_modes": ["dry-run", "auto", "--post", "hand-made snapshot"],
+    "commands": [
+      "git fetch origin (preparation by the caller; recorded, never run by the producer)",
+      "build_step5_main_drift_facts.py capture-evidence --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-dir <dir outside the worktree>",
+      "build_step5_main_drift_facts.py build --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-file <record> --output <reviewer_before_live_mergeability.json>",
+      "ensure_contract_snapshot.py --mode check-only --issue-number <N> --repo <repo> --artifact-dir <dir>",
+      "(independent test-runner) run the literal current-contract VCs after checking capture-to-VC bindings",
+      "adjudicate_vc_result.py step4-adjudicate --producer-exit-code <rc> --repo <repo> --expected-issue-number <N> ...",
+      "(main session) Agent(subagent_type=pr-reviewer) for one PR number and HEAD",
+      "(after Reviewer) build_step5_main_drift_facts.py build --repo <repo> --pr-number <PR> --issue-number <N> --checkout <worktree> --evidence-file <same record> --output <fresh_live_mergeability.json>",
+      "adjudicate_vc_result.py step5-terminal-gate --live-mergeability-file <fresh_live_mergeability.json> --dispatch-seq <seq> ..."
+    ]
+  },
+  "residual_constraints": [
+    "evidence_base_sha comes from record.base_sha (live tip at capture, with raw baseRefOid only in capture output and build provenance), not a LOOP_STATE evidence epoch; the main session must verify unchanged bindings through capture, build, GO check-only and independent VC launch, and block on changes or missing provenance; close timestamps alone do not prove correspondence",
+    "drift_rebind_attempts and max_drift_rebind_attempts are not produced (they stay at the policy default 0, so the concurrent-churn budget is not active) and reviewer_verdict, diff-summary and TEST_VERDICT conversion remain manual",
+    "git fetch is a caller-side preparation and is never run by the producer; git merge-tree may write tree objects to the object database, so this is not claimed as zero writes",
+    "the live PR HEAD moving between capture and build is passed through (expected_old_sha != observed_old_sha) so that the router returns expected_old_cas_mismatch; a change between the two samples inside one build is refused",
+    "the runtime on a PR whose base did not move exercises only the fresh path; the drift routes are fixture-only",
+    "fresh build reuses the same write-once record without changing its historical base; if a new evidence epoch is required, runtime recovery is BLOCKED, not an AC6 pass",
+    "the main session must establish the relationship between any reused evidence record and independent VC; the producer does not enforce that relationship",
+    "GO authority is checked again near the final live observation; this is not an atomic guarantee against later changes",
+    "fork PRs are refused on a strict isCrossRepository observation, even if the base repository has a head ref with the same name and SHA",
+    "Git subprocesses disable lazy fetch and replace objects; the exact read-only merge driver config check includes all effective scopes, cannot be redirected by GIT_CONFIG, and precedes merge-tree without claiming atomicity",
+    "artifact I/O failures are structured; write-once record filenames and checkout entries are protected, and only a temporary output created by the current build is cleaned up on failure"
+  ],
+  "rollback": "Revert the single D17 PR: it removes the producer, this manifest, the D17 test and the CI lane. No existing script, document or historical manifest is changed.",
+  "ci_binding": "The i4-4d17-step5-main-drift-facts job runs this manifest through scripts/ci/run_stage1b1_tests.py and the full tests/stage_i4 directory; no new permissions, runner or secrets.",
+  "boundary_false": [
+    "impl_review_loop_auto_started",
+    "verdict_published",
+    "reviewer_github_write",
+    "final_gate_wired",
+    "controlled_pr_actor_enabled",
+    "bot_broker_permission_changed",
+    "test_verdict_publish_enabled",
+    "merge_or_auto_merge",
+    "github_mutation_by_producer",
+    "git_fetch_by_producer"
+  ],
+  "evidence_boundary": {
+    "impl_review_loop_auto_started": false,
+    "verdict_published": false,
+    "reviewer_github_write": false,
+    "final_gate_wired": false,
+    "controlled_pr_actor_enabled": false,
+    "bot_broker_permission_changed": false,
+    "test_verdict_publish_enabled": false,
+    "merge_or_auto_merge": false,
+    "github_mutation_by_producer": false,
+    "git_fetch_by_producer": false,
+    "main_drift_facts_fabricated": false,
+    "fixture_result_is_runtime_pass": false,
+    "zero_writes_claimed": false
+  }
+}
