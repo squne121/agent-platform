@@ -983,6 +983,7 @@ def test_base_branch_retarget_after_capture_is_refused(world: World) -> None:
         ("head", "head_sha"),
         ("base", "base_sha"),
         ("raw", "raw_base_ref_oid"),
+        ("base_ref_name", "baseRefName"),
         ("body", "issue_body_sha256"),
     ],
 )
@@ -1001,6 +1002,9 @@ def test_change_during_collection_is_refused(world: World, what: str, detail: st
             world.pr["baseRefOid"] = world.base
         elif what == "raw":
             world.pr["baseRefOid"] = world.base
+        elif what == "base_ref_name":
+            world.refs["release"] = world.base
+            world.pr["baseRefName"] = "release"
         else:
             world.body = world.body + "\nchanged\n"
 
