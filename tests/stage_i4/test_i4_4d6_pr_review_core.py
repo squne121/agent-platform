@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 import importlib.util
 import json
 import os
@@ -339,7 +340,33 @@ def issue_pin_problems(m: dict[str, Any]) -> list[str]:
 
 
 def parity_problems(m: dict[str, Any], root: Path) -> list[str]:
-    return d4.parity_problems(m, root)
+    records = m["verbatim_files"]
+    historical = records[SUMMARY]
+    current = historical.get("current_d18")
+    if not current:
+        return d4.parity_problems(m, root)
+    others = {rel: rec for rel, rec in records.items() if rel != SUMMARY}
+    problems = d4.parity_problems({**m, "verbatim_files": others}, root)
+    path = root / SUMMARY
+    if not path.is_file():
+        return [*problems, f"missing file: {SUMMARY}"]
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != current["sha256"]:
+        problems.append(f"current SHA-256 mismatch: {SUMMARY}")
+    for edit in reversed(current["edits"]):
+        after = edit["after"].encode()
+        if not after or data.count(after) != 1:
+            return [*problems, f"recorded D18 edit mismatch: {SUMMARY}"]
+        data = data.replace(after, edit["before"].encode(), 1)
+    if (
+        hashlib.sha256(data).hexdigest() != historical["source_sha256"]
+        or historical["moved_sha256"] != historical["source_sha256"]
+        or not historical["verbatim"]
+        or d4._blob(data) != historical["source_blob_sha1"]
+        or data.count(b"\n") != historical["moved_lines"]
+    ):
+        problems.append(f"historical source mismatch: {SUMMARY}")
+    return problems
 
 
 EDIT_REQUIRED = {
@@ -1021,6 +1048,11 @@ def test_ac4_source_and_edit_tampering_are_detected(
     summary = tmp_path / SUMMARY
     summary.write_bytes(summary.read_bytes() + b"# tampered\n")
     assert any("mismatch" in p for p in parity_problems(manifest, tmp_path))
+    repinned = copy.deepcopy(manifest)
+    repinned["verbatim_files"][SUMMARY]["current_d18"]["sha256"] = hashlib.sha256(
+        summary.read_bytes()
+    ).hexdigest()
+    assert f"historical source mismatch: {SUMMARY}" in parity_problems(repinned, tmp_path)
     shutil.copy2(ROOT / SUMMARY, summary)
     gates = tmp_path / GATES
     gates.write_text(

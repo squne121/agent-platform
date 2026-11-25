@@ -448,12 +448,41 @@ def test_ac1_non_empty_required_checks_keep_the_required_only_decision(tmp_path:
     assert wait["status"] == "pending_timeout" and m5_ci_ok(wait, rc, summary, HEAD) is None
 
 
-def test_ac1_proven_zero_required_with_all_success_ci_is_accepted(tmp_path: Path) -> None:
+def test_ac1_d18_missing_checkrun_identity(tmp_path: Path) -> None:
     wait, rc, summary = m5_helpers(tmp_path, scenario())
     assert (wait["status"], wait["current_head_sha"]) == ("no_checks", HEAD)
     assert (rc, summary["status"], summary["head_sha"]) == (0, "all_pass", HEAD)
     assert len(summary["checks"]) == 2 and summary["errors"] == []
     assert m5_ci_ok(wait, rc, summary, HEAD) == "required_zero"
+    assert all(row["head_sha"] is None for row in summary["checks"])
+
+    # 同じ実 CLI で、commit OID の有無を分けて非除外の匿名 SUCCESS を確認する。
+    for oid in (HEAD, None):
+        malformed = run("test")
+        malformed["databaseId"] = malformed["detailsUrl"] = None
+        malformed["checkSuite"]["commit"]["oid"] = oid
+        wait, rc, summary = m5_helpers(tmp_path, scenario(runs=[run("lint"), malformed]))
+        assert rc == 20 and summary["status"] == "pending_or_queued", oid
+        assert summary["pending_checks"] == ["test"], oid
+        assert m5_ci_ok(wait, rc, summary, HEAD) is None, oid
+
+    # Actions run の URL は、欠落・不正な CheckRun ID を補う証拠にならない。
+    for bad_id in (None, 0, -1, "10", True, 10.0):
+        malformed = run("test")
+        if bad_id is None:
+            malformed.pop("databaseId")
+        else:
+            malformed["databaseId"] = bad_id
+        malformed["detailsUrl"] = f"https://github.com/{REPO}/actions/runs/999"
+        wait, rc, summary = m5_helpers(tmp_path, scenario(runs=[run("lint"), malformed]))
+        assert (rc, summary["status"], summary["pending_checks"]) == (
+            20,
+            "pending_or_queued",
+            ["test"],
+        ), bad_id
+        row = next(row for row in summary["checks"] if row["name"] == "test")
+        assert row["run_id"] is None and row["job_id"] is None, bad_id
+        assert m5_ci_ok(wait, rc, summary, HEAD) is None, bad_id
 
 
 @pytest.mark.parametrize(
@@ -681,8 +710,18 @@ def test_ac2_consistent_legacy_artifacts_are_still_reported_as_pass() -> None:
 
 
 def test_ac2_other_consumers_of_the_strict_checker_are_untouched(manifest: dict[str, Any]) -> None:
+    summary_rel = SUMMARY.relative_to(ROOT).as_posix()
+    d6 = json.loads((DEV / "i4-4d6-pr-review-core-manifest.json").read_text())
+    historical = d6["verbatim_files"][summary_rel]
     for rel, sha1 in manifest["unchanged_sources"].items():
-        assert blob_sha1(rel) == sha1, rel
+        if rel == summary_rel:
+            assert historical["source_blob_sha1"] == sha1, rel
+            assert (
+                hashlib.sha256(SUMMARY.read_bytes()).hexdigest()
+                == historical["current_d18"]["sha256"]
+            ), rel
+        else:
+            assert blob_sha1(rel) == sha1, rel
     for rel in manifest["unchanged_sources"]:
         assert not rel.endswith("SKILL.md")
 
