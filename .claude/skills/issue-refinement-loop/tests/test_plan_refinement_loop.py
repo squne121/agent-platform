@@ -132,33 +132,32 @@ def run_planner(input_data: dict[str, Any]) -> tuple[dict[str, Any], int]:
     return output, result.returncode
 
 
-def normalize_legacy_scope_signal_golden(
-    fixture_name: str, golden: dict[str, Any], output: dict[str, Any]
-) -> dict[str, Any]:
-    """Patch the two legacy goldens to fixed body-absolute line numbers.
-
-    The golden JSON fixtures live outside Issue #1413 Allowed Paths, so this
-    helper performs a deterministic in-test normalization instead of mutating
-    those files. The expected line values are fixed from the source fixtures,
-    not copied from runtime output.
-    """
-    expected_lines = {
-        "anchor_reframe_exclusion": 19,
-        "new_in_scope_area": 19,
-    }
-    if fixture_name not in expected_lines:
-        return golden
-
-    normalized = json.loads(json.dumps(golden))
-    golden_spans = (
-        normalized.get("decisions", {})
-        .get("scope_signal_guard", {})
-        .get("evidence_spans", [])
-    )
-    if golden_spans:
-        golden_spans[0]["start_line"] = expected_lines[fixture_name]
-        golden_spans[0]["end_line"] = expected_lines[fixture_name]
-    return normalized
+def expected_golden(fixture_name: str) -> dict[str, Any]:
+    """Overlay intentional #127 changes without rewriting the source fixtures."""
+    golden = load_golden(fixture_name)
+    decisions = golden["decisions"]
+    if fixture_name in {
+        "repo_path_in_outcome", "anchor_reframe_exclusion", "new_in_scope_area",
+        "internal_documentation_mention", "markdown_table_body", "fenced_code_in_outcome",
+    }:
+        decisions["investigation_policy"].update(
+            required=False, reason_code="no_repo_fact_claim", repo_claims=[], confidence="unknown",
+        )
+    if fixture_name in {"anchor_reframe_exclusion", "new_in_scope_area"}:
+        decisions["scope_signal_guard"].update(
+            triggered=False, reason_code="no_scope_signal", excluded_by_anchor_reframe=False, evidence_spans=[],
+        )
+    if fixture_name == "anchor_reframe_exclusion":
+        decisions["web_research_policy"].update(
+            required=False, reason_code="no_critical_external_claim", critical_external_claims=[],
+            evidence_spans=[], confidence="unknown",
+        )
+    if fixture_name == "critical_external_claim_in_vc":
+        claims = decisions["web_research_policy"]["critical_external_claims"]
+        decisions["web_research_policy"]["critical_external_claims"] = [
+            item for item in claims if item["claim"] != "- Validation of auth migration behavior"
+        ]
+    return golden
 
 
 class TestPlanRefinementLoop:
@@ -212,8 +211,7 @@ class TestPlanRefinementLoop:
         output, exit_code = run_planner(input_data)
 
         # Load expected golden output
-        golden = load_golden(fixture_name)
-        golden = normalize_legacy_scope_signal_golden(fixture_name, golden, output)
+        golden = expected_golden(fixture_name)
 
         # Verify exit code is 0 (success or fail_closed)
         assert exit_code == 0, f"Planner exited with code {exit_code}"
@@ -967,42 +965,127 @@ class TestAC2ContractMalformedSeparatePath:
         )
 
 
+@pytest.mark.parametrize(
+    ("outcome", "investigation_required", "web_required"),
+    [
+        ("Update the existing `scripts/check.py`; the authority is the recorded internal CLI result.", False, False),
+        ("Record GitHub CLI output as local evidence.", False, False),
+        ("`scripts/check.py` currently rejects invalid input; confirm this existing behavior.", True, False),
+        ("GitHub API rate limit behavior must match published documentation.", False, True),
+        ("Verify that AWS CLI accepts this authentication option.", False, True),
+        ("Verify that ExampleCloud CLI accepts this authentication option.", False, True),
+    ],
+)
+def test_i127_current_body_evidence_is_not_a_scope_delta(outcome, investigation_required, web_required):
+    data = fixture_to_input("repo_path_in_outcome", "positive", 1)
+    body = data["issue"]["body"]
+    begin = body.index("## Outcome\n") + len("## Outcome\n")
+    end = body.index("## In Scope\n", begin)
+    data["issue"]["body"] = (body[:begin] + f"\n{outcome}\n\n" + body[end:]).replace(
+        "## Allowed Paths\n\n- なし", "## Allowed Paths\n\n- `scripts/check.py`\n- `docs/dev/guide.md`"
+    )
+    data["known_context"] = {"current_phase": "preflight"}
+    output, exit_code = run_planner(data)
+    decisions = output["decisions"]
+    assert exit_code == 0
+    assert not output["fail_closed"]["required"]
+    assert decisions["investigation_policy"]["required"] is investigation_required
+    assert decisions["investigation_policy"]["repo_claims"] == ([outcome] if investigation_required else [])
+    assert decisions["investigation_policy"]["target_paths"] == (["scripts/check.py"] if "scripts/check.py" in outcome else [])
+    assert decisions["web_research_policy"]["required"] is web_required
+    assert decisions["scope_signal_guard"]["reason_code"] == "no_scope_signal"
+
+
+@pytest.mark.parametrize("context", [{"scope_signal_delta_required": True}, None])
+def test_i127_required_comparison_missing_even_without_phase(context):
+    data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+    data["known_context"] = context
+    if context is None:
+        data["issue"]["body"] += "\n比較には scope_signal_delta_input が必要。\n"
+    output, exit_code = run_planner(data)
+    assert exit_code == 0
+    assert output["fail_closed"]["required"]
+    assert output["fail_closed"]["reason_codes"] == ["missing_scope_signal_delta_input"]
+
+
+@pytest.mark.parametrize(
+    ("note", "required"),
+    [
+        ("Compare current Allowed Paths with the previous version.", True),
+        ("前回のスコープとの差分を確認する。", True),
+        ("Do not compare with the previous body.", False),
+        ("If available, compare with the previous body.", False),
+        ("scope_signal_delta_input must be supplied before updating.", True),
+        ("Inspect the current scope_signal_guard output.", False),
+        ("```text\nCompare with the previous contract.\n```", False),
+    ],
+)
+def test_i127_distinguishes_history_directives_from_mentions(note, required):
+    data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+    data["issue"]["body"] += f"\n## Notes for Reviewer\n{note}\n"
+    output, code = run_planner(data)
+    assert code == 0
+    assert ("missing_scope_signal_delta_input" in output["fail_closed"]["reason_codes"]) is required
+
+
+def test_i127_preserves_existing_evidence_on_new_output_line():
+    data = fixture_to_input("repo_path_in_outcome", "positive", 1)
+    data["issue"]["body"] += (
+        "\n## Outcome\nCreate `scripts/new.py` and `scripts/other.py` using existing `docs/spec.md` as evidence.\n"
+        "## Acceptance Criteria\n- [ ] AC1: `scripts/new.py` returns the expected report.\n"
+        "- [ ] AC2: `scripts/other.py` returns the expected status.\n"
+    )
+    plan, code = run_planner(data)
+    assert code == 0
+    policy = plan["decisions"]["investigation_policy"]
+    assert not policy["required"]
+    assert "docs/spec.md" in policy["target_paths"]
+    assert {"scripts/new.py", "scripts/other.py"}.isdisjoint(policy["target_paths"])
+
+
 class TestScopeSignalDeltaPlannerIntegration:
     @staticmethod
-    def _allowed_paths_delta_input() -> dict[str, Any]:
-        allowed_paths_before = (
-            "## Allowed Paths\n"
-            "- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n"
-        )
-        allowed_paths_after = (
-            "## Allowed Paths\n"
-            "- `.claude/skills/issue-refinement-loop/scripts/plan_refinement_loop.py`\n"
-            "- `docs/dev/workflow.md`\n"
-        )
+    def _allowed_paths_delta_input(data: dict[str, Any]) -> dict[str, Any]:
+        import hashlib
+
+        before = data["issue"]["body"]
+        after = before + "\n## Allowed Paths\n- `docs/dev/workflow.md`\n"
+        def ref(version, body):
+            digest = hashlib.sha256(body.encode()).hexdigest()
+            return f"artifact:/fixture/issue-refinement-loop/7/snapshots/{version}.json#repo=owner/repo&issue_number=7&body_sha256={digest}"
+
         return {
-            "before_body": allowed_paths_before,
-            "current_body": allowed_paths_before,
-            "after_body": allowed_paths_after,
-            "source_refs": {
-                "before": "fixture:before",
-                "current": "fixture:current",
-                "after": "fixture:after",
-            },
+            "before_body": before,
+            "current_body": before,
+            "after_body": after,
+            "source_refs": {"before": ref("before", before), "current": ref("current", before), "after": ref("after", after)},
         }
 
     def test_planner_consumes_scope_signal_delta_projection(self):
         input_data = fixture_to_input("no_repo_fact_claim", "negative", 7)
         input_data["known_context"] = {
-            "scope_signal_delta_input": self._allowed_paths_delta_input()
+            "scope_signal_delta_input": self._allowed_paths_delta_input(input_data)
         }
         output, _ = run_planner(input_data)
         assert output["decisions"]["scope_signal_guard"]["triggered"] is True
         assert output["decisions"]["scope_signal_guard"]["reason_code"] == "new_allowed_path_layer"
 
+    def test_i127_valid_unchanged_comparison_is_not_expansion(self):
+        data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+        comparison = self._allowed_paths_delta_input(data)
+        comparison["after_body"] = comparison["before_body"]
+        comparison["source_refs"]["after"] = comparison["source_refs"]["current"]
+        data["known_context"] = {"scope_signal_delta_input": comparison}
+        output, exit_code = run_planner(data)
+        assert exit_code == 0
+        assert not output["fail_closed"]["required"]
+        assert output["decisions"]["scope_signal_guard"]["reason_code"] == "no_scope_signal"
+        assert output["scope_signal_guard_decision_v2"]["route"] == "not_triggered"
+
     def test_planner_scope_signal_delta_honors_trusted_anchor_projection(self):
         input_data = fixture_to_input("no_repo_fact_claim", "negative", 7)
         input_data["known_context"] = {
-            "scope_signal_delta_input": self._allowed_paths_delta_input(),
+            "scope_signal_delta_input": self._allowed_paths_delta_input(input_data),
             "scope_delta_decision": {
                 "status": "approved_by_trusted_anchor",
                 "implementation_go": False,
@@ -1016,15 +1099,28 @@ class TestScopeSignalDeltaPlannerIntegration:
     def test_planner_scope_signal_delta_preserves_provenance(self):
         input_data = fixture_to_input("no_repo_fact_claim", "negative", 7)
         input_data["known_context"] = {
-            "scope_signal_delta_input": self._allowed_paths_delta_input()
+            "scope_signal_delta_input": self._allowed_paths_delta_input(input_data)
         }
         output, _ = run_planner(input_data)
         evidence = output["decisions"]["scope_signal_guard"]["evidence_spans"]
         assert evidence
         assert evidence[0]["source"] == "known_context"
-        assert evidence[0]["source_ref"] == "fixture:after"
+        assert evidence[0]["source_ref"] == input_data["known_context"]["scope_signal_delta_input"]["source_refs"]["after"]
         assert evidence[0]["body_version"] == "after"
         assert evidence[0]["coordinate_space"] == "body_absolute_1_based"
+
+    @pytest.mark.parametrize(("field", "value"), [("repo", "wrong/repo"), ("issue_number", "8"), ("body_sha256", "0" * 64)])
+    def test_i127_rejects_reference_binding_mismatch(self, field, value):
+        data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+        comparison = self._allowed_paths_delta_input(data)
+        path, fragment = comparison["source_refs"]["before"].split("#", 1)
+        fields = dict(pair.split("=", 1) for pair in fragment.split("&"))
+        fields[field] = value
+        comparison["source_refs"]["before"] = path + "#" + "&".join(f"{key}={val}" for key, val in fields.items())
+        data["known_context"] = {"repo": "owner/repo", "scope_signal_delta_input": comparison}
+        plan, code = run_planner(data)
+        assert code == 0
+        assert "ambiguous_scope_signal" in plan["fail_closed"]["reason_codes"]
 
     def test_planner_classification_only_does_not_suppress_scope_signal_delta(self):
         input_data = fixture_to_input("no_repo_fact_claim", "negative", 7)
@@ -1032,7 +1128,7 @@ class TestScopeSignalDeltaPlannerIntegration:
             "classification": "feedback_update_required",
             "anchor_comment_url": "https://github.com/owner/repo/issues/7#issuecomment-123456",
             "anchor_reframe": True,
-            "scope_signal_delta_input": self._allowed_paths_delta_input(),
+            "scope_signal_delta_input": self._allowed_paths_delta_input(input_data),
         }
         output, _ = run_planner(input_data)
         assert output["decisions"]["scope_signal_guard"]["triggered"] is True

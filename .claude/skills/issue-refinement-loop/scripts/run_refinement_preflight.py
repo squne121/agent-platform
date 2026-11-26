@@ -5218,6 +5218,7 @@ def _find_previous_immutable_snapshot(
     issue_number: int,
     repo: str,
     current_snapshot: dict[str, Any],
+    approved_body_sha256: str | None = None,
 ) -> tuple[dict[str, Any], str] | None:
     archive_dir = _snapshot_archive_dir(repo_root, issue_number)
     candidates: list[tuple[datetime, dict[str, Any], Path]] = []
@@ -5240,26 +5241,56 @@ def _find_previous_immutable_snapshot(
                 continue
             candidates.append((sort_key, snapshot, path))
 
+    if approved_body_sha256 is not None:
+        candidates = [item for item in candidates if _sha256(_snapshot_body(item[1])) == approved_body_sha256]
     if not candidates:
         legacy_path = _issue_artifact_dir(repo_root, issue_number) / "raw_issue_snapshot.json"
         snapshot = _load_valid_issue_snapshot(legacy_path, issue_number, repo)
-        if snapshot is not None:
-            path = _materialize_immutable_snapshot(repo_root, issue_number, snapshot)
-            candidates.append(
-                (
-                    datetime.fromisoformat(_snapshot_fetched_at(snapshot).replace("Z", "+00:00"))
-                    if _snapshot_fetched_at(snapshot)
-                    else datetime.fromtimestamp(0, tz=timezone.utc),
-                    snapshot,
-                    path,
-                )
-            )
-
+        if snapshot is not None and (
+            approved_body_sha256 is None or _sha256(_snapshot_body(snapshot)) == approved_body_sha256
+        ):
+            fetched_at = _snapshot_fetched_at(snapshot)
+            sort_key = datetime.fromisoformat(fetched_at.replace("Z", "+00:00")) if fetched_at else None
+            if current_sort_key is None or sort_key is None or sort_key < current_sort_key:
+                path = _materialize_immutable_snapshot(repo_root, issue_number, snapshot)
+                candidates.append((sort_key or datetime.fromtimestamp(0, tz=timezone.utc), snapshot, path))
     if not candidates:
         return None
 
-    _, snapshot, path = max(candidates, key=lambda item: item[0])
+    # Observing a mutation does not approve it. Without a trusted GO, keep
+    # the earliest retained observation as the conservative comparison point.
+    _, snapshot, path = min(candidates, key=lambda item: (item[0], item[2].name))
     return snapshot, _snapshot_source_ref(path, snapshot)
+
+
+def _approved_scope_baseline_digest(comments: list[dict[str, Any]], repo: str, issue_number: int) -> str | None:
+    import importlib.util
+
+    issue_url = f"https://github.com/{repo}/issues/{issue_number}"
+    normalized = []
+    for comment in comments:
+        if not isinstance(comment, dict) or not isinstance(comment.get("user"), dict):
+            continue
+        comment_id = comment.get("id")
+        if type(comment_id) is not int or comment.get("html_url") != f"{issue_url}#issuecomment-{comment_id}":
+            continue
+        if not isinstance(comment.get("body"), str) or "CONTRACT_REVIEW_RESULT_V1" not in comment["body"]:
+            continue
+        user = comment["user"]
+        normalized.append({**comment, "author": user.get("login"), "author_id": user.get("id"), "author_type": user.get("type")})
+    if not normalized:
+        return None
+    path = Path(__file__).resolve().parents[2] / "issue-contract-review" / "scripts" / "contract_review_result_parser.py"
+    spec = importlib.util.spec_from_file_location("contract_review_result_parser", path)
+    if spec is None or spec.loader is None:
+        raise ImportError("contract review result parser unavailable")
+    parser = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(parser)
+    results = parser.parse_contract_review_results(normalized, expected_issue_url=issue_url)
+    selected = parser.find_latest_authoritative_go(results)
+    if selected is None:
+        return None
+    return selected["inner"]["expected_contract_fingerprint"]["contract_body_sha256"].removeprefix("sha256:")
 
 
 def _ensure_scope_signal_delta_input(
@@ -5270,26 +5301,27 @@ def _ensure_scope_signal_delta_input(
     known_context: Optional[dict[str, Any]],
     issue_number: int,
     repo: str,
+    comments: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     merged = dict(known_context) if known_context else {}
     merged.setdefault("current_phase", "preflight")
-    if "scope_signal_delta_input" in merged:
-        return merged
-
+    supplied = "scope_signal_delta_input" in merged
+    current_body = issue.get("body", "") or ""
+    approved_body_sha256 = _approved_scope_baseline_digest(comments or [], repo, issue_number)
     previous_snapshot = _find_previous_immutable_snapshot(
-        repo_root,
-        issue_number,
-        repo,
-        raw_snapshot,
+        repo_root, issue_number, repo, raw_snapshot, approved_body_sha256,
     )
     if previous_snapshot is None:
+        if supplied:
+            merged["scope_signal_delta_input"] = None  # No retained source can bind the supplied comparison.
+        elif approved_body_sha256 is not None and approved_body_sha256 != _sha256(current_body):
+            merged["scope_signal_delta_required"] = True
         return merged
 
     previous_raw_snapshot, previous_source_ref = previous_snapshot
-    current_body = issue.get("body", "") or ""
     current_archive_path = _snapshot_archive_path(repo_root, issue_number, raw_snapshot)
     current_source_ref = _snapshot_source_ref(current_archive_path, raw_snapshot)
-    merged["scope_signal_delta_input"] = {
+    bound_comparison = {
         "before_body": _snapshot_body(previous_raw_snapshot),
         "current_body": current_body,
         "after_body": current_body,
@@ -5299,6 +5331,9 @@ def _ensure_scope_signal_delta_input(
             "after": current_source_ref,
         },
     }
+    merged["scope_signal_delta_input"] = (
+        None if supplied and merged["scope_signal_delta_input"] != bound_comparison else bound_comparison
+    )
     return merged
 
 
@@ -9173,6 +9208,7 @@ def run_preflight(
         known_context=known_context,
         issue_number=issue_number,
         repo=repo,
+        comments=comments,
     )
     # Issue #2102 fix_delta (iteration 4, Blocker 4): populate
     # known_context["main_drift"] from a live git readback (see
@@ -9286,6 +9322,11 @@ def run_preflight(
             raw_snapshot=raw_snapshot,
         )
 
+    sidecar = plan.get("scope_signal_guard_decision_v2")
+    security_stop = isinstance(sidecar, dict) and sidecar.get("route") == "security_risk_gate_required"
+    if security_stop:
+        blockers.append("security_risk_gate_required")
+
     # The planner subprocess cannot consume the raw trusted comment. Rebind
     # its existing sidecar to the fetched, hash-checked source before mutation
     # or result publication; this prevents H2 conflicts becoming partial plans.
@@ -9308,6 +9349,10 @@ def run_preflight(
     # below (noop-satisfied fallback / structured scope reframe synthesis).
     if (
         consume_contract_patch_plan
+        and not security_stop
+        and not {"missing_scope_signal_delta_input", "ambiguous_scope_signal"}.intersection(
+            plan.get("fail_closed", {}).get("reason_codes", [])
+        )
         and not _close_not_planned_disposition
         and not _investigation_evidence_transport_rejected
     ):
@@ -9477,9 +9522,7 @@ def run_preflight(
 
     decisions = plan.get("decisions", {})
     investigation_policy = decisions.get("investigation_policy", {})
-    if investigation_policy.get("required"):
-        target_paths = investigation_policy.get("target_paths", [])
-        must_read.extend(target_paths)
+    must_read.extend(investigation_policy.get("target_paths", []))
 
     # Build commands
     commands = _commands_from_plan(plan, issue_number, repo)

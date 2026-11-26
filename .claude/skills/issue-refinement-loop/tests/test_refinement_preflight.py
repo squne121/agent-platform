@@ -228,6 +228,200 @@ uv run python3 scripts/example.py
 #      BLOCKERS / ARTIFACT in stdout
 # ---------------------------------------------------------------------------
 
+def test_i127_current_contract_retains_must_read_without_dispatch(tmp_path, capsys):
+    body = VALID_ISSUE_BODY.replace(
+        "- [ ] AC1: Script exists.", "- [ ] AC1: Script exists.\n- Read `docs/dev/evidence.md`."
+    ).replace(
+        "## Allowed Paths\n\n- scripts/example.py", "## Allowed Paths\n\n- `scripts/example.py`\n- `docs/dev/example.md`"
+    )
+    fixture_path = tmp_path / "fixture.json"
+    fixture_path.write_text(json.dumps(make_minimal_fixture(body=body)), encoding="utf-8")
+    with mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path):
+        result, exit_code = wrapper.run_preflight(
+            issue_number=200, repo=TRUSTED_REPO, anchor_comment_urls=[], fixture_path=fixture_path,
+        )
+    assert exit_code in (wrapper.EXIT_PASS, wrapper.EXIT_WARN)
+    assert result["next_action"] in {"proceed", "proceed_with_notes"}
+    planner_input = json.loads(Path(result["artifacts"]["planner_input"]).read_text(encoding="utf-8"))
+    plan, planner_exit, _, _ = wrapper._invoke_planner(planner_input)
+    assert planner_exit == 0 and plan is not None
+    assert not plan["decisions"]["investigation_policy"]["required"]
+    assert not plan["decisions"]["scope_signal_guard"]["triggered"]
+    assert result["must_read"] == ["docs/dev/evidence.md"]
+    assert "MUST_READ:" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("case", ["unchanged", "security_delta", "missing_history", "wrong_body"])
+def test_i127_scope_comparison_stops_trusted_anchor_when_required(tmp_path, capsys, case):
+    if case != "missing_history":
+        seed_previous_snapshot(tmp_path, issue_number=200, repo=TRUSTED_REPO, body=VALID_ISSUE_BODY)
+    body = VALID_ISSUE_BODY
+    if case in {"security_delta", "wrong_body"}:
+        body = body.replace(
+            "## Allowed Paths\n\n- scripts/example.py", "## Allowed Paths\n\n- scripts/example.py\n- scripts/auth.py"
+        )
+    if case == "missing_history":
+        body += "\n## Notes for Reviewer\nCompare with the previous approved body before applying any update.\n"
+    url = f"https://github.com/{TRUSTED_REPO}/issues/200#issuecomment-1"
+    anchor = {
+        "id": 1,
+        "body": (
+            "Please restructure the onboarding walkthrough narrative so new contributors are not dropped mid-flow.\n\n"
+            "- Please restructure the onboarding walkthrough narrative to add clarifying context for new contributors.\n"
+        ),
+        "html_url": url,
+        "issue_url": f"https://api.github.com/repos/{TRUSTED_REPO}/issues/200",
+        "url": f"https://api.github.com/repos/{TRUSTED_REPO}/issues/comments/1",
+        "author_association": "OWNER",
+        "user": {"login": TRUSTED_REPO.split("/")[0], "type": "User"},
+        "created_at": "2025-12-31T12:00:00Z",
+        "updated_at": "2025-12-31T12:00:00Z",
+    }
+    fixture = make_minimal_fixture(body=body)
+    fixture.update(anchor_comments=[anchor], anchor_comment_urls=[url])
+    fixture_path = tmp_path / "fixture.json"
+    fixture_path.write_text(json.dumps(fixture), encoding="utf-8")
+    context = {"human_context_comment_urls": [url]}
+    if case == "wrong_body":
+        snapshot = {"repo": TRUSTED_REPO, "issue_number": 200, "issue": {"body": VALID_ISSUE_BODY}}
+        ref = wrapper._snapshot_source_ref(tmp_path / "issue-refinement-loop/200/snapshots/bound.json", snapshot)
+        context["scope_signal_delta_input"] = {
+            "before_body": VALID_ISSUE_BODY,
+            "current_body": VALID_ISSUE_BODY,
+            "after_body": VALID_ISSUE_BODY,
+            "source_refs": dict.fromkeys(("before", "current", "after"), ref),
+        }
+    apply_transaction = mock.Mock()
+    fetch_current = mock.Mock(return_value=({"body": body, "updatedAt": fixture["now"]}, anchor))
+    with (
+        mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path),
+        mock.patch.object(
+            wrapper, "consume_trusted_anchor_contract_patch_plan", wraps=wrapper.consume_trusted_anchor_contract_patch_plan
+        ) as consumer,
+    ):
+        result, exit_code = wrapper.run_preflight(
+            issue_number=200, repo=TRUSTED_REPO, anchor_comment_urls=[url], fixture_path=fixture_path,
+            known_context=context, consume_contract_patch_plan=True,
+            contract_update_callbacks={"fetch_current": fetch_current, "apply_transaction": apply_transaction},
+        )
+    apply_transaction.assert_not_called()
+    if case == "unchanged":
+        consumer.assert_called_once()
+        fetch_current.assert_called()
+        assert result["next_action"] == "issue_editor_required"
+        assert result["contract_update"]["writes"] == 0
+        return
+    consumer.assert_not_called()
+    planner_input = json.loads(Path(result["artifacts"]["planner_input"]).read_text(encoding="utf-8"))
+    plan, planner_exit, _, _ = wrapper._invoke_planner(planner_input)
+    assert planner_exit == 0 and plan is not None
+    if case == "security_delta":
+        assert not plan["decisions"]["scope_signal_guard"]["triggered"]
+        assert plan["scope_signal_guard_decision_v2"]["route"] == "security_risk_gate_required"
+        assert "security_risk_gate_required" in result["blockers"]
+    else:
+        reason = "missing_scope_signal_delta_input" if case == "missing_history" else "ambiguous_scope_signal"
+        assert reason in plan["fail_closed"]["reason_codes"]
+    assert exit_code == wrapper.EXIT_BLOCKED
+    assert result["status"] == "blocked"
+    assert result["next_action"] == "human_judgment_required"
+    assert "STATUS: blocked" in capsys.readouterr().out
+
+
+def _i127_go_comment(body, comment_id, *, trusted=True, fingerprint=True):
+    issue_url = f"https://github.com/{TRUSTED_REPO}/issues/200"
+    created_at = f"2025-12-31T00:00:{comment_id:02d}Z"
+    digest = f"sha256:{wrapper._sha256(body)}"
+    fields = {
+        "status": "go",
+        "generated_at": created_at,
+        "generated_by": "issue-contract-review",
+        "issue_url": issue_url,
+        "body_sha256": digest,
+    }
+    if fingerprint:
+        fields["expected_contract_fingerprint"] = json.dumps({
+            "issue_number": 200,
+            "contract_source_kind": "issue_comment",
+            "contract_source_id": str(comment_id),
+            "contract_body_sha256": digest,
+            "allowed_paths_normalized_sha256": "b" * 64,
+            "base_ref": "main",
+            "base_sha_at_snapshot": "c" * 40,
+        })
+    return {
+        "id": comment_id,
+        "html_url": f"{issue_url}#issuecomment-{comment_id}",
+        "created_at": created_at,
+        "user": {"login": TRUSTED_REPO.split("/")[0], "id": 63350259 if trusted else 1, "type": "User"},
+        "author_association": "OWNER",
+        "body": "```yaml\nCONTRACT_REVIEW_RESULT_V1:\n"
+        + "\n".join(
+            f"  {key}: '{value}'" if key == "expected_contract_fingerprint" else f"  {key}: {json.dumps(value)}"
+            for key, value in fields.items()
+        )
+        + "\n```",
+    }
+
+
+@pytest.mark.parametrize("baseline", ["first_observation", "approved_archive", "approved_legacy"])
+def test_i127_reobserved_body_does_not_advance_scope_baseline(tmp_path, baseline):
+    a = VALID_ISSUE_BODY
+    b = a.replace("## Allowed Paths\n\n- scripts/example.py", "## Allowed Paths\n\n- scripts/example.py\n- scripts/auth.py")
+    comments = [] if baseline == "first_observation" else [_i127_go_comment(a, 1)]
+    seed_previous_snapshot(tmp_path, issue_number=200, repo=TRUSTED_REPO, body=a)
+    if baseline == "approved_legacy":
+        archive = wrapper._snapshot_archive_dir(tmp_path, 200)
+        next(archive.glob("raw_issue_snapshot_*.json")).rename(archive.parent / "raw_issue_snapshot.json")
+        seed_previous_snapshot(tmp_path, issue_number=200, repo=TRUSTED_REPO, body=b, fetched_at="2025-12-31T12:00:00Z")
+    if comments:
+        assert wrapper._approved_scope_baseline_digest(comments, TRUSTED_REPO, 200) == wrapper._sha256(a)
+        comments.extend([_i127_go_comment(b, 2, trusted=False), _i127_go_comment(b, 3, fingerprint=False)])
+
+    def run(minute):
+        with (
+            mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path),
+            mock.patch.object(wrapper, "_select_read_transport"),
+            mock.patch.object(wrapper, "_fetch_issue", return_value=(make_minimal_fixture(body=b)["issue"], "")),
+            mock.patch.object(wrapper, "_fetch_issue_comments", return_value=(comments, "")),
+        ):
+            result, code = wrapper.run_preflight(
+                issue_number=200, repo=TRUSTED_REPO, anchor_comment_urls=[],
+                now=f"2026-01-01T00:{minute:02d}:00+00:00",
+            )
+        data = json.loads(Path(result["artifacts"]["planner_input"]).read_text(encoding="utf-8"))
+        return result, code, data["known_context"]["scope_signal_delta_input"]
+
+    for minute in (0, 1):
+        result, code, comparison = run(minute)
+        assert comparison["before_body"] == a and comparison["current_body"] == b
+        assert code == wrapper.EXIT_BLOCKED
+        assert "security_risk_gate_required" in result["blockers"]
+
+    comments.append(_i127_go_comment(b, 4))
+    result, code, comparison = run(2)
+    assert comparison["before_body"] == comparison["current_body"] == b
+    assert code in (wrapper.EXIT_PASS, wrapper.EXIT_WARN)
+    assert "security_risk_gate_required" not in result["blockers"]
+
+
+def test_i127_trusted_go_without_saved_body_requires_comparison(tmp_path):
+    fixture = make_minimal_fixture(body=VALID_ISSUE_BODY)
+    with (
+        mock.patch.object(wrapper, "_find_repo_root", return_value=tmp_path),
+        mock.patch.object(wrapper, "_select_read_transport"),
+        mock.patch.object(wrapper, "_fetch_issue", return_value=(fixture["issue"], "")),
+        mock.patch.object(wrapper, "_fetch_issue_comments", return_value=([_i127_go_comment("missing old body", 1)], "")),
+    ):
+        result, code = wrapper.run_preflight(issue_number=200, repo=TRUSTED_REPO, anchor_comment_urls=[], now=fixture["now"])
+    assert code == wrapper.EXIT_BLOCKED
+    assert result["next_action"] == "human_judgment_required"
+    data = json.loads(Path(result["artifacts"]["planner_input"]).read_text(encoding="utf-8"))
+    plan, planner_exit, _, _ = wrapper._invoke_planner(data)
+    assert planner_exit == 0 and plan is not None
+    assert "missing_scope_signal_delta_input" in plan["fail_closed"]["reason_codes"]
+
+
 class TestAC1BasicFixtureOutput:
     """AC1: run_refinement_preflight with fixture produces expected stdout fields."""
 
