@@ -31,9 +31,7 @@ THIS = "tests/stage_i4/test_i4_4d11_minimal_pr_publisher.py"
 REPO = "squne121/agent-platform"
 ISSUE = 108
 BRANCH = "i108/feat"
-BODY = (
-    "## 概要\n\nRefs #60\n\n現行の日本語見出し構成を保つ本文です。\n\n## 検証\n\n- テスト実行済み\n"
-)
+BODY = "## 概要\n\n現行の日本語見出し構成を保つ本文です。\n\n## 検証\n\n- テスト実行済み\n"
 A3_ISSUE = "## Runtime Verification Applicability\n\ndecision: not_applicable\nreason: x\n"
 A2_ISSUE = (
     "## Runtime Verification Applicability\n\ndecision: deferred\ndeferred_destination: later\n"
@@ -362,15 +360,14 @@ def _evaluate(body: str, issue_body: str, state: str = "OPEN", pr_number: int | 
     return json.loads(proc.stdout)
 
 
-def test_ac2_closing_required_appends_closes_and_keeps_the_body_and_parent_refs(rig: Rig) -> None:
+def test_ac2_reference_free_body_appends_only_refs(rig: Rig) -> None:
     proc, out = rig.run()
     assert proc.returncode == 0, (proc.stdout, proc.stderr)
     body = _created_body(rig)
-    assert body.startswith(BODY) and body.endswith(f"\nCloses #{ISSUE}\n")
-    assert "Refs #60" in body and "Closes #60" not in body  # the parent is never closed
-    assert out["reference"]["decision"] == "closing_required"
+    assert body == BODY + f"\nRefs #{ISSUE}\n"
+    assert out["reference"]["decision"] == "nonclosing_required"
     assert (
-        out["reference"]["effective_kind"] == "closing"
+        out["reference"]["effective_kind"] == "non-closing"
         and out["reference"]["body_verdict"] == "valid"
     )
     # the created body is itself valid under an independent evaluator run
@@ -379,18 +376,46 @@ def test_ac2_closing_required_appends_closes_and_keeps_the_body_and_parent_refs(
 
 
 def test_ac2_a_valid_caller_reference_is_preserved_byte_for_byte(rig: Rig) -> None:
-    own = BODY + f"\nCloses #{ISSUE}\n"
+    own = BODY + f"\nCloses #{ISSUE}\nRefs #60\n"
     rig.body_path.write_text(own)
     proc, _out = rig.run()
     assert proc.returncode == 0 and _created_body(rig) == own
 
 
-def test_ac2_refs_only_body_in_a_closing_lane_is_repaired_to_closes(rig: Rig) -> None:
-    rig.body_path.write_text(BODY + f"\nRefs #{ISSUE}\n")
-    proc, out = rig.run()
-    assert proc.returncode == 0, proc.stdout
-    assert out["reference"]["effective_kind"] == "closing"
-    assert _created_body(rig).endswith(f"\nCloses #{ISSUE}\n")
+def test_ac2_existing_valid_refs_need_no_a1_or_runtime_applicability(rig: Rig) -> None:
+    rig.set_state(issue={"number": ISSUE, "state": "OPEN", "body": NO_RVA_ISSUE})
+    for reference in (
+        f"- parent\n  - child\n\n     Refs #{ISSUE}",
+        f"Context before this reference\n    Refs #{ISSUE}",
+        f"- parent\n  - Context before this reference\n        Refs #{ISSUE}",
+        f"- parent\n  - `\n  - Refs #{ISSUE}",
+        f"Refs\n  #{ISSUE}",
+        f"> Quoted example\n\nRefs #{ISSUE}",
+        f"> Quoted example\n## Outside quote\nRefs #{ISSUE}",
+        f'[docs]: /path "example"\nRefs #{ISSUE}',
+        f'[docs]: /path "first\nsecond"\nRefs #{ISSUE}',
+        f'[docs\nname]: /path "first\nsecond"\nRefs #{ISSUE}',
+        f"[docs\n\nRefs #{ISSUE}]: /path",
+        f"- [docs\n- Refs #{ISSUE}]: /path",
+        f"Context\n[Refs\n#{ISSUE}]: /path",
+        f"\\[Refs\n#{ISSUE}]: /path",
+        f'> [docs]: /path "first\n> second"\nRefs #{ISSUE}',
+        f'[docs]: /path "unfinished\n\nRefs #{ISSUE}',
+        f"[docs]:\n\nRefs #{ISSUE}",
+        f'Context\n[docs]: /path "first\nRefs #{ISSUE}"',
+    ):
+        rig.set_state(prs=[])
+        own = (
+            BODY
+            + f"\n- ```text\n  Refs #{ISSUE}\n  ```\n\n<pre>Refs #{ISSUE}</pre>"
+            + f"\n\n{reference}\n\nRefs #60\n"
+        )
+        rig.body_path.write_text(own)
+        proc, out = rig.run()
+        assert proc.returncode == 0, proc.stdout
+        assert out["reference"]["effective_kind"] == "non-closing"
+        assert _created_body(rig) == own
+    assert not any(call[0] == "api" for call in rig.calls())
 
 
 @pytest.mark.parametrize(
@@ -421,7 +446,7 @@ def test_ac2_an_intended_refs_is_never_auto_promoted_to_closes(rig: Rig) -> None
 @pytest.mark.parametrize(
     ("issue", "extra", "reason"),
     [
-        (NO_RVA_ISSUE, "", "runtime_applicability_unresolved"),  # fail_closed
+        (NO_RVA_ISSUE, f"\nCloses #{ISSUE}\n", "runtime_applicability_unresolved"),  # fail_closed
         (A3_ISSUE, "\nCloses #999\n", "closing_for_other"),  # block
         (A2_ISSUE, f"\nCloses #{ISSUE}\n", "closing_forbidden"),  # block
     ],
@@ -440,11 +465,68 @@ def test_ac2_fail_closed_and_block_never_reach_create(
 
 def test_ac2_evaluator_exit_zero_alone_is_not_permission(rig: Rig) -> None:
     # the evaluator exits 0 for fail_closed too; the caller must read the JSON, not the exit code
-    result = _evaluate(BODY, NO_RVA_ISSUE)
+    body = BODY + f"\nCloses #{ISSUE}\n"
+    rig.body_path.write_text(body)
+    result = _evaluate(body, NO_RVA_ISSUE)
     assert result["decision"] == "fail_closed"
     rig.set_state(issue={"number": ISSUE, "state": "OPEN", "body": NO_RVA_ISSUE})
     proc, _out = rig.run()
     assert proc.returncode == 1 and rig.creates() == []
+    rig.set_state(issue={"number": ISSUE, "state": "OPEN", "body": A3_ISSUE})
+    non_authoritative = (
+        f"> Quoted example\nRefs #{ISSUE}",
+        f"> Quoted example\nCloses #{ISSUE}",
+        f"Refs\n\n#{ISSUE}",
+        f'[docs]: /path "Refs #{ISSUE}"',
+        f'[docs]: /path\n  "Refs #{ISSUE}"',
+        f'[docs]: /path "Example\nRefs #{ISSUE}"',
+        f'[docs]: /path "Example\nCloses #{ISSUE}"',
+        f'[docs\nname]: /path "Example\nRefs #{ISSUE}"',
+        f'[docs\nname]: /path "Example\nCloses #{ISSUE}"',
+        f"[Refs\n#{ISSUE}]: /path",
+        f'[docs\nname]: /path "Example\nCloses #999"\nRefs #{ISSUE}',
+        f'- [docs]: /path "Example\nRefs #{ISSUE}"',
+        f"> [docs]: /path 'Example\nCloses #{ISSUE}'",
+        f"[docs]:\n  <path with spaces>\n  (Example\\)\nRefs #{ISSUE})",
+        f'[docs]: /path "Example\nCloses #999"\nRefs #{ISSUE}',
+    )
+    for candidate in non_authoritative:
+        rig.body_path.write_text(BODY + f"\n{candidate}\n")
+        proc, out = rig.run("--dry-run", publish=False)
+        stopped(proc, out, "E_REFERENCE_POLICY_BLOCKED")
+        assert rig.writes() == []
+    for candidate in (
+        *non_authoritative,
+        "Refs #999",
+        f"Refs other/repo#{ISSUE}",
+        "Refs: 999",
+        f"Outdented paragraph\n\n    Refs #{ISSUE}",
+        f"- parent\n  - child\n\n        Refs #{ISSUE}",
+        f"- `\n- `Refs #{ISSUE}`",
+        f"- parent\n  - `\n  - `Refs #{ISSUE}`",
+        f"- `\n-\n  `Refs #{ISSUE}`",
+        f"`heading\n===\n`Refs #{ISSUE}`",
+        f"- Context before this reference\n\n      Refs #{ISSUE}",
+        f"`example\n    Refs #{ISSUE}\ntext`",
+        f"- `example\n      Refs #{ISSUE}\n  text`",
+        rf"\` text `Refs #{ISSUE}`",
+        rf"\\\` text `Refs #{ISSUE}`",
+        rf"`sample \` `Refs #{ISSUE}`",
+        f"`example\nRefs #{ISSUE}\ntext`",
+        f"> Refs #{ISSUE}",
+        f"> Closes #{ISSUE}",
+        f'<img alt="Refs #{ISSUE}">',
+        f"<!-- Refs #{ISSUE} -->",
+        f"- ```text\n  Refs #{ISSUE}\n  ```",
+        f"- outer\n  10. ~~~text\n      Refs #{ISSUE}\n      ~~~",
+        f"<pre>Refs #{ISSUE}</pre>",
+        f"<PRE>\n<code>Refs #{ISSUE}</code>\n</pre>",
+        f"Refs #{ISSUE}\nRefs #999oops",
+    ):
+        rig.body_path.write_text(BODY + f"\n{candidate}\n")
+        proc, out = rig.run()
+        stopped(proc, out, "E_REFERENCE_POLICY_BLOCKED")
+        assert rig.writes() == []
 
 
 def _a1_state(rig: Rig, association: str) -> str:
@@ -499,7 +581,7 @@ def test_ac2_dry_run_reads_but_writes_nothing_and_needs_no_publish_flag(rig: Rig
     assert rig.creates() == [] and rig.writes() == []
     assert (
         out["final_body_sha256"]
-        == hashlib.sha256((BODY + f"\nCloses #{ISSUE}\n").encode()).hexdigest()
+        == hashlib.sha256((BODY + f"\nRefs #{ISSUE}\n").encode()).hexdigest()
     )
 
 
@@ -532,7 +614,7 @@ def test_ac3_an_existing_pr_is_read_back_independently(rig: Rig) -> None:
 def test_ac3_a_reused_pr_with_a_different_but_valid_body_is_reported_not_overwritten(
     rig: Rig,
 ) -> None:
-    rig.set_state(prs=[mk_pr(rig, body="## 概要\n\n別の説明\n\nCloses #108\n")])
+    rig.set_state(prs=[mk_pr(rig, body="## 概要\n\n別の説明\n\nRefs #108\n")])
     proc, out = rig.run()
     assert proc.returncode == 0 and out["body_matches_requested"] is False
     assert rig.writes() == []
@@ -888,13 +970,16 @@ def test_ac5_the_unmigrated_update_pr_and_template_stay_absent() -> None:
     assert files == ["SKILL.md", "scripts/open_pr.py", "scripts/validate_pr_body.py"], files
 
 
-def test_ac5_the_d7_evaluator_is_reused_unchanged() -> None:
+def test_ac5_the_d7_evaluator_is_reused_with_current_and_historical_pins() -> None:
     manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
     pin = manifest["reused_unchanged"][".claude/skills/open-pr/scripts/validate_pr_body.py"]
     blob = subprocess.run(
         ["git", "hash-object", str(EVALUATOR)], capture_output=True, text=True, check=True
     ).stdout.strip()
-    assert blob == pin == "9ab611caea3b006132d53782d08670ee978bf923"
+    assert pin == "9ab611caea3b006132d53782d08670ee978bf923"
+    for rel, current in manifest["intentional_diff"]["current_sha256"].items():
+        assert hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == current
+    assert blob == manifest["intentional_diff"]["current_evaluator_blob_sha1"]
     assert "validate_pr_body.py" in SCRIPT.read_text(encoding="utf-8")
     assert "--evaluate-reference-policy" in SCRIPT.read_text(encoding="utf-8")
 

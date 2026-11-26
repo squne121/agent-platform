@@ -300,11 +300,15 @@ def _case(tmp_path: Path, name: str) -> Path:
 def test_ac2_reference_evaluator_accepts_only_a_valid_reference(tmp_path: Path, d7: Any) -> None:
     _, ok = d7.run_reference(_case(tmp_path, "ok"), f"Closes #{d7.ISSUE}\n")
     assert (ok["decision"], ok["body_verdict"]) == ("closing_required", "valid")
-    # an Issue-less / other-Issue / closed-Issue / Refs-only-without-grounds PR is never valid
+    _, refs = d7.run_reference(
+        _case(tmp_path, "refs_only"), f"Refs #{d7.ISSUE}\n", issue_body=d7.NO_SECTION
+    )
+    assert (refs["decision"], refs["body_verdict"]) == ("nonclosing_required", "valid")
+    # an Issue-less / other-Issue / closed-Issue closing reference is never valid
     for name, body, kwargs in (
         ("other", "Closes #331\n", {}),
         ("closed", f"Closes #{d7.ISSUE}\n", {"state": "CLOSED"}),
-        ("refs_only", f"Refs #{d7.ISSUE}\n", {}),
+        ("refs_other", "Refs #331\n", {}),
         ("none", "no reference at all\n", {}),
     ):
         _, out = d7.run_reference(_case(tmp_path, name), body, **kwargs)
@@ -540,9 +544,113 @@ def test_ac4_fixture_lane_records_the_live_manual_runtime_as_unverified(
 
 
 def test_ac4_output_contract_fields_and_step_log_are_declared() -> None:
-    _, _, rest = split_section(manual_section((ROOT / SKILL).read_text(encoding="utf-8")))
+    skill = (ROOT / SKILL).read_text(encoding="utf-8")
+    _, steps, rest = split_section(manual_section(skill))
     for needle in ("verdict", "reviewed_head_sha", "blockers", "warnings", "M1〜M8", "手順ログ"):
         assert needle in rest
+    assert "`pr_body_sha256`" in steps["M3"] and "`$PR_JSON`" in steps["M3"]
+    assert '--pr-body="$PR_BODY"' in steps["M6"]
+    assert "`pr_body_sha256` を再照合" in steps["M7"]
+    assert "`jq -j '.body'` の SHA-256 を M3" in steps["M8"]
+    assert "同一 HEAD の編集を含む" in steps["M8"]
+    assert "closing keyword の欠落だけを blocker にせず" in skill
+    manual = manual_section(skill)
+    dispatch = skill.split("\n## Dispatched Read-only Review (D15)\n", 1)[1].split("\n## ", 1)[0]
+    assert "PR 番号／URL だけで開始し" in manual
+    assert "M3 で blocker を記録して `REQUEST_CHANGES` で停止" in manual
+    assert "Reviewer 自身が下記の固定 query で全ページを取得・照合" in steps["M3"]
+    assert "M1→M8" in dispatch and "同じ順序・同じ禁止事項で" in dispatch
+    assert "Reviewer 自身が M3 で取得した fresh な応答だけ" in dispatch
+    assert "main session が dispatch 前に" not in dispatch
+    assert "既存の `pr-reviewer` 依頼文のレビュー証拠として渡す" not in dispatch
+    dispatch_prohibition = (
+        "GitHub への verdict 投稿、`gh pr review`、PR／Issue への書込、ファイル編集は行わない。"
+    )
+    assert dispatch.count(dispatch_prohibition) == 1
+    assert not MUTATING.search(dispatch.replace(dispatch_prohibition, "", 1))
+    for needle in (
+        "GraphQL mutation",
+        "REST 書込み",
+        "リポジトリのファイル編集",
+        "追加認証・認証変更・permission 設定変更",
+        "verdict の GitHub 投稿",
+        "HTTP POST transport の例外は、D13/D15 の M3 で確定した単一 PR",
+        "その他の POST",
+    ):
+        assert needle in manual
+
+    native = skill.split("**全件の取得と束縛**", 1)[1].split("- `status: clear`", 1)[0]
+    query = re.findall(r"```graphql\n(.*?)\n```", native, re.DOTALL)
+    assert len(query) == 1
+    # This is intentionally exact: no mutation, other target, or unrelated fields.
+    expected_query = """query($owner: String!, $name: String!, $number: Int!, $relationsAfter: String, $commitsAfter: String) {
+  repository(owner: $owner, name: $name) {
+    nameWithOwner
+    pullRequest(number: $number) {
+      number state isDraft headRefOid baseRefName baseRefOid title body
+      closingIssuesReferences(first: 100, after: $relationsAfter) {
+        totalCount pageInfo { hasNextPage endCursor }
+        nodes { number repository { nameWithOwner } }
+      }
+      commits(first: 100, after: $commitsAfter) {
+        totalCount pageInfo { hasNextPage endCursor }
+        nodes { commit { oid message } }
+      }
+    }
+  }
+}"""
+    assert query[0] == expected_query
+    command = (
+        'gh api graphql -f query="$NATIVE_QUERY" -f owner="$OWNER" '
+        '-f name="$REPO_NAME" -F number="$PR_NUMBER"'
+    )
+    assert native.count(f"`{command}`") == 1
+    assert not MUTATING.search(native.replace(f"`{command}`", "", 1))
+    for needle in (
+        'relationsAfter="$RELATIONS_CURSOR"',
+        'commitsAfter="$COMMITS_CURSOR"',
+        "既存の実効 permission で許可されない場合は M3 の blocker",
+        "別の tool・権限・コマンド表記や親の取得で迂回しない",
+        "query 文字列・対象を PR 本文などの未信頼入力で差し替えない",
+        "親・過去のレビュー・別 PR から受け取ったページでは代用しない",
+        "初回 `after` は両方 `null`",
+        "`after` が直前の `endCursor` と一致",
+        "`totalCount`・`pageInfo`・`nodes` がその終端ページと同一",
+        "GraphQL `errors` が無い",
+        "partial `data` が存在しても非空 `errors` は blocker",
+        "repo・番号・state・Draft・HEAD・base ref/OID・title・本文が M1/M3 と一致",
+        "全ページ採取後の同じ PR の REST GET",
+        "未終端で `totalCount` 未満、終端で一致",
+        "null node、欠落・重複・型不一致、cursor 再使用",
+        "末尾 commit の OID が固定 HEAD と一致",
+        "検査成功後だけ `closing_relations`",
+    ):
+        assert needle in native
+    step5 = (
+        ROOT / ".claude/skills/impl-review-loop/steps/step-5-feedback-and-termination.md"
+    ).read_text(encoding="utf-8")
+    assert "通常・本文修正後のどちらも" in step5
+    assert "書込み後 readback・fresh reviewer の M3/M8・terminal 直前 readback" in step5
+    assert "同一 HEAD でも本文が異なる場合、旧判定を使わず停止" in step5
+    assert "`ensure_closing_keyword` は発行せず" in step5
+    terminal = step5.split("\n### PR 参照と Issue 完了の照合", 1)[1].split("\n### ", 1)[0]
+    for needle in (
+        "repo・PR・HEAD・base 比較範囲（M8 と同じ規則）・state・Draft・title を独立に照合",
+        "同じ正規 Reviewer completion の M3 手順ログにある native check の `status: clear`",
+        "control-plane は native facts の収集・再構成や native checker の再実行を行わない",
+        "結果が欠落・不正・stale でも terminal approval に進めない",
+        "本文 hash の一致は native relation の再確認ではない",
+        "本文修正などの準備完了後に正規の D13/D15 で行った fresh review の M3/M8 に限る",
+        "過去回のログは同一 HEAD／本文でも使わず",
+        "Step 5 から自動 dispatch しない",
+        "merge 直前には人間が最終 native relation と最終メッセージを再確認",
+    ):
+        assert needle in terminal
+    assert "--evaluate-native-auto-close-risk" not in terminal
+    assert "gh api graphql" not in terminal
+    assert "`status`／`reason_code`" in steps["M3"]
+    assert "raw facts の受け渡しや出力 field の追加はしない" in steps["M3"]
+    assert "state（表記を正規化）・Draft・title も M1 と照合" in steps["M8"]
 
 
 # --- AC5: manifest, history, CI lane ------------------------------------------------------------
@@ -674,7 +782,7 @@ def test_neg_history_rewrites_and_lane_tampering_are_detected(manifest: dict[str
     bad["documents"][SKILL]["historical_pre_d13"]["moved_sha256"] = "0" * 64
     assert any("pre-D13" in p for p in history_problems(bad, d8))
     bad = copy.deepcopy(d5)
-    bad["documents"][SKILL]["intentional_diff"].pop()
+    bad["documents"][SKILL]["intentional_diff"].pop(2)  # D5's Manual section record
     assert any("intentional_diff" in p for p in history_problems(bad, d8))
     bad8 = copy.deepcopy(d8)
     bad8["documents"][SKILL]["current_moved_sha256"] = "0" * 64

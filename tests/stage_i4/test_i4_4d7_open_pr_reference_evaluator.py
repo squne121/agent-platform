@@ -122,7 +122,8 @@ REFERENCE_REASON_CODES = {
     "a1_decision_invalid",
     "a1_decision_ambiguous",
     "a2_contract_deferred",
-    "a3_close_ready",
+    "default_refs",
+    "explicit_closing_reference",
     "runtime_applicability_unresolved",
     "facts_invalid",
 }
@@ -276,14 +277,17 @@ def run_native(
     tmp_path: Path,
     native_facts: Any,
     *,
-    pr_body: str = "Refs #330\n",
+    pr_body: str | None = None,
     issue_body: str = A2_BODY,
     state: str = "OPEN",
     comment: Any = None,
     omit_native: bool = False,
     script: Path = SCRIPT,
 ) -> tuple[subprocess.CompletedProcess[str], dict[str, Any]]:
-    """Real `--evaluate-native-auto-close-risk`; every status is exit 0 + JSON."""
+    """Real native CLI; derive both body inputs from one snapshot unless explicitly different."""
+    if pr_body is None:
+        candidate = native_facts.get("pr_body") if isinstance(native_facts, dict) else None
+        pr_body = candidate if isinstance(candidate, str) else "Refs #330\n"
     native_file = tmp_path / "native.json"
     native_file.write_text(
         native_facts if isinstance(native_facts, str) else json.dumps(native_facts),
@@ -322,16 +326,17 @@ def strict_native_consumer(result: dict[str, Any]) -> bool:
 
 # --- the reference-policy matrix (mirrors the source matrix 1:1) ---------------------------
 
-D_A3 = ("closing_required", "A3", "a3_close_ready")
+D_A3 = ("closing_required", "A3", "explicit_closing_reference")
+D_DEFAULT = ("nonclosing_required", "A3", "default_refs")
 D_A2 = ("nonclosing_required", "A2", "a2_contract_deferred")
 D_A1 = ("nonclosing_required", "A1", "a1_explicit_decision")
 D_CLOSED = ("nonclosing_required", "CLOSED", "issue_closed")
 CLOSING_OK = ("closing", "valid", "ok")
 REFS_OK = ("non-closing", "valid", "ok")
-REPAIR = ("non-closing", "repair", "closing_missing")
 FORBIDDEN = ("closing", "block", "closing_forbidden")
 NONE_MISSING = ("none", "block", "reference_missing")
-NOTES_MISSING = ("notes-only", "block", "reference_missing")
+INVALID_REF = ("none", "block", "reference_candidate_invalid")
+NOTES_MISSING = ("notes-only", "block", "reference_candidate_invalid")
 NOTES_VALID = ("notes-only", "valid", "ok")
 OTHER_NONE = ("none", "block", "closing_for_other")
 OTHER_REFS = ("non-closing", "block", "closing_for_other")
@@ -355,10 +360,10 @@ def _open(issue_body: str, **extra: Any) -> dict[str, Any]:
 REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
     # --- authority rows A3 / A2 with the body mapping ---------------------------------------
     ("a3_closes", OPEN_A3, "Closes #330", D_A3, CLOSING_OK),
-    ("a3_refs_only_repair", OPEN_A3, "Refs #330", D_A3, REPAIR),
-    ("a3_none", OPEN_A3, "no reference", D_A3, NONE_MISSING),
-    ("a3_notes_only", OPEN_A3, NOTES_330, D_A3, NOTES_MISSING),
-    ("a3_notes_other_number", OPEN_A3, NOTES_OTHER, D_A3, NONE_MISSING),
+    ("a3_refs_only_valid", OPEN_A3, "Refs #330", D_DEFAULT, REFS_OK),
+    ("a3_none", OPEN_A3, "no reference", D_DEFAULT, NONE_MISSING),
+    ("a3_notes_only", OPEN_A3, NOTES_330, D_DEFAULT, NOTES_MISSING),
+    ("a3_notes_other_number", OPEN_A3, NOTES_OTHER, D_DEFAULT, INVALID_REF),
     ("a3_closes_and_refs_coexist", OPEN_A3, "Refs #330\nCloses #330", D_A3, CLOSING_OK),
     ("a3_duplicate_closes", OPEN_A3, "Closes #330\nCloses #330", D_A3, CLOSING_OK),
     (
@@ -397,7 +402,7 @@ REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
     ("a3_issue_url_form", OPEN_A3, f"Resolves {ISSUE_BASE}/330", D_A3, CLOSING_OK),
     ("a2_fixes_forbidden", OPEN_A2, "Fixes #330\nRefs #330", D_A2, FORBIDDEN),
     # --- closing for another issue / repository / prefix collision --------------------------
-    ("other_number", OPEN_A3, "Closes #331", D_A3, OTHER_NONE),
+    ("other_number", OPEN_A3, "Closes #331", D_DEFAULT, OTHER_NONE),
     (
         "other_number_with_target",
         OPEN_A3,
@@ -405,10 +410,10 @@ REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
         D_A3,
         ("closing", "block", "closing_for_other"),
     ),
-    ("other_repository", OPEN_A3, "Closes other/repo#330", D_A3, OTHER_NONE),
-    ("prefix_collision_longer", OPEN_A3, "Closes #3301", D_A3, OTHER_NONE),
-    ("prefix_collision_shorter", OPEN_A3, "Closes #33", D_A3, OTHER_NONE),
-    ("refs_prefix_collision_is_not_a_reference", OPEN_A2, "Refs #3301", D_A2, NONE_MISSING),
+    ("other_repository", OPEN_A3, "Closes other/repo#330", D_DEFAULT, OTHER_NONE),
+    ("prefix_collision_longer", OPEN_A3, "Closes #3301", D_DEFAULT, OTHER_NONE),
+    ("prefix_collision_shorter", OPEN_A3, "Closes #33", D_DEFAULT, OTHER_NONE),
+    ("refs_prefix_collision_is_not_a_reference", OPEN_A2, "Refs #3301", D_A2, INVALID_REF),
     ("other_blocks_valid_refs", OPEN_A2, "Refs #330\nCloses #331", D_A2, OTHER_REFS),
     # --- ordinary prose that merely looks like a keyword is ignored, never fail_closed ------
     (
@@ -422,7 +427,7 @@ REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
         "prose_only_is_none",
         OPEN_A3,
         "fixes the typo\nresolved by the earlier change\ncloses the loop",
-        D_A3,
+        D_DEFAULT,
         NONE_MISSING,
     ),
     ("prose_with_refs_under_a2", OPEN_A2, "closes the loop\nRefs #330", D_A2, REFS_OK),
@@ -470,9 +475,9 @@ REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
         D_A3,
         CLOSING_OK,
     ),
-    ("refs_in_fence_not_counted", OPEN_A2, f"{FENCE3}\nRefs #330\n{FENCE3}\n", D_A2, NONE_MISSING),
-    ("refs_in_quote_not_counted", OPEN_A2, "> Refs #330\n", D_A2, NONE_MISSING),
-    ("refs_in_inline_code_not_counted", OPEN_A2, "see `Refs #330`", D_A2, NONE_MISSING),
+    ("refs_in_fence_not_counted", OPEN_A2, f"{FENCE3}\nRefs #330\n{FENCE3}\n", D_A2, INVALID_REF),
+    ("refs_in_quote_not_counted", OPEN_A2, "> Refs #330\n", D_A2, INVALID_REF),
+    ("refs_in_inline_code_not_counted", OPEN_A2, "see `Refs #330`", D_A2, INVALID_REF),
     # --- CLOSED Issue: dedicated mapping, no authority evaluation ---------------------------
     ("closed_refs", CLOSED, "Refs #330", D_CLOSED, REFS_OK),
     ("closed_closes_forbidden", CLOSED, "Closes #330", D_CLOSED, FORBIDDEN),
@@ -485,7 +490,7 @@ REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
     ),
     ("closed_notes_only_valid", CLOSED, NOTES_330, D_CLOSED, NOTES_VALID),
     ("closed_none", CLOSED, "nothing", D_CLOSED, NONE_MISSING),
-    ("closed_notes_other_number", CLOSED, NOTES_OTHER, D_CLOSED, NONE_MISSING),
+    ("closed_notes_other_number", CLOSED, NOTES_OTHER, D_CLOSED, INVALID_REF),
     ("closed_closing_for_other", CLOSED, "Refs #330\nCloses #331", D_CLOSED, OTHER_REFS),
     (
         "closed_ignores_invalid_a1_line",
@@ -513,54 +518,54 @@ REFERENCE_POLICY_MATRIX: list[tuple[str, dict[str, Any], str, tuple, tuple]] = [
         REFS_OK,
     ),
     ("a1_ignored_when_indented", _a1(), f"Closes #330\n  {A1_LINE}", D_A3, CLOSING_OK),
-    # --- A2 / A3 unresolved -> fail_closed --------------------------------------------------
-    ("applicability_missing", _open(NO_SECTION), "Refs #330", UNRESOLVED, NOT_EVALUATED),
+    # --- explicit closing with unresolved applicability -> fail_closed --------------------------------------------------
+    ("applicability_missing", _open(NO_SECTION), "Closes #330", UNRESOLVED, NOT_EVALUATED),
     (
         "applicability_duplicated",
         _open(A3_BODY + "\n" + A3_BODY),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
     (
         "applicability_only_in_fence",
         _open(f"{FENCE3}\n{A2_BODY}{FENCE3}\n"),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
     (
         "applicability_decision_not_in_enum",
         _open(RVA + "- decision: maybe\n"),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
     (
         "applicability_decision_missing",
         _open(RVA + "- reason: x\n"),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
     (
         "applicability_decision_repeated",
         _open(RVA + "- decision: immediate\n- decision: deferred\n"),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
     (
         "applicability_deferred_without_destination",
         _open(RVA + "- decision: deferred\n- deferred_verification_condition: x\n"),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
     (
         "applicability_deferred_without_condition",
         _open(A2_BODY.replace("- deferred_verification_condition: merge 後に取得する\n", "")),
-        "Refs #330",
+        "Closes #330",
         UNRESOLVED,
         NOT_EVALUATED,
     ),
@@ -688,7 +693,7 @@ def _matrix_params() -> list[Any]:
 
 
 def document_problems(m: dict[str, Any], root: Path) -> list[str]:
-    """The migrated script equals the pinned source blob; the recorded diff is empty."""
+    """Pin current bytes and reconstruct the historical source with recorded edits."""
     problems: list[str] = []
     entry = m["documents"].get(SCRIPT_REL)
     path = root / SCRIPT_REL
@@ -697,18 +702,22 @@ def document_problems(m: dict[str, Any], root: Path) -> list[str]:
     data = path.read_bytes()
     if entry["source_blob_sha1"] != SOURCE_BLOB:
         problems.append("manifest source blob differs from the Issue-fixed pin")
-    if git_blob_sha1(data) != SOURCE_BLOB:
-        problems.append("moved script is not the pinned source blob (git blob sha1)")
     if hashlib.sha256(data).hexdigest() != entry["moved_sha256"]:
         problems.append("moved sha256 differs from the manifest")
-    if entry["moved_sha256"] != entry["source_sha256"] or entry.get("verbatim") is not True:
-        problems.append("script is recorded as modified, but a minimal verbatim move was required")
-    if entry["intentional_diff"] != []:
-        problems.append("an intentional diff is recorded for a verbatim move")
-    if (
-        len(data.decode("utf-8").splitlines()) != entry["moved_lines"]
-        or entry["moved_lines"] != (entry["source_lines"])
-    ):
+    source = data.decode("utf-8")
+    if entry["verbatim"] or not entry["intentional_diff"]:
+        problems.append("intentional diff expected for the current evaluator")
+    for edit in entry["intentional_diff"]:
+        if not edit.get("moved") or source.count(edit["moved"]) != 1:
+            problems.append("intentional diff is not uniquely reversible")
+            break
+        source = source.replace(edit["moved"], edit["source"], 1)
+    original = source.encode("utf-8")
+    if git_blob_sha1(original) != SOURCE_BLOB:
+        problems.append("pinned source blob cannot be reconstructed")
+    if hashlib.sha256(original).hexdigest() != entry["source_sha256"]:
+        problems.append("source sha256 differs from the manifest")
+    if data.count(b"\n") != entry["moved_lines"] or original.count(b"\n") != entry["source_lines"]:
         problems.append("line counts differ from the manifest")
     return problems
 
@@ -795,7 +804,10 @@ def test_ac1_cli_flags_match_what_the_consumers_document() -> None:
         assert flag in judge, flag
     step5 = (ROOT / CONSUMER_DOCS[1]).read_text(encoding="utf-8")
     assert "--evaluate-reference-policy" in step5
-    assert "--evaluate-native-auto-close-risk" in step5
+    assert "--evaluate-native-auto-close-risk" not in step5
+    assert (
+        "同じ正規 Reviewer completion の M3 手順ログにある native check の `status: clear`" in step5
+    )
     # the documented entry-point path is the migrated one
     for text in (judge, step5):
         assert SCRIPT_REL in text
@@ -918,8 +930,8 @@ def test_ac2_wire_keys_body_bytes_hash_and_binding(tmp_path: Path) -> None:
 
 def test_ac2_a_stop_is_still_exit_zero_so_the_exit_code_cannot_authorise(tmp_path: Path) -> None:
     cases = [
-        run_reference(tmp_path, "Refs #330", issue_body="no section"),  # fail_closed
-        run_reference(tmp_path, "Refs #330", issue_body=A3_BODY),  # closing_required + repair
+        run_reference(tmp_path, "Closes #330", issue_body="no section"),  # fail_closed
+        run_reference(tmp_path, "> Closes #330", issue_body=A3_BODY),  # closing_required + repair
         run_reference(tmp_path, "Closes #330", issue_body=A2_BODY),  # forbidden -> block
         run_reference(tmp_path, "Closes #331", issue_body=A3_BODY),  # closing for other -> block
     ]
@@ -929,7 +941,7 @@ def test_ac2_a_stop_is_still_exit_zero_so_the_exit_code_cannot_authorise(tmp_pat
         ("fail_closed", "block", "not_evaluated"),
         ("closing_required", "repair", "closing_missing"),
         ("nonclosing_required", "block", "closing_forbidden"),
-        ("closing_required", "block", "closing_for_other"),
+        ("nonclosing_required", "block", "closing_for_other"),
     ]
     # the wrong consumer accepts all of them; the structured consumer accepts none
     assert all(naive_exit_code_consumer(proc) for proc, _ in cases)
@@ -937,6 +949,186 @@ def test_ac2_a_stop_is_still_exit_zero_so_the_exit_code_cannot_authorise(tmp_pat
     # the right pairs are accepted by the structured consumer
     assert strict_reference_consumer(run_reference(tmp_path, "Closes #330")[1])
     assert strict_reference_consumer(run_reference(tmp_path, "Refs #330", issue_body=A2_BODY)[1])
+    for issue_body in ("", NO_SECTION, A3_BODY, DEFERRED_OTHER_BODY, A3_BODY + A3_BODY):
+        _, default = run_reference(tmp_path, "Refs #330", issue_body=issue_body)
+        assert default["reason_code"] == "default_refs"
+        assert strict_reference_consumer(default)
+    for bad_body in (
+        "Refs #331",
+        "Refs other/repo#330",
+        "<!-- Refs #330 -->",
+        '<img alt="Refs #330">',
+        '<span title="x > Refs #330">example</span>',
+        "<span\n title='Refs #330'>example</span>",
+        '<span title="Closes #330">example</span>',
+        '<span title="Closes #331">Refs #330</span>',
+        "````md\n```\nRefs #330\n````",
+        "~~~\n~~~not-a-close\nRefs #330\n~~~",
+        "<!--\n```\n-->\n`Refs #330`",
+        "Refs\n<!-- hidden -->\n#330",
+        "Refs #330\nRefs #331oops",
+        "Refs #330\nRefs other/repo#330",
+        "Refs #330oops",
+        "Refs: 999",
+        "Closes #330oops",
+        "    Refs #330",
+        "\tRefs #330",
+        "    Closes #330",
+        "Refs #330\n    Closes #331",
+        "`example\nRefs #330\ntext`",
+        "``example `\nRefs #330\n` text``",
+        "`example\nCloses #330\ntext`",
+        r"\` text `Closes #330`",
+        r"\` text `Closes #331`" + "\nRefs #330",
+        "- parent\n  - child\n\n        Closes #330\n",
+        "- `\n- `Closes #330`",
+        "- `\n- `Closes #331`\n\nRefs #330",
+        "> Quoted example\nCloses #330",
+        "> Quoted example\nCloses #331\n\nRefs #330",
+        "Closes\n\n#330",
+        '[docs]: /path "Closes #330"',
+        '[docs]: /path "Closes #331"\nRefs #330',
+        "Refs #330\nRefs\n\nother/repo#331",
+    ):
+        _, invalid = run_reference(tmp_path, bad_body)
+        assert not strict_reference_consumer(invalid), bad_body
+    for body, expected in (
+        ('[docs]: /path "Example\nCloses #330"', ("repair", "closing_missing")),
+        ("[docs]:\n /path\n (Example\nCloses #330)", ("repair", "closing_missing")),
+        ('[docs]: /path "Example\nCloses #331"\nRefs #330', ("block", "closing_for_other")),
+        ('[docs\nname]: /path "Example\nCloses #330"', ("repair", "closing_missing")),
+        ("[Closes\n#330]: /path", ("repair", "closing_missing")),
+        ('[docs\nname]: /path "Example\nCloses #331"\nRefs #330', ("block", "closing_for_other")),
+    ):
+        _, result = run_reference(tmp_path, body)
+        assert (result["body_verdict"], result["body_reason"]) == expected, body
+    hidden_refs = (
+        "> Quoted example\nRefs #330",
+        "> > Nested example\ncontinued\nRefs #330",
+        "- > Quoted item\n  Refs #330",
+        "Refs\n\n#330",
+        "Refs\n \t\n #330",
+        '[docs]: /path "Refs #330"',
+        "[docs]: <path with spaces> 'Refs #330'",
+        "[docs]: /path (Refs #330)",
+        '[docs]: /path\n  "Refs #330"',
+        '[docs]:\n  /path "Refs #330"',
+        '[docs]: /path "Example\nRefs #330"',
+        '[docs\nname]: /path "Example\nRefs #330"',
+        "[Refs\n#330]: /path",
+        "[docs\\]\r\nname]:\r\n  <path with spaces>\r\n  'Example\r\nRefs #330'",
+        "- [docs\n  name]: /path (Example\n  Refs #330)",
+        '> [docs\n> name]: /path "Example\n> Refs #330"',
+        '[docs]: /path "Example\\" still in title\r\nRefs #330\r\nend"',
+        "[docs]:\n  <path with spaces>\n  'Example\nRefs #330'",
+        "[docs]: /path(one(two))\n  (Example\\)\nRefs #330)",
+        "- [docs]: /path 'Example\n  Refs #330'",
+        "- [docs]: /path 'Example\nRefs #330'",
+        "> [docs]: /path 'Example\nRefs #330'",
+        r"\` text `Refs #330`",
+        r"\\\` text `Refs #330`",
+        r"\``Refs #330`",
+        r"`sample \` `Refs #330`",
+        "- `\n- `Refs #330`",
+        "- parent\n  - `\n  - `Refs #330`",
+        "1. `\n2. `Refs #330`",
+        "- `\n-\n  `Refs #330`",
+        "`heading\n===\n`Refs #330`",
+        "Heading\n-\n    Refs #330",
+        "Context before this reference\n\n    Refs #330\n",
+        "- Context before this reference\n\n      Refs #330\n",
+        "`example\n    Refs #330\ntext`",
+        "- `example\n      Refs #330\n  text`",
+        "- `example\nRefs #330`",
+        "- parent\n  - child\n\n        Refs #330\n",
+        "- parent\n  - child\n\nOutdented paragraph\n\n    Refs #330\n",
+        "- ```text\n  Refs #330\n  ```\n",
+        "  * ```text\n    Refs #330\n    ```\n",
+        "- outer\n  10. ~~~text\n      Refs #330\n      ~~~\n",
+        "-   +   ```text\n        Refs #330\n        ```\n",
+        "9)  ```text\n    Refs #330\n    ```\n",
+        "-\t~~~text\n\tRefs #330\n\t~~~\n",
+        "- ```text\n  Refs #330\n",
+        "<pre>Refs #330</pre>",
+        "<PRE class='x > y'>\n<code>Refs #330</code>\n</pRe>",
+        "<pre><!-- </pre> -->Refs #330</pre>",
+        "<code><code>sample</code>Refs #330</code>",
+    )
+    for fake in hidden_refs:
+        _, invalid = run_reference(tmp_path, fake, issue_body=NO_SECTION)
+        assert (invalid["body_verdict"], invalid["body_reason"]) == (
+            "block",
+            "reference_candidate_invalid",
+        ), fake
+        _, valid = run_reference(tmp_path, f"{fake}\n\nRefs #330", issue_body=NO_SECTION)
+        assert strict_reference_consumer(valid), fake
+    for visible in (
+        "Refs\n  #330",
+        "Closes\n  #330",
+        "> Quoted example\n\nRefs #330",
+        "> Quoted example\n>\nRefs #330",
+        "> Quoted example\n## Outside quote\nRefs #330",
+        "> Quoted example\n- Refs #330",
+        "> ```\n> example\n> ```\nRefs #330",
+        '[docs]: /path "example"\nRefs #330',
+        '[docs]: /path\n  "example"\nRefs #330',
+        '[docs]: /path "first\nsecond"\nRefs #330',
+        '[docs\nname]: /path "first\nsecond"\nRefs #330',
+        "> [docs\n> name]: /path\nRefs #330",
+        "[docs\n\nRefs #330]: /path",
+        "- [docs\n- Refs #330]: /path",
+        "Context\n[Refs\n#330]: /path",
+        "[Refs\n#330] is ordinary bracketed prose",
+        "[Refs\n#330]: /path plus ordinary text",
+        "\\[Refs\n#330]: /path",
+        "[Refs\n#330\\]: /path",
+        "[docs\\\\]\nRefs #330]: /path",
+        '> [docs]: /path "first\n> second"\nRefs #330',
+        '> [docs]: /path "first\nsecond"\nRefs #330',
+        '- > > [docs]: /path "first\n  > > second"\nRefs #330',
+        '- [docs]: /path "first\nsecond"\nRefs #330',
+        '- [docs]: /path "first\n2. Refs #330"',
+        '[docs]: /path "first\n\nRefs #330\nsecond"',
+        '[docs]: /path\n  "unfinished\n\nRefs #330',
+        "[docs]:\n\nRefs #330",
+        'Context\n[docs]: /path "first\nRefs #330"',
+        '[docs]: /path "first\nRefs #330" trailing prose',
+        "[docs]: ordinary visible prose Refs #330",
+        'Context\n[docs]: /path "Refs #330"',
+        '<span title="not a reference">Refs #330</span>',
+        "- Refs #330",
+        "- `\n- Refs #330",
+        "- parent\n  - `\n  - Refs #330",
+        "Context before this reference\n    Refs #330\n",
+        "- Context before this reference\n      Refs #330\n",
+        "- parent\n  - Context before this reference\n        Refs #330\n",
+        "- `example\n  text` then Refs #330",
+        "10. Ordinary prose\n    Refs #330",
+        "10. Ordinary prose\n\n    Refs #330",
+        "- ordinary item\n  - nested item\n    Refs #330",
+        "- parent\n  - child\n\n     Refs #330\n",
+        "- parent\n  - child\n\n        example\n\n  Refs #330\n",
+        "- parent\n  - child\n\n        example\n\nRefs #330\n",
+        r"\\` text `Refs #330`",
+        r"\\\\` text `Refs #330`",
+        r"`sample \` Refs #330",
+        "- outer\n  10. ~~~text\n      example\n      ~~~\n  Refs #330",
+        "- outer\n  10. ~~~text\n      example\n  Refs #330",
+        "- ```inline sample``` — Refs #330",
+        "Inline `<pre>` is not a block. Refs #330",
+        "<pre>example</pre> Refs #330",
+        "<code>example</code> Refs #330",
+        "```md\n<!-- not a comment outside the fence\n```\nRefs #330",
+        "~~~\n<!--\n~~~\nRefs #330",
+        "    > <!--\nRefs #330",
+        "`<!--`\nRefs #330",
+        '<span title="<!--">Refs #330</span>',
+        "<!--\n```\n-->\nRefs #330",
+        "    ```\n\nRefs #330\n",
+        "`example\ncomment <!-- stays in code`\n\nRefs #330",
+    ):
+        _, valid = run_reference(tmp_path, visible)
+        assert strict_reference_consumer(valid), visible
 
 
 @pytest.mark.parametrize("omitted", ["facts", "issue"])
@@ -1075,7 +1267,7 @@ def test_ac2_wrong_linked_issue_number_is_not_accepted(tmp_path: Path) -> None:
     )
     assert proc.returncode == 0
     result = json.loads(proc.stdout)
-    assert (result["decision"], result["issue_number"]) == ("closing_required", 331)
+    assert (result["decision"], result["issue_number"]) == ("nonclosing_required", 331)
     assert (result["effective_kind"], result["body_verdict"], result["body_reason"]) == OTHER_NONE
     assert strict_reference_consumer(result) is False
 
@@ -1088,19 +1280,18 @@ MANUAL_RELATION = [{"number": ISSUE, "repository": REPO}]
 
 
 def test_ac3_clear_with_a_bound_adopted_message_hash(tmp_path: Path) -> None:
-    for kwargs in (
-        {},
-        {"issue_body": A3_BODY, "comment": _comment(), "pr_body": f"Refs #330\n{A1_LINE}\n"},
+    for pr_body, kwargs in (
+        (_native_facts()["pr_body"], {}),
+        (f"Refs #330\n{A1_LINE}\n", {"issue_body": A3_BODY, "comment": _comment()}),
+        ("Refs #330\r\n\r\n", {"issue_body": NO_SECTION}),
     ):
-        proc, result = run_native(tmp_path, _native_facts(), **kwargs)
+        proc, result = run_native(tmp_path, _native_facts(pr_body=pr_body), **kwargs)
         assert proc.returncode == 0
         assert set(result) == NATIVE_RESULT_KEYS
         assert (result["status"], result["reason_code"]) == ("clear", "no_native_auto_close_path")
         assert result["findings"] == []
-        assert result["decision"] == "nonclosing_required" and result["level"] in {"A1", "A2"}
-        expected = hashlib.sha256(
-            "feat: 参照と close の分離\n\n## Summary\n\nRefs #330\n".encode()
-        ).hexdigest()
+        assert result["decision"] == "nonclosing_required" and result["level"] in {"A1", "A2", "A3"}
+        expected = hashlib.sha256(f"feat: 参照と close の分離\n\n{pr_body}".encode()).hexdigest()
         assert result["adopted_message_sha256"] == expected
         assert result["pr_number"] == PR
 
@@ -1113,7 +1304,9 @@ def test_ac3_manual_relation_blocks_even_though_the_body_is_valid_refs(
     pr_body = "Refs #330\n" + (f"{A1_LINE}\n" if comment else "")
     _, policy = run_reference(tmp_path, pr_body, issue_body=issue_body, comment=comment)
     assert (policy["decision"], policy["body_verdict"]) == ("nonclosing_required", "valid")
-    facts = _native_facts(closing_relations=[{"number": ISSUE, "repository": REPO.upper()}])
+    facts = _native_facts(
+        pr_body=pr_body, closing_relations=[{"number": ISSUE, "repository": REPO.upper()}]
+    )
     proc, result = run_native(
         tmp_path, facts, pr_body=pr_body, issue_body=issue_body, comment=comment
     )
@@ -1222,6 +1415,14 @@ def test_ac3_final_squash_message_overrides_the_settings_derivation(tmp_path: Pa
     reworded = _native_facts(final_squash_message={"title": "feat: x", "body": "Refs #330 again"})
     _, again = run_native(tmp_path, reworded)
     assert again["adopted_message_sha256"] != result["adopted_message_sha256"]
+    # A keyword split across title and body is present in the same bytes that are hashed.
+    split = _native_facts(final_squash_message={"title": "Fixes", "body": "#330"})
+    _, blocked = run_native(tmp_path, split, issue_body=NO_SECTION)
+    assert (blocked["status"], blocked["reason_code"]) == (
+        "blocked",
+        "effective_message_closing_keyword",
+    )
+    assert blocked["adopted_message_sha256"] == hashlib.sha256(b"Fixes\n\n#330").hexdigest()
 
 
 def test_ac3_merge_method_differences_use_the_live_settings(tmp_path: Path) -> None:
@@ -1366,7 +1567,48 @@ def test_ac3_malformed_or_incomplete_native_facts_fail_closed(
 
 
 def test_ac3_lanes_without_an_open_promise_and_policy_pass_through(tmp_path: Path) -> None:
-    # A3: the PR is supposed to close the Issue, so a native relation is not a risk
+    # The default OPEN Refs lane must perform the same native checks as A1/A2.
+    for overrides, required in (
+        ({}, ("clear", "no_native_auto_close_path")),
+        ({"closing_relations_complete": False}, ("fail_closed", "relations_incomplete")),
+        ({"closing_relations": MANUAL_RELATION}, ("blocked", "native_relation_present")),
+        ({"pr_title": "Fixes #330"}, ("blocked", "effective_message_closing_keyword")),
+        ({"pr_body": "Fixes #330"}, ("fail_closed", "facts_invalid")),
+        (
+            {
+                "merge_settings": {"allow_rebase_merge": True},
+                "merge_method": "rebase",
+                "commit_messages": ["Fixes #330"],
+            },
+            ("blocked", "effective_message_closing_keyword"),
+        ),
+        (
+            {"final_squash_message": {"title": "feature", "body": "Fixes #330"}},
+            ("blocked", "effective_message_closing_keyword"),
+        ),
+    ):
+        _, result = run_native(
+            tmp_path,
+            _native_facts(**overrides),
+            issue_body=NO_SECTION,
+            pr_body=_native_facts()["pr_body"],
+        )
+        assert (result["status"], result["reason_code"]) == required, overrides
+    for changed_body in ("Refs #330", "Refs #330\n", "Refs #330\r\n\r\n"):
+        _, stale = run_native(
+            tmp_path,
+            _native_facts(pr_body=changed_body),
+            issue_body=NO_SECTION,
+            pr_body="Refs #330\n\n",
+        )
+        assert (stale["status"], stale["reason_code"]) == ("fail_closed", "facts_invalid")
+    for incomplete in (
+        {"commit_messages": []},
+        {"closing_relations": [*MANUAL_RELATION, {"number": ISSUE, "repository": REPO.upper()}]},
+    ):
+        _, rejected = run_native(tmp_path, _native_facts(**incomplete), issue_body=NO_SECTION)
+        assert (rejected["status"], rejected["reason_code"]) == ("fail_closed", "facts_invalid")
+    # Explicit closing: native probe is not an Issue-completion check.
     facts = _native_facts(closing_relations=MANUAL_RELATION)
     _, a3 = run_native(tmp_path, facts, pr_body="Closes #330\n", issue_body=A3_BODY)
     assert (a3["status"], a3["reason_code"]) == ("not_applicable", "closing_required_lane")
@@ -1381,7 +1623,9 @@ def test_ac3_lanes_without_an_open_promise_and_policy_pass_through(tmp_path: Pat
         "fail_closed",
         "reference_policy_fail_closed",
     )
-    _, unresolved = run_native(tmp_path, _native_facts(), issue_body="no section")
+    _, unresolved = run_native(
+        tmp_path, _native_facts(), pr_body="Closes #330", issue_body="no section"
+    )
     assert (unresolved["status"], unresolved["reason_code"]) == (
         "fail_closed",
         "reference_policy_fail_closed",
