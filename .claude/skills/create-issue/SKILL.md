@@ -39,7 +39,7 @@ description: ユーザーの要求を Terminal AI Agent が再現可能に作業
 - 実装案だけでなく、運用で解決できる案も比較し、採用方針を明示する
 - 要件が曖昧な場合は Issue を確定させず、`## Notes for Reviewer` に記載するか blocking stop として扱う（推測で埋めない）
 - **タイトル prefix と AC の性質のセルフチェック**: `research` / `調査` を名乗る Issue に `src/` や `tests/` の実装変更が AC として入っていないか確認する。入っている場合は `implementation` / `実装` に切り替えるか、Scope を分割して別 Issue にする
-- 不確実性が残る場合は `phase/research` / `state/needs-human` ラベルの付与要否を先に決める。implementation に昇格できる場合は `.github/ISSUE_TEMPLATE/implementation.yml` の implementation issue contract（`docs/dev/workflow.md` は未移管。#50）を正本とし、`実装:` prefix + `phase/implementation` の consumer ready contract に沿って起票する（`state/queued` は deprecated のため付与しない）
+- 不確実性が残る場合は `phase/research` / `state/needs-human` ラベルの付与要否を先に決める。implementation に昇格できる場合は `.github/ISSUE_TEMPLATE/implementation.yml` の implementation issue contract（`docs/dev/workflow.md` は未移管。#50）を正本とし、`実装:` prefix と適合する本文を用意して、上記の承認済み無ラベル経路で起票する（`state/queued` は deprecated のため付与しない）
 
 #### desired destination handoff guard（委譲先ガード）
 
@@ -243,14 +243,14 @@ helper は `--title` / `--body-file` / `--label` / `--parent-issue` / `--blocked
 
 **post-create ready tuple validation（起票後の状態検証、implementation issue のみ）**:
 
-`create_issue_txn.py` 実行後、implementation issue の場合は GitHub 上の最終状態を read-back して ready tuple を検証する。pre-create の body 検証と異なり、GitHub に実際に付与された title / labels を確認する。
+`create_issue_txn.py` 実行後、implementation issue の場合は GitHub 上の title を authoritative read-back して ready tuple を検証する。implementation readiness は phase/implementation の有無に依存しない。本文の検証は引き続き必須であり、ラベルは非権威 metadata として扱う。
 
 **手順（ステップ分割）**:
 
-1. GitHub から title/labels を read-back する:
+1. GitHub から title を read-back する:
 
 ```bash
-gh issue view "$CREATED_ISSUE_NUMBER" --repo "$REPO" --json title,labels > /tmp/readback.json
+gh issue view "$CREATED_ISSUE_NUMBER" --repo "$REPO" --json title > /tmp/readback.json
 ```
 
 2. `guard-issue-body.py` に `--readback-json` を渡して ready tuple を検証する:
@@ -277,7 +277,7 @@ GUARD_EXIT=$?
 
 ```bash
 gh issue comment "$CREATED_ISSUE_NUMBER" --repo "$REPO" \
-  --body "[create-issue] post-create ready tuple validation FAILED: title prefix or phase/implementation label missing. Manual fix required."
+  --body "[create-issue] post-create ready tuple validation FAILED: guard rejected the title, body, or readback. Manual investigation required."
 ```
 
 上記の 2 ステップ構成（guard 実行 + exit code 保存 → 失敗時のみ comment 投稿）により、compound shell operator（`||` / `;`）を使わず exit code を確実に検出する。

@@ -45,8 +45,9 @@
   "source_parity": {
     ".claude/skills/edit-issue/scripts/guard-issue-body.py": {
       "source_sha256": "bd1bd061ea44ed94b257aa7f949924b6ca9ef610f7b040d5c3b405aef3f94802",
-      "moved_sha256": "bd1bd061ea44ed94b257aa7f949924b6ca9ef610f7b040d5c3b405aef3f94802",
-      "verbatim": true
+      "moved_sha256": "5840958d8dd87ef524499045ac499a7c069a5ee0e5ad59a296c33c0cbdcba487",
+      "verbatim": false,
+      "intentional_diff": "Issue #128: title-based readiness, labels remain accepted but non-authoritative; malformed readbacks still fail. Previous moved SHA-256: bd1bd061ea44ed94b257aa7f949924b6ca9ef610f7b040d5c3b405aef3f94802."
     },
     ".claude/skills/edit-issue/scripts/issue_contract_hygiene_autofix.py": {
       "source_sha256": "663ba27ae2633535c2f6415525484e0724cc629202097add492988b9b3c66f58",
@@ -66,8 +67,9 @@
     },
     ".claude/skills/edit-issue/tests/test_guard_issue_body.py": {
       "source_sha256": "c84a2d9d90cd107aea6669fc792b5c90eea6a92cba6628a73c64544482754a9a",
-      "moved_sha256": "c84a2d9d90cd107aea6669fc792b5c90eea6a92cba6628a73c64544482754a9a",
-      "verbatim": true
+      "moved_sha256": "28b120de5358f769bcd62e5bd6cf0f5f1bff59343febcc05430bcc6b20cf6088",
+      "verbatim": false,
+      "intentional_diff": "Issue #128: replace label-required expectations with label-independent CLI and invalid-input coverage. Previous moved SHA-256: c84a2d9d90cd107aea6669fc792b5c90eea6a92cba6628a73c64544482754a9a."
     },
     ".claude/skills/edit-issue/tests/test_issue_contract_hygiene_autofix.py": {
       "source_sha256": "0371bb8f65bd6424383d4e5c40525aa2dec20c19e2661af015c0e62975b3ff0c",

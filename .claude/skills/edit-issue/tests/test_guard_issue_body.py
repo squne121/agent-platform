@@ -1486,12 +1486,12 @@ class TestCheckReadyTuple:
             ["phase/implementation"],
             False,
         ),
-        # AC10 case: implementation + 実装: prefix + NO phase/implementation => fail
+        # Label absence does not prevent readiness.
         (
             "implementation",
             "実装: foo",
             ["enhancement"],
-            False,
+            True,
         ),
         # AC5 case 4: research kind => pass (LP031/ready_tuple not applicable)
         (
@@ -1536,22 +1536,53 @@ class TestCheckReadyTuple:
         assert len(errors) == 1
         assert "chore: cleanup" in errors[0]
 
-    def test_check_ready_tuple_label_error_message_contains_label_name(self):
-        """Error message for missing label should mention 'phase/implementation'."""
-        errors = check_ready_tuple("implementation", "実装: foo", [])
-        assert len(errors) == 1
-        assert "phase/implementation" in errors[0]
+    def test_check_ready_tuple_label_independent(self):
+        for labels in ([], ["enhancement"], ["phase/implementation"]):
+            assert check_ready_tuple("implementation", "実装: foo", labels) == []
+            errors = check_ready_tuple("implementation", "feat: foo", labels)
+            assert len(errors) == 1
+            assert "feat: foo" in errors[0]
 
-    def test_check_ready_tuple_both_errors_when_both_missing(self):
-        """When both title prefix and label are wrong, two errors are returned."""
-        errors = check_ready_tuple("implementation", "feat: foo", ["enhancement"])
-        assert len(errors) == 2
 
-    def test_check_ready_tuple_empty_labels_list(self):
-        """Empty label list for implementation kind should fail."""
-        errors = check_ready_tuple("implementation", "実装: bar", [])
-        assert len(errors) == 1
-        assert "phase/implementation" in errors[0]
+class TestReadyTupleCli:
+    def test_readback_label_independence_and_failures(self, tmp_path):
+        body = tmp_path / "body.md"
+        body.write_text(make_implementation_body(), encoding="utf-8")
+        readback = tmp_path / "readback.json"
+        cases = [
+            ({"title": "実装: foo"}, True),
+            ({"title": "implement: foo", "labels": []}, True),
+            ({"title": "実装: foo", "labels": [{"name": "other"}]}, True),
+            ({"title": "feat: foo", "labels": [{"name": "phase/implementation"}]}, False),
+            ({"title": "実装: foo", "labels": ["other"]}, False),
+            ({"title": 42}, False),
+            ([], False),
+        ]
+        for data, expected in cases:
+            readback.write_text(json.dumps(data), encoding="utf-8")
+            result = subprocess.run(
+                [sys.executable, _MODULE_PATH_STR, str(body), "--issue-kind", "implementation",
+                 "--check-ready-tuple", "--readback-json", str(readback), "--format", "json"],
+                capture_output=True, text=True,
+            )
+            output = json.loads(result.stdout)
+            ready = next(g for g in output["guards"] if g["name"] == "ready_tuple")
+            assert ready["passed"] is expected, (data, output)
+            assert result.returncode == (0 if expected else 2), (data, output)
+            assert output["all_passed"] is expected
+
+    def test_invalid_body_remains_rejected(self, tmp_path):
+        body = tmp_path / "body.md"
+        body.write_text(make_implementation_body().replace("## Outcome", "## Removed"), encoding="utf-8")
+        result = subprocess.run(
+            [sys.executable, _MODULE_PATH_STR, str(body), "--issue-kind", "implementation",
+             "--check-ready-tuple", "--title", "実装: foo", "--format", "json"],
+            capture_output=True, text=True,
+        )
+        output = json.loads(result.stdout)
+        assert result.returncode == 2
+        assert output["all_passed"] is False
+        assert next(g for g in output["guards"] if g["name"] == "ready_tuple")["passed"] is True
 
 
 class TestGuardReadyTuple:
@@ -1698,8 +1729,7 @@ class TestReadbackJsonPathValidation:
             capture_output=True,
             text=True,
         )
-        # Schema is valid (missing labels defaults to []), but ready_tuple itself may fail
-        # because phase/implementation label is absent — that's a logic fail, not schema error
+        # Missing labels are valid metadata and cannot cause a readiness failure.
         output = json.loads(result.stdout)
         guards = {g["name"]: g for g in output["guards"]}
         if "ready_tuple" in guards:
