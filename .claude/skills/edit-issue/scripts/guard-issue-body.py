@@ -737,7 +737,6 @@ def _is_compound_command(command: str) -> bool:
 
 # Implementation issue ready tuple constants
 _IMPLEMENTATION_TITLE_PREFIXES = ("実装:", "implement:")
-_IMPLEMENTATION_REQUIRED_LABEL = "phase/implementation"
 
 
 def check_ready_tuple(
@@ -745,12 +744,12 @@ def check_ready_tuple(
     title: str,
     label_names: list,
 ) -> list:
-    """Check implementation issue ready tuple (title prefix + phase/implementation label).
+    """Check the implementation issue title prefix; labels are non-authoritative.
 
     Args:
         issue_kind: The issue kind (e.g. 'implementation'). Only validates when 'implementation'.
         title: The issue title string.
-        label_names: List of label name strings on the issue.
+        label_names: Retained for compatibility; not used for readiness.
 
     Returns:
         list[str]: List of error message strings. Empty list means PASS.
@@ -763,11 +762,6 @@ def check_ready_tuple(
     if not title.startswith(_IMPLEMENTATION_TITLE_PREFIXES):
         errors.append(
             f"implementation issue title must start with '実装:' or 'implement:'. Got: {title!r}"
-        )
-
-    if _IMPLEMENTATION_REQUIRED_LABEL not in set(label_names):
-        errors.append(
-            f"implementation issue must have label '{_IMPLEMENTATION_REQUIRED_LABEL}'"
         )
 
     return errors
@@ -878,8 +872,8 @@ def main() -> None:
         default=False,
         help=(
             "When set, adds a ready_tuple guard check: verifies that implementation issues "
-            "have correct title prefix ('実装:' or 'implement:') and 'phase/implementation' label. "
-            "Requires --title and --label options when checking implementation kind."
+            "have correct title prefix ('実装:' or 'implement:'). Labels do not determine readiness. "
+            "Requires --title or --readback-json when checking implementation kind."
         )
     )
     parser.add_argument(
@@ -895,7 +889,7 @@ def main() -> None:
         action="append",
         default=[],
         metavar="LABEL",
-        help="Issue label name (may be specified multiple times; used with --check-ready-tuple)"
+        help="Issue label name (repeatable; accepted for compatibility, not used for readiness)"
     )
     parser.add_argument(
         "--readback-json",
@@ -903,10 +897,9 @@ def main() -> None:
         type=validate_path,
         default=None,
         help=(
-            "Path to JSON file produced by 'gh issue view --json title,labels'. "
+            "Path to JSON file produced by 'gh issue view --json title' (optional labels accepted). "
             "Path must match ^[A-Za-z0-9._/-]+$ (safe chars only). "
-            "When provided with --check-ready-tuple, extracts title and label names from the file "
-            "instead of requiring --title and --label arguments."
+            "With --check-ready-tuple, the readback title takes precedence over --title."
         )
     )
     args = parser.parse_args()

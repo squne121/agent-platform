@@ -572,15 +572,15 @@ product_spec_preflight:
 ## 2. ready tuple の再確認
 
 ```bash
-gh issue view <issue_number> --json title,labels --jq '.title + " | " + (.labels | map(.name) | join(","))'
+gh issue view <issue_number> --repo <trusted_owner/repo> --json number,url,title,state
 ```
 
 期待する canonical ready tuple:
 - title prefix: `実装:` または `implement:`
-- labels: `phase/implementation`
-- blocker / dependency: GitHub native dependency（`depends on` リンク）がすべて close 済み、または `Depends on #N` テキスト表現がすべて close 済み（primary signal）
+- repo identity / native state: `config/repository_identity.v1.json` の trusted slug と一致する対象 repository と Issue 番号を指定し、取得した `url` と `number` がその対象と一致し、`state` が `OPEN` であることを確認する。
+- blocker / dependency: [GitHub 運用規約の確認順](../../../../docs/dev/github-ops.md#blocker-判定の優先順位)に従い、native dependency を優先し、本文の `Depends on #N` は fallback / 補完として検証する。既知の open blocker は本文の閉じた参照で上書きしない。
 
-不一致なら停止し、人間判断を仰ぐ。blocker / dependency の close 状態が primary signal であり、state labels の有無は ready 判定に影響しない。ただし `phase/implementation` は issue kind / workflow routing の前提として維持する（`docs/dev/github-ops.md` 参照）。
+取得失敗、不完全・不明な証拠、不一致、未解消の blocker があれば ready とせず停止し、人間判断を仰ぐ。implementation readiness は `phase/implementation` の有無に依存せず、state labels も ready 判定に影響しない。
 
 ## 2.5. scope rollup preflight（任意の advisory diagnostic、自動実行なし）
 

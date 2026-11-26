@@ -566,12 +566,12 @@
       "ast_identical": false
     },
     ".claude/skills/create-issue/SKILL.md": {
-      "moved_sha256": "817e274d8cd9a3ed901905579f0708ff68e26ad30b416b919989716c31b1caac",
+      "moved_sha256": "4c0c6fd6e5dc2c0b3bd72ee8706241c073becc03105e09d562cab3d39e4806c0",
       "moved_lines": 587,
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
       "source_lines": 574,
       "verbatim": false,
-      "intentional_diff": "#50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs)"
+      "intentional_diff": "#50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs) | #128: authoritative title readback and label-independent readiness; preserve body guard. Previous moved SHA-256: 817e274d8cd9a3ed901905579f0708ff68e26ad30b416b919989716c31b1caac."
     }
   },
   "source_inventory": {

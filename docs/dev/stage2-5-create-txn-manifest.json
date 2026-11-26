@@ -91,11 +91,11 @@
     },
     ".claude/skills/create-issue/SKILL.md": {
       "source_sha256": "8607dc777b1581737a949af7e33b152916acb3adf66352c4e100ffb6a49f4029",
-      "moved_sha256": "817e274d8cd9a3ed901905579f0708ff68e26ad30b416b919989716c31b1caac",
+      "moved_sha256": "4c0c6fd6e5dc2c0b3bd72ee8706241c073becc03105e09d562cab3d39e4806c0",
       "verbatim": false,
       "source_lines": 574,
       "moved_lines": 587,
-      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it. Stage 2-6a (#36) then replaced the one-line \"unmigrated\" note (step 3.6/4a/4b availability) with the 2-6a status; moved_sha256/moved_lines updated accordingly. | #50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs)"
+      "intentional_diff": "Added the 'agent-platform 承認境界' section directly under the title; the source procedure text is kept byte-for-byte below it. Stage 2-6a (#36) then replaced the one-line \"unmigrated\" note (step 3.6/4a/4b availability) with the 2-6a status; moved_sha256/moved_lines updated accordingly. | #50: dangling references corrected (verify-anchors.sh, guardrail lint, ssot-discovery, unmigrated docs) | #128: authoritative title readback and label-independent readiness; preserve body guard. Previous moved SHA-256: 817e274d8cd9a3ed901905579f0708ff68e26ad30b416b919989716c31b1caac."
     },
     ".claude/agents/issue-creator.md": {
       "source_sha256": "e348e9918dab4f397df093fb65c4175d90381ddd5ffa883d453e52e354c69af2",
