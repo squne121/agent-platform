@@ -345,6 +345,8 @@ def fetch_checks(pr_number: int, repo: str) -> tuple[Optional[list], Optional[di
                 "detail": "statusCheckRollup shape: CheckRun commit must be an object or null",
             }
         suite_commit = commit_raw or {}
+        database_id = run.get("databaseId")
+        checkrun_id = database_id if type(database_id) is int and database_id > 0 else None
         checks.append({
             "name": run.get("name") or "unknown",
             "bucket": _conclusion_bucket(run.get("conclusion"), run.get("status")),
@@ -354,11 +356,11 @@ def fetch_checks(pr_number: int, repo: str) -> tuple[Optional[list], Optional[di
             "event": workflow_run.get("event"),
             "startedAt": run.get("startedAt"),
             "completedAt": run.get("completedAt"),
-            "runId": run.get("databaseId"),
+            "runId": checkrun_id,
             "headSha": suite_commit.get("oid"),
-            "run_detail_complete": all(
+            "run_detail_complete": checkrun_id is not None and all(
                 run.get(field) is not None
-                for field in ("databaseId", "status", "conclusion", "startedAt", "completedAt")
+                for field in ("status", "conclusion", "startedAt", "completedAt")
             ) and bool(suite_commit.get("oid")),
         })
     return checks, None
@@ -404,7 +406,7 @@ def extract_run_id_from_link(link: str) -> Optional[int]:
     return None
 
 
-def classify_check(check: dict, pr_head_sha: str) -> dict:
+def classify_check(check: dict, pr_head_sha: str, *, direct_checkrun: bool = False) -> dict:
     """
     gh pr checks の1エントリを解析し、check_entry dict を返す。
 
@@ -419,8 +421,10 @@ def classify_check(check: dict, pr_head_sha: str) -> dict:
     started_at = check.get("startedAt") or None
     completed_at = check.get("completedAt") or None
 
-    # GraphQL CheckRun databaseId を優先し、旧形式 fixture では link から補う。
-    run_id = check.get("runId") or (extract_run_id_from_link(link) if link else None)
+    # GraphQL の CheckRun ID を workflow run URL で補わない。旧形式だけ従来の補完を使う。
+    run_id = check.get("runId")
+    if not direct_checkrun:
+        run_id = run_id or (extract_run_id_from_link(link) if link else None)
 
     # bucket → conclusion / status mapping
     # gh pr checks の bucket: pass / fail / pending / skipping / cancel / null
@@ -516,6 +520,11 @@ def determine_check_verdict(entry: dict, pr_head_sha: str) -> str:
     # Direct CheckRun provenance が不完全なら、成功として通過させない。
     # canonicalization でも残し、CI 完了待ちとして fail-closed に扱う。
     if entry.get("run_id") is not None and not entry.get("run_detail_complete"):
+        return "pending_or_queued"
+
+    if entry.get("_direct_checkrun") and entry.get("run_id") is None and (
+        conclusion == "success" or bucket == "pass"
+    ):
         return "pending_or_queued"
 
     # pending
@@ -627,7 +636,7 @@ def public_check_entry(entry: dict) -> dict:
     return {
         key: value
         for key, value in entry.items()
-        if key not in {"event", "run_detail_complete", "_run_head_sha"}
+        if key not in {"event", "run_detail_complete", "_run_head_sha", "_direct_checkrun"}
     }
 
 
@@ -797,7 +806,8 @@ def main() -> int:
             raw_checks = matched
 
     for raw in (raw_checks or []):
-        entry = classify_check(raw, head_sha or expected_head_sha)
+        entry = classify_check(raw, head_sha or expected_head_sha, direct_checkrun=True)
+        entry["_direct_checkrun"] = True
         # GraphQL の CheckRun は check-run ID と status/conclusion/head SHA を同時取得する。
         # head SHA 欠落・未完の detail は rerun 集約対象から外れ、後段で fail-closed に残る。
         if entry.get("run_id") is not None:
