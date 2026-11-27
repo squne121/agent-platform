@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 _IMPL_MAIN_DRIFT_SCRIPTS = Path(__file__).resolve().parents[4] / "scripts" / "agent-ops"
 if str(_IMPL_MAIN_DRIFT_SCRIPTS) not in sys.path:
@@ -230,12 +230,6 @@ except ImportError:  # pragma: no cover - subprocess/CLI fallback path
     _rewrite_router_compute_implementation_allowed = None
 
 
-@dataclass(frozen=True)
-class SourceLine:
-    number: int
-    text: str
-
-
 class ScopeSignalDeltaError(RuntimeError):
     """Raised when scope_signal_delta_input exists but cannot be consumed safely."""
 
@@ -255,7 +249,6 @@ CONFIDENCE_DETERMINISTIC = "deterministic"
 CONFIDENCE_UNKNOWN = "unknown"
 
 # Reason codes
-INVESTIGATION_REASON_TARGET_PATHS_PRESENT = "target_paths_present"
 INVESTIGATION_REASON_REPO_FACT_CLAIM = "repo_fact_claim_in_outcome_or_ac_or_vc"
 INVESTIGATION_REASON_SAME_FILE_ROLLUP = "same_file_scope_rollup_conflict"
 INVESTIGATION_REASON_REVIEWER_REQUESTED = "reviewer_requested_repo_fact_check"
@@ -277,14 +270,10 @@ WEB_RESEARCH_REASON_UNKNOWN_SCHEMA = "unknown_input_schema"
 EXTERNAL_CLAIM_ROLE_DISPOSITIVE = "dispositive"
 EXTERNAL_CLAIM_ROLE_NON_DISPOSITIVE = "non_dispositive"
 
-SCOPE_SIGNAL_REASON_NEW_IN_SCOPE = "new_in_scope_area"
-SCOPE_SIGNAL_REASON_NEW_PATH_LAYER = "new_allowed_path_layer"
-SCOPE_SIGNAL_REASON_NEW_UNVERIFIABLE_AC = "new_unverifiable_ac"
 SCOPE_SIGNAL_REASON_ANCHOR_REFRAME = "anchor_reframe_exclusion"
 SCOPE_SIGNAL_REASON_NO_SIGNAL = "no_scope_signal"
 SCOPE_SIGNAL_REASON_MISSING_DELTA_INPUT = "missing_scope_signal_delta_input"
 
-_HARD_STOP_SCOPE_SIGNAL_PHASES = frozenset({"preflight", "post_rewrite_check", "decide_next_action"})
 
 # ---------------------------------------------------------------------------
 # SCOPE_SIGNAL_GUARD_DECISION_V2 (#1090) -- escalation lane split
@@ -577,14 +566,58 @@ UNMATERIALIZED_MARKER_PATTERN = re.compile(
     r"(?:（未起票）|（未起票）|\(未起票\)|unmaterialized|TBD)"
 )
 
-# Keywords indicating critical external claims (B7: more specific keywords to reduce false positives)
-CRITICAL_EXTERNAL_KEYWORDS = {
-    "official",
-    "api",
-    "cli",
-    "auth",
-    "migration",
-}
+# External source, interface and behavior are separate cues. A product
+# name need not belong to a predefined provider list.
+_EXTERNAL_SPEC_SUBJECT_RE = re.compile(
+    r"\b(?:official (?:api|cli|docs?|documentation|spec\w*)|published documentation|"
+    r"(?:external|upstream) (?:api|cli|spec\w*))\b|公式(?:の)?(?:API|CLI|仕様|ドキュメント)|外部仕様|提供元の仕様",
+    re.IGNORECASE,
+)
+_NAMED_INTERFACE_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9.+_-]*\s+(?:API|CLI)\b")
+_LOCAL_INTERFACE_RE = re.compile(
+    r"\b(?:repository[- ]local|internal|local|the|an?|existing|current|recorded)\s+(?:API|CLI)\b", re.IGNORECASE
+)
+_NEW_OUTPUT_RE = re.compile(
+    r"^(?:[-*]\s+)?(?:add|create|introduce|generate)\s|を(?:新規)?(?:追加|作成|生成)する", re.IGNORECASE,
+)
+_EVIDENCE_SECTIONS = ("Outcome", "In Scope", "Acceptance Criteria", "Verification Commands")
+_EXTERNAL_SPEC_DETAIL_RE = re.compile(
+    r"(?<![a-z0-9_])(?:apis?|cli|auth(?:entication|orization)?|migration|specification|"
+    r"behaviou?r|compatibility|rate limit|schema)(?![a-z0-9_])|仕様|挙動|認証|互換", re.IGNORECASE,
+)
+_CONTRACT_ITEM_PREFIX_RE = re.compile(
+    r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\[[ xX]\]\s*)?(?:AC\s*\d+\s*:\s*)?", re.IGNORECASE,
+)
+_EXTERNAL_SPEC_CHECK_RE = re.compile(
+    r"^(?:check|confirm)\s+(?:(?:the|that|whether)\s+)?", re.IGNORECASE,
+)
+_EXTERNAL_BEHAVIOR_DETAIL_RE = re.compile(
+    r"(?<![a-z0-9_])(?:auth(?:entication|orization)?|migration|specification|"
+    r"behaviou?r|compatibility|rate limit|pagination|schema)(?![a-z0-9_])|仕様|挙動|認証|互換", re.IGNORECASE,
+)
+_CONTRACT_CLAUSE_BOUNDARY = re.compile(
+    r"[;；。！？]|(?<!\be\.g\.)(?<!\bi\.e\.)(?<=[.!?])\s+|,\s+(?=(?:and|but)\s)",
+    re.IGNORECASE,
+)
+_CONTRACT_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_EVIDENCE_READ_RE = re.compile(
+    r"\b(?:read|consult|inspect|existing|as evidence)\b|既存|参照|証拠", re.IGNORECASE
+)
+_LIVE_EXTERNAL_SOURCE_RE = re.compile(r"\b(?:live|upstream)\b|実環境|実機", re.IGNORECASE)
+_RECORDED_EXTERNAL_EVIDENCE_RE = re.compile(
+    r"\b(?:recorded|cached|local)\s+(?:output|responses?|results?|records?|evidence|cache|traces?|artifacts?|fixtures?)\b",
+    re.IGNORECASE,
+)
+_EXTERNAL_SPEC_CLAIM_RE = re.compile(
+    r"(?<![a-z0-9_])(?:verify|verification|validate|validation|specification|spec|documentation|"
+    r"behaviou?r|supports?|accepts?|rejects?|returns?|requires?|allows?|guarantees?|compatibility|rate limit)"
+    r"(?![a-z0-9_])|仕様|挙動|検証|互換|準拠|を返す|に対応|のみ使える", re.IGNORECASE,
+)
+_REPO_FACT_RE = re.compile(
+    r"\b(?:exists?|supports?|behaves?|returns?|emits?|requires?|reads|writes|"
+    r"rejects?|uses?|accepts?|does not|verify whether|confirm whether)\b"
+    r"|実装済み|移管済み|存在(?:する|しない)|を返す|を出力する|が正本|で定義|か確認", re.IGNORECASE,
+)
 
 # Keywords for human-requested web verification in comments
 HUMAN_WEB_VERIFICATION_KEYWORDS = {
@@ -1092,48 +1125,112 @@ def _extract_paths_from_text(text: str, exclude_fenced: bool = True) -> frozense
     return frozenset(paths)
 
 
-def _extract_paths_from_outcome_ac_vc(issue_body: str) -> frozenset[str]:
-    """Extract target_paths from Outcome, InScope, AC, VC sections."""
-    sections = _extract_sections(issue_body)
-    combined_text = ""
-
-    for section_name in ["Outcome", "In Scope", "Acceptance Criteria", "Verification Commands"]:
-        combined_text += sections.get(section_name, "") + "\n"
-
-    return _extract_paths_from_text(combined_text, exclude_fenced=True)
+_OUTPUT_PATH_JOIN = re.compile(r"(?:[\s`、,]|\b(?:and|or)\b|および|と)+", re.IGNORECASE)
 
 
-def _extract_repo_claims(issue_body: str) -> list[str]:
-    """Extract claims about repo facts (commands, skills, schemas, paths)."""
-    claims = []
-    sections = _extract_sections(issue_body)
-
-    # Include Allowed Paths section as per B6
-    for section_name in ["Outcome", "In Scope", "Acceptance Criteria", "Verification Commands", "Allowed Paths"]:
-        content = sections.get(section_name, "")
-        # B6: Also exclude fenced code for repo_claims
-        content = _remove_fenced_code(content)
-
-        for line in content.splitlines():
-            # Only extract lines that mention concrete repo elements (paths, scripts)
-            # NOT generic section headers like "## Verification Commands"
-            if any(
-                keyword in line.lower()
-                for keyword in [
-                    ".claude/",
-                    "src/",
-                    "docs/",
-                    "tests/",
-                    "scripts/",
-                    ".github/",
-                    "$ ",  # Shell commands
-                ]
+def _proposed_output_paths(lines: list[str]) -> set[str]:
+    """Collect the adjacent target list of a creation verb, not the whole sentence."""
+    proposed: set[str] = set()
+    for line in lines:
+        declaration = _NEW_OUTPUT_RE.search(line.strip())
+        if declaration is None:
+            continue
+        text = declaration.string
+        matches = list(PATH_PATTERN.finditer(text))
+        forward = declaration.start() == 0
+        candidates = (
+            [match for match in matches if match.start() >= declaration.end()]
+            if forward
+            else [match for match in reversed(matches) if match.end() <= declaration.start()]
+        )
+        previous = None
+        for target in candidates:
+            if (
+                previous is None
+                and forward
+                and _EVIDENCE_READ_RE.search(text[declaration.end() : target.start()])
             ):
-                stripped = line.strip()
-                if stripped and not stripped.startswith("# "):  # Exclude headers
-                    claims.append(stripped)
+                break
+            if previous is not None:
+                join = (
+                    text[previous.end() : target.start()]
+                    if forward
+                    else text[target.end() : previous.start()]
+                )
+                if not _OUTPUT_PATH_JOIN.fullmatch(join):
+                    break
+            proposed.update(_extract_paths_from_text(target.group(0)))
+            previous = target
+    return proposed
 
-    return claims
+
+def _extract_repo_evidence(issue_body: str) -> tuple[frozenset[str], list[str]]:
+    """Collect read targets and existing-behavior claims without deciding dispatch."""
+    sections = _extract_sections(issue_body)
+    lines: list[str] = []
+    for section in (*_EVIDENCE_SECTIONS, "Required Design References"):
+        if delta_iter_section_lines is None:
+            lines.extend(_remove_fenced_code(sections.get(section, "")).splitlines())
+        else:
+            lines.extend(
+                line.text
+                for line in delta_iter_section_lines(issue_body, section, semantic_only=True)
+            )
+    clauses = [clause for line in lines for clause in _contract_clauses(line)]
+    proposed = _proposed_output_paths(clauses)
+    targets: set[str] = set()
+    claims: list[str] = []
+    for line in lines:
+        for clause in _contract_clauses(line):
+            paths = _extract_paths_from_text(clause) - _proposed_output_paths([clause])
+            # A future deliverable is not an input unless explicitly requested as evidence.
+            if not _EVIDENCE_READ_RE.search(clause):
+                paths -= proposed
+            targets.update(paths)
+            if (
+                not clause.startswith("# ")
+                and _REPO_FACT_RE.search(clause)
+                and (paths or clause.startswith("$ "))
+            ):
+                if not claims or claims[-1] != line.strip():
+                    claims.append(line.strip())
+    return frozenset(targets), claims
+
+
+def _contract_clauses(line: str) -> list[str]:
+    line = _CONTRACT_ITEM_PREFIX_RE.sub("", _CONTRACT_COMMENT_RE.sub(" ", line), count=1)
+    return [clause.strip() for clause in _CONTRACT_CLAUSE_BOUNDARY.split(line) if clause.strip()]
+
+
+def _has_explicit_external_check(line: str) -> bool:
+    for clause in _contract_clauses(line):
+        clause = re.split(r",\s*not\b", clause, maxsplit=1, flags=re.IGNORECASE)[0]
+        subject = _EXTERNAL_SPEC_SUBJECT_RE.search(clause) or next(
+            (
+                match
+                for match in _NAMED_INTERFACE_RE.finditer(clause)
+                if not _LOCAL_INTERFACE_RE.fullmatch(match.group())
+            ),
+            None,
+        )
+        if subject is None:
+            continue
+        # Recorded inputs alone establish fixture behavior, not current external behavior.
+        if _RECORDED_EXTERNAL_EVIDENCE_RE.search(clause) and not (
+            _EXTERNAL_SPEC_SUBJECT_RE.search(clause) or _LIVE_EXTERNAL_SOURCE_RE.search(clause[:subject.start()])
+        ):
+            continue
+        existing_claim = _EXTERNAL_SPEC_DETAIL_RE.search(clause) and _EXTERNAL_SPEC_CLAIM_RE.search(
+            clause
+        )
+        directive = _EXTERNAL_SPEC_CHECK_RE.match(clause)
+        if existing_claim or (
+            directive
+            and directive.end() <= subject.start()
+            and _EXTERNAL_BEHAVIOR_DETAIL_RE.search(clause, subject.end())
+        ):
+            return True
+    return False
 
 
 def _extract_critical_external_claims(
@@ -1144,11 +1241,12 @@ def _extract_critical_external_claims(
     sections = _extract_sections(issue_body)
 
     # Check each section for external claims in issue body
-    for section_name in ["Outcome", "In Scope", "Acceptance Criteria", "Verification Commands", "Out of Scope"]:
+    for section_name in ["Outcome", "In Scope", "Acceptance Criteria", "Verification Commands"]:
         content = sections.get(section_name, "")
+        if section_name != "Verification Commands":
+            content = _remove_fenced_code(content)
         for line in content.splitlines():
-            line_lower = line.lower()
-            if any(keyword in line_lower for keyword in CRITICAL_EXTERNAL_KEYWORDS):
+            if _has_explicit_external_check(line):
                 claim = line.strip()
                 if claim:
                     claims.append(
@@ -1346,79 +1444,6 @@ def _compute_scope_signal_delta_result(known_context: dict) -> dict[str, Any]:
         raise ScopeSignalDeltaError(f"scope_signal_delta_input is invalid: {exc}") from exc
 
 
-_SCOPE_SIGNAL_LINE_PATH_TOKEN_RE = re.compile(
-    r"`([^`\n]+)`|((?:\.claude|docs|src|scripts|tests|\.github)/[^\s`]+)"
-)
-
-
-def _line_layer_prefixes(line: str, prefixes) -> set:
-    """Extract the set of known layer prefixes that a line's path tokens start with.
-
-    A single path token (backtick-quoted or bare) may contain more than one of
-    the known prefixes as an embedded substring (e.g. a test file nested under
-    a skill directory such as ".claude/skills/<skill>/tests/<file>.py" contains
-    both ".claude/" and "tests/"). Counting that as two independent layer
-    mentions is a false positive (Issue #1327). This helper instead extracts
-    whole path-like tokens and only attributes a prefix to a token when the
-    token itself *starts with* that prefix, so a prefix appearing mid-token
-    never counts as an additional layer.
-    """
-    found = set()
-    for match in _SCOPE_SIGNAL_LINE_PATH_TOKEN_RE.finditer(line):
-        candidate = (match.group(1) or match.group(2) or "").strip()
-        for prefix in prefixes:
-            if candidate.startswith(prefix):
-                found.add(prefix)
-                break
-    return found
-
-
-def _iter_section_source_lines(text: str, section_name: str) -> list[SourceLine]:
-    if delta_iter_section_lines is not None:
-        return delta_iter_section_lines(text, section_name, semantic_only=False)
-    lines: list[SourceLine] = []
-    current_section: str | None = None
-    in_fence = False
-    fence_char = ""
-    fence_len = 0
-
-    for index, line in enumerate(text.splitlines(), start=1):
-        stripped = line.strip()
-        if not in_fence:
-            if stripped.startswith("```") or stripped.startswith("~~~"):
-                fence_char = stripped[0]
-                fence_len = len(stripped) - len(stripped.lstrip(fence_char))
-                in_fence = True
-                if current_section == section_name:
-                    lines.append(SourceLine(index, line))
-                continue
-        else:
-            if stripped and all(ch == fence_char for ch in stripped) and len(stripped) >= fence_len:
-                in_fence = False
-                fence_char = ""
-                fence_len = 0
-                if current_section == section_name:
-                    lines.append(SourceLine(index, line))
-                continue
-            if current_section == section_name:
-                lines.append(SourceLine(index, line))
-            continue
-
-        if line.startswith("## "):
-            current_section = line[3:].strip()
-            continue
-        if current_section == section_name:
-            lines.append(SourceLine(index, line))
-
-    return lines
-
-
-def _iter_section_semantic_lines(text: str, section_name: str) -> list[SourceLine]:
-    if delta_iter_section_lines is not None:
-        return delta_iter_section_lines(text, section_name, semantic_only=True)
-    return _iter_section_source_lines(text, section_name)
-
-
 def _valid_scope_signal_source_ref(value: Any, *, issue_number: int | None) -> bool:
     if not isinstance(value, str) or not value:
         return False
@@ -1459,29 +1484,88 @@ def _has_valid_scope_signal_delta_input(
     return True
 
 
+def _validate_scope_comparison_binding(issue: dict, known_context: dict) -> None:
+    issue_number = issue["number"]
+    if not _has_valid_scope_signal_delta_input(issue_number, known_context):
+        raise ScopeSignalDeltaError("Invalid scope comparison source references")
+    payload = known_context["scope_signal_delta_input"]
+    if payload["current_body"] != issue["body"]:
+        raise ScopeSignalDeltaError("Scope comparison current_body does not match the Issue body")
+    expected_repo = _expected_repo_for_issue(issue, known_context)
+    for version in ("before", "current", "after"):
+        ref = payload["source_refs"].get(version)
+        if ref is None and version == "after" and payload["after_body"] == payload["current_body"]:
+            continue
+        fragment = parse_qs((ref or "").partition("#")[2])
+        repo = fragment.get("repo", [])
+        if (
+            fragment.get("issue_number") != [str(issue_number)]
+            or fragment.get("body_sha256") != [_sha256(payload[f"{version}_body"])]
+            or len(repo) != 1 or repo[0].count("/") != 1
+            or (expected_repo is not None and repo != [expected_repo])
+        ):
+            raise ScopeSignalDeltaError(f"Scope comparison {version} is not bound to its Issue, repo, and body")
+        expected_repo = repo[0]
+
+
+_COMPARISON_ACTION = re.compile(r"\bcompar(?:e|ing|ison)\b|比較|照合|差分", re.IGNORECASE)
+_PRIOR_VERSION = re.compile(r"\b(?:previous|prior|earlier|last)\b|前回|以前|直前|過去|旧", re.IGNORECASE)
+_COMPARISON_OBJECT = re.compile(
+    r"\b(?:bod(?:y|ies)|contracts?|snapshots?|scope|allowed paths)\b|本文|契約|スコープ|範囲|スナップショット",
+    re.IGNORECASE,
+)
+_OPTIONAL_COMPARISON = re.compile(
+    r"\b(?:not|no|never|without|unnecessary|optional|if available)\b|不要|必須ではない|行わない|しない|あれば",
+    re.IGNORECASE,
+)
+_REQUIREMENT_ACTION = re.compile(r"\b(?:must|required|mandatory)\b|必要|必須", re.IGNORECASE)
+# A prohibition on proceeding without a comparison makes it a prerequisite;
+# it is not a prohibition on comparing.
+_COMPARISON_PREREQUISITE = re.compile(r"\b(?:not|never)\b.+\bwithout\s*$", re.IGNORECASE)
+
+
+def _has_required_scope_comparison(text: str) -> bool:
+    clauses = _contract_clauses(text)
+    for index, clause in enumerate(clauses):
+        action = _COMPARISON_ACTION.search(clause)
+        prerequisite = action and _COMPARISON_PREREQUISITE.search(clause[:action.start()])
+        if not prerequisite and _OPTIONAL_COMPARISON.search(clause):
+            continue
+        if "scope_signal_delta_input" in clause and _REQUIREMENT_ACTION.search(clause):
+            return True
+        if not (
+            _COMPARISON_ACTION.search(clause)
+            and _PRIOR_VERSION.search(clause)
+            and _COMPARISON_OBJECT.search(clause)
+        ):
+            continue
+        # An immediately following qualification can refer back to the comparison.
+        if index + 1 < len(clauses):
+            following = clauses[index + 1]
+            if (
+                _COMPARISON_ACTION.search(following)
+                and not _PRIOR_VERSION.search(following)
+                and _OPTIONAL_COMPARISON.search(following)
+            ):
+                continue
+        return True
+    return False
+
+
 def _scope_signal_delta_required(issue_body: str, known_context: dict | None) -> bool:
-    if isinstance(known_context, dict) and "scope_signal_delta_required" in known_context:
-        return bool(known_context["scope_signal_delta_required"])
-    lowered = issue_body.lower()
-    return any(
-        token in lowered
-        for token in ("scope_signal_guard", "scope_signal_delta_input", "new_allowed_path_layer")
-    )
-
-
-def _requires_delta_fail_closed(
-    issue_number: int | None,
-    issue_body: str,
-    known_context: dict | None,
-) -> bool:
-    if not known_context:
-        return False
-    if not _scope_signal_delta_required(issue_body, known_context):
-        return False
-    current_phase = known_context.get("current_phase")
-    if current_phase not in _HARD_STOP_SCOPE_SIGNAL_PHASES:
-        return False
-    return not _has_valid_scope_signal_delta_input(issue_number, known_context)
+    if isinstance(known_context, dict) and known_context.get("scope_signal_delta_required"):
+        return True
+    for name, content in _extract_sections(issue_body).items():
+        if name == "Out of Scope":
+            continue
+        lines = (
+            (line.text for line in delta_iter_section_lines(issue_body, name, semantic_only=True))
+            if delta_iter_section_lines is not None
+            else _remove_fenced_code(content).splitlines()
+        )
+        if any(_has_required_scope_comparison(line) for line in lines):
+            return True
+    return False
 
 
 def _detect_scope_signals(
@@ -1505,9 +1589,9 @@ def _detect_scope_signals(
         issue_body = issue_number_or_body
         known_context = issue_body_or_known_context if isinstance(issue_body_or_known_context, dict) else None
 
-    if _requires_delta_fail_closed(issue_number, issue_body, known_context):
+    if "scope_signal_delta_input" not in (known_context or {}) and _scope_signal_delta_required(issue_body, known_context):
         raise ScopeSignalDeltaError(
-            "scope_signal_delta_input is required for new_allowed_path_layer in hard-stop phases",
+            "A required scope comparison has no valid scope_signal_delta_input",
             reason_code=SCOPE_SIGNAL_REASON_MISSING_DELTA_INPUT,
         )
 
@@ -1529,94 +1613,7 @@ def _detect_scope_signals(
             )
         return (False, SCOPE_SIGNAL_REASON_NO_SIGNAL, [])
 
-    evidence_spans = []
-    acceptance_criteria_lines = _iter_section_semantic_lines(issue_body, "Acceptance Criteria")
-    allowed_path_lines = _iter_section_semantic_lines(issue_body, "Allowed Paths")
-    in_scope_lines = _iter_section_semantic_lines(issue_body, "In Scope")
-
-    # Subjective keywords indicating unverifiable AC
-    subjective_keywords = [
-        "適切に", "品質を改善", "安定する", "改善する", "最適化", "高品質に",
-        "improve", "enhance", "optimize", "stabilize", "appropriately"
-    ]
-
-    # 1. Check new_unverifiable_ac (highest precedence)
-    for source_line in acceptance_criteria_lines:
-        line = source_line.text
-        if line.lstrip().startswith("- [ ]") or line.lstrip().startswith("- [x]"):
-            if any(kw in line for kw in subjective_keywords):
-                evidence_spans.append({
-                    "source": "issue_body",
-                    "source_ref": None,
-                    "start_line": source_line.number,
-                    "end_line": source_line.number,
-                    "text_sha256": _sha256(line),
-                })
-                # Check exclusion
-                excluded = _is_anchor_reframe_context(known_context)
-                if excluded:
-                    return (False, SCOPE_SIGNAL_REASON_ANCHOR_REFRAME, evidence_spans)
-                return (True, SCOPE_SIGNAL_REASON_NEW_UNVERIFIABLE_AC, evidence_spans)
-
-    # 2. Check new_allowed_path_layer
-    top_level_prefixes = set()
-    for source_line in allowed_path_lines:
-        match = re.search(r'`([^/`]+)/', source_line.text)
-        if match:
-            top_level_prefixes.add(match.group(1))
-
-    if len(top_level_prefixes) >= 2:
-        # Find evidence line
-        for source_line in allowed_path_lines:
-            line = source_line.text
-            if any(p in line for p in top_level_prefixes):
-                evidence_spans.append({
-                    "source": "issue_body",
-                    "source_ref": None,
-                    "start_line": source_line.number,
-                    "end_line": source_line.number,
-                    "text_sha256": _sha256(line),
-                })
-                break
-        excluded = _is_anchor_reframe_context(known_context)
-        if excluded:
-            return (False, SCOPE_SIGNAL_REASON_ANCHOR_REFRAME, evidence_spans)
-        return (True, SCOPE_SIGNAL_REASON_NEW_PATH_LAYER, evidence_spans)
-
-    # 3. Check new_in_scope_area
-    #
-    # Note: a single path token (e.g. a backtick-quoted or bare path) may
-    # contain more than one of the known prefixes as an embedded substring
-    # (for example ".claude/skills/<skill>/tests/<file>.py" contains both
-    # ".claude/" and "tests/"). Counting that as two independent layer
-    # mentions is a false positive (Issue #1327). We instead extract whole
-    # path-like tokens per line and only attribute a prefix to a token when
-    # the token itself *starts with* that prefix, so nested substrings
-    # within a single token never count as extra layers.
-    layer_prefixes_in_scope = set()
-    for source_line in in_scope_lines:
-        layer_prefixes_in_scope |= _line_layer_prefixes(
-            source_line.text, (".claude/", "docs/", "src/", "scripts/", "tests/", ".github/")
-        )
-
-    if len(layer_prefixes_in_scope) >= 2:
-        # Find evidence line
-        for source_line in in_scope_lines:
-            line = source_line.text
-            if _line_layer_prefixes(line, tuple(layer_prefixes_in_scope)):
-                evidence_spans.append({
-                    "source": "issue_body",
-                    "source_ref": None,
-                    "start_line": source_line.number,
-                    "end_line": source_line.number,
-                    "text_sha256": _sha256(line),
-                })
-                break
-        excluded = _is_anchor_reframe_context(known_context)
-        if excluded:
-            return (False, SCOPE_SIGNAL_REASON_ANCHOR_REFRAME, evidence_spans)
-        return (True, SCOPE_SIGNAL_REASON_NEW_IN_SCOPE, evidence_spans)
-
+    # A current body alone cannot establish that a scope element is new.
     return (False, SCOPE_SIGNAL_REASON_NO_SIGNAL, [])
 
 
@@ -2489,7 +2486,9 @@ def _build_fail_closed_rewrite_constraints(
     }
 
 
-def plan_refinement_loop(input_data: dict[str, Any]) -> tuple[dict[str, Any], int]:
+def plan_refinement_loop(
+    input_data: dict[str, Any], *, require_snapshot_binding: bool = False,
+) -> tuple[dict[str, Any], int]:
     """
     Main planner function.
 
@@ -2647,6 +2646,29 @@ def plan_refinement_loop(input_data: dict[str, Any]) -> tuple[dict[str, Any], in
         accumulated_missing_sections = _stable_sort_dedupe(accumulated_missing_sections)
         accumulated_missing_contract_keys = _stable_sort_dedupe(accumulated_missing_contract_keys)
 
+        scope_signal_delta_result = None
+        try:
+            if known_context and "scope_signal_delta_input" in known_context:
+                if require_snapshot_binding or _scope_signal_delta_required(
+                    issue_body, known_context
+                ):
+                    _validate_scope_comparison_binding(issue, known_context)
+                scope_signal_delta_result = _compute_scope_signal_delta_result(known_context)
+            scope_signal_triggered, scope_signal_reason, scope_signal_evidence = (
+                _detect_scope_signals(
+                    issue_number,
+                    issue_body,
+                    known_context,
+                    precomputed_delta=scope_signal_delta_result,
+                )
+            )
+        except ScopeSignalDeltaError as exc:
+            if not fail_closed_reasons:
+                raise
+            fail_closed_reasons.append(
+                getattr(exc, "reason_code", FAIL_CLOSED_REASON_AMBIGUOUS_SIGNAL)
+            )
+
         # Deduplicate reason_codes while preserving stable order.
         if fail_closed_reasons:
             fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
@@ -2712,27 +2734,20 @@ def plan_refinement_loop(input_data: dict[str, Any]) -> tuple[dict[str, Any], in
             )
 
         # Extract evidence
-        target_paths = _extract_paths_from_outcome_ac_vc(issue_body)
-        repo_claims = _extract_repo_claims(issue_body)
+        target_paths, repo_claims = _extract_repo_evidence(issue_body)
         critical_external_claims = _extract_critical_external_claims(issue_body, comments)
         unmaterialized_slots = _extract_unmaterialized_slots(issue_body)
         follow_up_candidates = _extract_follow_up_candidates(issue_body)
 
         # Determine investigation policy
-        investigation_required = bool(target_paths) or bool(repo_claims)
+        investigation_required = bool(repo_claims)
         investigation_reason = (
-            INVESTIGATION_REASON_TARGET_PATHS_PRESENT
-            if target_paths
-            else (
-                INVESTIGATION_REASON_REPO_FACT_CLAIM
-                if repo_claims
-                else INVESTIGATION_REASON_NO_REPO_FACT
-            )
+            INVESTIGATION_REASON_REPO_FACT_CLAIM if investigation_required else INVESTIGATION_REASON_NO_REPO_FACT
         )
 
         investigation_evidence = []
-        # B6: Add evidence if investigation is required (either from paths OR repo_claims)
-        if investigation_required:
+        # Evidence pointers remain available independently of dedicated dispatch.
+        if target_paths or repo_claims:
             investigation_evidence.append(
                 _create_evidence_span(
                     "issue_body",
@@ -2762,23 +2777,6 @@ def plan_refinement_loop(input_data: dict[str, Any]) -> tuple[dict[str, Any], in
                     source_ref=None,
                 )
             )
-
-        # Compute the scope_signal_delta result ONCE (fail-closed via
-        # ScopeSignalDeltaError) and share it between the legacy
-        # scope_signal_guard projection and the v2 lane split. A v2 build
-        # failure is NOT swallowed: it propagates to the fail-closed
-        # internal-error plan instead of silently omitting the artifact.
-        scope_signal_delta_result = None
-        if known_context and "scope_signal_delta_input" in known_context:
-            scope_signal_delta_result = _compute_scope_signal_delta_result(known_context)
-
-        # Determine scope signal guard using _detect_scope_signals
-        scope_signal_triggered, scope_signal_reason, scope_signal_evidence = _detect_scope_signals(
-            issue_number,
-            issue_body,
-            known_context,
-            precomputed_delta=scope_signal_delta_result,
-        )
 
         # AC1/AC10 (#1090): opt-in SCOPE_SIGNAL_GUARD_DECISION_V2 lane split.
         # Only computed when known_context carries scope_signal_delta_input,
@@ -3131,7 +3129,7 @@ def main(argv: list[str] | None = None) -> None:
         print(json.dumps(fail_closed_plan, ensure_ascii=False, indent=2, allow_nan=False))
         sys.exit(2)
 
-    plan, exit_code = plan_refinement_loop(input_data)
+    plan, exit_code = plan_refinement_loop(input_data, require_snapshot_binding=True)
 
     # Output JSON to stdout (no prose/markdown)
     output_text = json.dumps(plan, ensure_ascii=False, indent=2, allow_nan=False)
