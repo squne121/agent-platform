@@ -5263,7 +5263,9 @@ def _find_previous_immutable_snapshot(
     return snapshot, _snapshot_source_ref(path, snapshot)
 
 
-def _approved_scope_baseline_digest(comments: list[dict[str, Any]], repo: str, issue_number: int) -> str | None:
+def _approved_scope_baseline(
+    comments: list[dict[str, Any]], repo: str, issue_number: int
+) -> tuple[str | None, bool]:
     import importlib.util
 
     issue_url = f"https://github.com/{repo}/issues/{issue_number}"
@@ -5272,25 +5274,54 @@ def _approved_scope_baseline_digest(comments: list[dict[str, Any]], repo: str, i
         if not isinstance(comment, dict) or not isinstance(comment.get("user"), dict):
             continue
         comment_id = comment.get("id")
-        if type(comment_id) is not int or comment.get("html_url") != f"{issue_url}#issuecomment-{comment_id}":
+        if (
+            type(comment_id) is not int
+            or comment.get("html_url") != f"{issue_url}#issuecomment-{comment_id}"
+        ):
             continue
-        if not isinstance(comment.get("body"), str) or "CONTRACT_REVIEW_RESULT_V1" not in comment["body"]:
+        if (
+            not isinstance(comment.get("body"), str)
+            or "CONTRACT_REVIEW_RESULT_V1" not in comment["body"]
+        ):
             continue
         user = comment["user"]
-        normalized.append({**comment, "author": user.get("login"), "author_id": user.get("id"), "author_type": user.get("type")})
+        normalized.append(
+            {
+                **comment,
+                "author": user.get("login"),
+                "author_id": user.get("id"),
+                "author_type": user.get("type"),
+            }
+        )
     if not normalized:
-        return None
-    path = Path(__file__).resolve().parents[2] / "issue-contract-review" / "scripts" / "contract_review_result_parser.py"
+        return None, False
+    path = (
+        Path(__file__).resolve().parents[2]
+        / "issue-contract-review"
+        / "scripts"
+        / "contract_review_result_parser.py"
+    )
     spec = importlib.util.spec_from_file_location("contract_review_result_parser", path)
     if spec is None or spec.loader is None:
         raise ImportError("contract review result parser unavailable")
     parser = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(parser)
     results = parser.parse_contract_review_results(normalized, expected_issue_url=issue_url)
+    adoptable = [
+        result
+        for result in results
+        if result["status"] != "go" or result.get("is_fingerprint_ready")
+    ]
+    latest = parser.find_latest_result(adoptable, trusted_only=True)
+    revoked = bool(latest and latest["status"] == "blocked")
     selected = parser.find_latest_authoritative_go(results)
     if selected is None:
-        return None
-    return selected["inner"]["expected_contract_fingerprint"]["contract_body_sha256"].removeprefix("sha256:")
+        return None, revoked
+    # When revoked, this digest detects a changed contract only. It must not
+    # select an approved comparison source.
+    return selected["inner"]["expected_contract_fingerprint"]["contract_body_sha256"].removeprefix(
+        "sha256:"
+    ), revoked
 
 
 def _ensure_scope_signal_delta_input(
@@ -5307,13 +5338,29 @@ def _ensure_scope_signal_delta_input(
     merged.setdefault("current_phase", "preflight")
     supplied = "scope_signal_delta_input" in merged
     current_body = issue.get("body", "") or ""
-    approved_body_sha256 = _approved_scope_baseline_digest(comments or [], repo, issue_number)
-    previous_snapshot = _find_previous_immutable_snapshot(
-        repo_root, issue_number, repo, raw_snapshot, approved_body_sha256,
+    approved_body_sha256, revoked = _approved_scope_baseline(comments or [], repo, issue_number)
+    if revoked:
+        # Do not let supersession erase a known difference. The prior GO is
+        # not a source of authority, so a changed retained body means write-zero.
+        retained = _find_previous_immutable_snapshot(repo_root, issue_number, repo, raw_snapshot)
+        if retained is not None and _snapshot_body(retained[0]) != current_body:
+            merged["scope_signal_delta_required"] = True
+    previous_snapshot = (
+        None
+        if revoked
+        else _find_previous_immutable_snapshot(
+            repo_root,
+            issue_number,
+            repo,
+            raw_snapshot,
+            approved_body_sha256,
+        )
     )
     if previous_snapshot is None:
         if supplied:
-            merged["scope_signal_delta_input"] = None  # No retained source can bind the supplied comparison.
+            merged["scope_signal_delta_input"] = (
+                None  # No retained source can bind the supplied comparison.
+            )
         elif approved_body_sha256 is not None and approved_body_sha256 != _sha256(current_body):
             merged["scope_signal_delta_required"] = True
         return merged
@@ -5332,7 +5379,9 @@ def _ensure_scope_signal_delta_input(
         },
     }
     merged["scope_signal_delta_input"] = (
-        None if supplied and merged["scope_signal_delta_input"] != bound_comparison else bound_comparison
+        None
+        if supplied and merged["scope_signal_delta_input"] != bound_comparison
+        else bound_comparison
     )
     return merged
 
@@ -7390,6 +7439,14 @@ def consume_trusted_anchor_contract_patch_plan(
             "iterations": 0,
         }
 
+    def blocked(reason: str) -> dict:
+        return {"status": "blocked", "failure": reason, "writes": 0, "iterations": 0}
+
+    if contract_patch_plan is not None and (
+        not isinstance(contract_patch_plan, dict) or "operations" not in contract_patch_plan
+    ):
+        return blocked("invalid_contract_patch_plan")
+
     # #2048 Scope Delta: join the trusted structured scope-reframe
     # classification (`known_context["scope_delta_decision"]`, produced by
     # `_classify_anchor_scope_reframe()` further up the call chain) to this
@@ -7419,6 +7476,181 @@ def consume_trusted_anchor_contract_patch_plan(
             "iterations": 0,
         }
 
+    from plan_refinement_loop import (
+        ScopeSignalDeltaError,
+        _extract_critical_external_claims,
+        _extract_repo_evidence,
+        _is_security_sensitive_scope_delta,
+        _scope_signal_delta_required,
+        _validate_scope_comparison_binding,
+    )
+    from scope_signal_delta import compute_scope_signal_delta
+
+    body = issue.get("body")
+    if (
+        not isinstance(body, str)
+        or (known_context is not None and not isinstance(known_context, dict))
+        or issue.get("number", issue_number) != issue_number
+        or issue.get("url", f"https://github.com/{repo}/issues/{issue_number}") not in {
+            f"https://github.com/{repo}/issues/{issue_number}",
+            f"https://api.github.com/repos/{repo}/issues/{issue_number}",
+        }
+    ):
+        return blocked("invalid_contract_patch_plan_binding")
+    context = known_context or {}
+    if _validated_allowed_path_deltas:
+        reframe = _classify_anchor_scope_reframe(
+            comment_payload=anchor_payload, anchor_body=anchor_body, repo=repo,
+            issue_number=issue_number, anchor_url=anchor_url,
+        )
+        if (reframe.get("status") != "approved_by_trusted_anchor"
+                or reframe.get("allowed_path_deltas") != _validated_allowed_path_deltas):
+            return blocked("invalid_scope_delta_decision_binding")
+    repo_root = _find_repo_root()
+    latest = _load_valid_issue_snapshot(
+        _issue_artifact_dir(repo_root, issue_number) / "raw_issue_snapshot.json", issue_number, repo,
+    )
+    comparison = context.get("scope_signal_delta_input")
+    if "scope_signal_delta_input" in context:
+        try:
+            _validate_scope_comparison_binding({"number": issue_number, "body": body}, {**context, "repo": repo})
+            ref = comparison["source_refs"]["current"]
+            path = Path(ref.removeprefix("artifact:").partition("#")[0])
+            archive_root = _snapshot_archive_dir(repo_root, issue_number).resolve()
+            if not ref.startswith("artifact:") or path.resolve().parent != archive_root:
+                return blocked("ambiguous_scope_signal")
+            snapshot = _load_valid_issue_snapshot(path, issue_number, repo)
+            if (
+                snapshot is None or _snapshot_body(snapshot) != body
+                or snapshot["issue"].get("updatedAt") != issue.get("updatedAt")
+                or ref != _snapshot_source_ref(path, snapshot)
+                or not isinstance(snapshot.get("comments"), list)
+            ):
+                return blocked("ambiguous_scope_signal")
+            # An Issue-body timestamp does not cover comments. Re-select
+            # authority using the newest retained complete comment readback.
+            comment_snapshot = snapshot
+            if latest and isinstance(latest.get("comments"), list) and (
+                datetime.fromisoformat(_snapshot_fetched_at(latest))
+                >= datetime.fromisoformat(_snapshot_fetched_at(snapshot))
+            ):
+                comment_snapshot = latest
+            if _approved_scope_baseline(comment_snapshot["comments"], repo, issue_number)[1]:
+                return blocked("missing_scope_signal_delta_input")
+            retained = _ensure_scope_signal_delta_input(
+                repo_root=repo_root, issue=issue, raw_snapshot=snapshot, known_context=context,
+                issue_number=issue_number, repo=repo, comments=comment_snapshot["comments"],
+            )
+            if retained.get("scope_signal_delta_input") != comparison:
+                return blocked("ambiguous_scope_signal")
+        except (ScopeSignalDeltaError, KeyError, TypeError, ValueError, OSError):
+            return blocked("ambiguous_scope_signal")
+    else:
+        if _scope_signal_delta_required(body, context):
+            return blocked("missing_scope_signal_delta_input")
+        # Absence of a caller flag is not absence of retained history.
+        retained = _find_previous_immutable_snapshot(
+            repo_root, issue_number, repo, {"fetched_at": _now_iso()},
+        )
+        comments = latest.get("comments") if latest else None
+        digest, _ = _approved_scope_baseline(comments, repo, issue_number) if isinstance(comments, list) else (None, False)
+        if (retained is not None and _snapshot_body(retained[0]) != body) or (
+            digest is not None and digest != _sha256(body)
+        ):
+            return blocked("missing_scope_signal_delta_input")
+
+    historical_delta = compute_scope_signal_delta(comparison) if comparison is not None else None
+    historical_paths = historical_delta["sections"]["allowed_paths"]["added"] if historical_delta else []
+    if _is_security_sensitive_scope_delta([*historical_paths, *(_validated_allowed_path_deltas or [])], None):
+        return blocked("security_risk_gate_required")
+
+    # Empty plans still go through the two existing editor lanes. A nonempty
+    # plan is only a proposal: recover the operations from the bound anchor.
+    if _raw_operations:
+        from scope_signal_delta import (
+            build_section_aware_candidate_body,
+            classify_scope_delta_authority,
+            normalize_trusted_anchor_iteration_zero,
+        )
+
+        if (
+            anchor_payload.get("body") != anchor_body
+            or anchor_payload.get("html_url") != anchor_url
+            or anchor_payload.get("issue_url") != f"https://api.github.com/repos/{repo}/issues/{issue_number}"
+            or not isinstance(anchor_payload.get("user"), dict)
+            or anchor_payload["user"].get("type") != "User"
+            or not normalize_trusted_anchor_iteration_zero(
+                repo=repo, issue_number=issue_number, anchor=anchor_payload, source_body=anchor_body,
+            )["accepted"]
+            or contract_patch_plan.get("schema_version") != "CONTRACT_PATCH_PLAN_V1"
+            or contract_patch_plan.get("target_issue_number") != issue_number
+            or contract_patch_plan.get("base_issue_body_sha256") != _sha256(body)
+        ):
+            return blocked("invalid_contract_patch_plan_binding")
+
+        supplied_evidence = contract_patch_plan.get("source_evidence")
+        captured = supplied_evidence[0] if isinstance(supplied_evidence, list) and len(supplied_evidence) == 1 else {}
+        evidence = _build_scope_delta_authority_evidence(
+            comment_payload=anchor_payload, comment_body=anchor_body, repo=repo, issue_number=issue_number,
+            anchor_url=anchor_url, captured_at=captured.get("captured_at", "") if isinstance(captured, dict) else "",
+            human_context_comment_urls=context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
+            agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
+        )
+        authority = classify_scope_delta_authority(
+            [evidence] if evidence else [], source_body=anchor_body, target_issue_number=issue_number,
+            expected_repo=repo, base_issue_body_sha256=_sha256(body),
+        )
+        canonical_plan = authority.get("contract_patch_plan")
+        authorized = set()
+        if _validated_allowed_path_deltas:
+            authorized.update(("Allowed Paths", f"- `{path}`") for path in _validated_allowed_path_deltas)
+        if not (authorized and supplied_evidence == []):
+            if (not canonical_plan or not isinstance(captured, dict) or not isinstance(captured.get("captured_at"), str)
+                    or not captured["captured_at"] or supplied_evidence != canonical_plan["source_evidence"]):
+                return blocked("invalid_contract_patch_plan_binding")
+            authorized = {(op["section"], op["text"]) for op in canonical_plan["operations"]}
+        if any(
+            not is_safe_contract_patch_append(op, anchor_body=anchor_body)
+            or set(op) - {"section", "op", "text", "rationale", "source_evidence_index"}
+            or type(op.get("source_evidence_index")) is not int or op["source_evidence_index"] != 0
+            for op in _raw_operations
+        ) or {(op["section"], op["text"]) for op in _raw_operations} != authorized:
+            return blocked("unsafe_unstructured_patch_operation")
+
+        try:
+            candidate_body = build_section_aware_candidate_body(
+                body=body, operations=_raw_operations, source_identity={},
+            )["candidate_body"]
+        except (ValueError, TypeError):
+            return blocked("unsafe_unstructured_patch_operation")
+        if comparison is None and _scope_signal_delta_required(candidate_body, context):
+            return blocked("missing_scope_signal_delta_input")
+        candidate_comparison = {
+            "before_body": body, "current_body": body, "after_body": candidate_body,
+            "source_refs": dict.fromkeys(("before", "current", "after")),
+        }
+        # Check both retained history and the exact change about to be proposed.
+        for delta in (historical_delta, compute_scope_signal_delta(candidate_comparison)):
+            if delta is None:
+                continue
+            added = delta["sections"]["allowed_paths"]["added"]
+            if _is_security_sensitive_scope_delta(added, "\n".join(op["text"] for op in _raw_operations)):
+                return blocked("security_risk_gate_required")
+            explicit_paths = {text.removeprefix("- `").removesuffix("`") for section, text in authorized
+                              if section == "Allowed Paths"}
+            if (set(added) - explicit_paths or any(
+                signal["triggered"] and not (added and set(added) <= explicit_paths
+                                              and signal["reason_code"] == "new_allowed_path_layer")
+                for signal in delta["signals"]
+            )):
+                return blocked("scope_expansion_requires_review")
+        if candidate_body != body and (
+            _extract_critical_external_claims(candidate_body, [anchor_payload])
+            or _extract_critical_external_claims(body)
+            or any(any(_extract_repo_evidence(version)) for version in (body, candidate_body))
+        ):
+            return blocked("required_contract_evidence_unverified")
+
     # PR #2623 review fix (P1 finding 2): `fetch_current()` is hoisted
     # above the #2620 freeform editor-route branch below so that branch can
     # perform its own fresh, independent GitHub re-read immediately before
@@ -7428,10 +7660,15 @@ def consume_trusted_anchor_contract_patch_plan(
     # the SAME primitive (and the SAME `callbacks["fetch_current"]`
     # injection point) `run_trusted_anchor_iteration_zero()` is given below;
     # no new GitHub access layer is introduced.
+    body_drifted = False
+
     def fetch_current() -> tuple[dict, dict]:
+        nonlocal body_drifted
         injected = callbacks.get("fetch_current")
         if injected is not None:
-            return injected()
+            fresh_issue, fresh_anchor = injected()
+            body_drifted = fresh_issue.get("body") != body
+            return fresh_issue, fresh_anchor
         current_issue, issue_error = _fetch_issue(repo, issue_number)
         if current_issue is None:
             raise RuntimeError(f"issue_readback_failed:{issue_error}")
@@ -7439,6 +7676,7 @@ def consume_trusted_anchor_contract_patch_plan(
         current_anchor, anchor_error = _fetch_single_comment(repo, int(comment_id))
         if current_anchor is None:
             raise RuntimeError(f"anchor_readback_failed:{anchor_error}")
+        body_drifted = current_issue.get("body") != body
         current_anchor = dict(current_anchor)
         current_anchor["html_url"] = anchor_url
         current_anchor["source_body_sha256"] = f"sha256:{_sha256(current_anchor.get('body', ''))}"
@@ -7544,6 +7782,8 @@ def consume_trusted_anchor_contract_patch_plan(
         )
 
     def candidate_readiness(candidate_body: str) -> dict:
+        if body_drifted:
+            return {"status": "blocked"}
         injected = callbacks.get("candidate_readiness")
         if injected is not None:
             return injected(candidate_body)
@@ -7639,12 +7879,16 @@ def consume_trusted_anchor_contract_patch_plan(
         if injected is not None:
             return injected(current_issue)
         readiness = candidate_readiness(current_issue.get("body", ""))
+        # The previous comparison is bound to the pre-mutation body. Rebuild
+        # it from the existing snapshot selector for the fresh readback.
+        fresh_context = dict(known_context or {})
+        fresh_context.pop("scope_signal_delta_input", None)
         with contextlib.redirect_stdout(io.StringIO()):
             preflight_result, _ = run_preflight(
                 issue_number=issue_number,
                 repo=repo,
                 anchor_comment_urls=[anchor_url],
-                known_context=known_context,
+                known_context=fresh_context,
                 consume_contract_patch_plan=False,
             )
         with tempfile.NamedTemporaryFile(mode="w", suffix=".md", encoding="utf-8", delete=False) as handle:
@@ -9465,6 +9709,8 @@ def run_preflight(
             and anchor_body_for_consumer is not None
             and anchor_url_for_consumer is not None
         ):
+            if known_context.get("scope_signal_delta_input"):
+                _materialize_immutable_snapshot(repo_root, issue_number, raw_snapshot)
             consumer_result = consume_trusted_anchor_contract_patch_plan(
                 repo=repo,
                 issue_number=issue_number,

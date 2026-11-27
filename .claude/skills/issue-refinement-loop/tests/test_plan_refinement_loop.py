@@ -970,9 +970,23 @@ class TestAC2ContractMalformedSeparatePath:
     [
         ("Update the existing `scripts/check.py`; the authority is the recorded internal CLI result.", False, False),
         ("Record GitHub CLI output as local evidence.", False, False),
+        ("Check recorded GitHub CLI output as local evidence.", False, False),
+        ("Check GitHub API pagination before implementation.", False, True),
+        ("Do not check GitHub API pagination in this task.", False, False),
+        ("Check recorded GitHub API pagination output as local evidence.", False, False),
+        ("Check the local cache; do not check GitHub API pagination.", False, False),
+        ("Check GitHub API output. Do not check pagination.", False, False),
+        ("Check GitHub API pagination before updating the local adapter.", False, True),
+        ("Check GitHub API pagination using only the recorded fixture.", False, False),
+        ("Check GitHub API output, not pagination.", False, False),
+        ("Published documentation に従いschemaを検証する。", False, True),
         ("`scripts/check.py` currently rejects invalid input; confirm this existing behavior.", True, False),
         ("GitHub API rate limit behavior must match published documentation.", False, True),
         ("Verify that AWS CLI accepts this authentication option.", False, True),
+        ("Verify that the npm CLI accepts this authentication option.", False, True),
+        ("Verify GitHub CLI behavior using only the recorded fixture.", False, False),
+        ("Confirm that live GitHub API pagination matches the recorded fixture.", False, True),
+        ("Verify GitHub CLI behavior in official documentation; keep a recorded fixture.", False, True),
         ("Verify that ExampleCloud CLI accepts this authentication option.", False, True),
     ],
 )
@@ -1012,17 +1026,36 @@ def test_i127_required_comparison_missing_even_without_phase(context):
     ("note", "required"),
     [
         ("Compare current Allowed Paths with the previous version.", True),
+        ("Compare with the previous contract; do not rely on labels.", True),
+        ("Compare the current and previous issue bodies.", True),
+        ("Do not update the Issue without comparing the current and previous issue bodies.", True),
+        ("Compare the previous contract with the current contract; do not modify the Issue.", True),
+        ("Do not compare with the previous body; report the current contract.", False),
+        ("Compare the previous contract with the current contract, and do not modify the Issue.", True),
+        ("Compare (e.g. using a table) the previous contract against the current one.", True),
+        ("Compare the previous body; the comparison is optional.", False),
+        ("Compare the reported paths against the current contract; do not modify the previous snapshot.", False),
+        ("scope_signal_delta_input must be supplied before updating; do not modify the Issue.", True),
+        ("Do not modify the Issue; compare the previous contract with the current contract.", True),
         ("前回のスコープとの差分を確認する。", True),
         ("Do not compare with the previous body.", False),
         ("If available, compare with the previous body.", False),
         ("scope_signal_delta_input must be supplied before updating.", True),
         ("Inspect the current scope_signal_guard output.", False),
-        ("```text\nCompare with the previous contract.\n```", False),
+        ("Review the current contract.\n\n```text\nCompare with the previous contract.\n```", False),
     ],
 )
-def test_i127_distinguishes_history_directives_from_mentions(note, required):
+@pytest.mark.parametrize(
+    ("section", "prefix"),
+    [
+        ("Notes for Reviewer", ""),
+        ("Acceptance Criteria", "- [ ] AC1: "),
+        ("Acceptance Criteria", "- [ ] AC1: <!-- runtime-verification: true --> "),
+    ],
+)
+def test_i127_distinguishes_history_directives_from_mentions(note, required, section, prefix):
     data = fixture_to_input("no_repo_fact_claim", "negative", 7)
-    data["issue"]["body"] += f"\n## Notes for Reviewer\n{note}\n"
+    data["issue"]["body"] += f"\n## {section}\n{prefix}{note}\n"
     output, code = run_planner(data)
     assert code == 0
     assert ("missing_scope_signal_delta_input" in output["fail_closed"]["reason_codes"]) is required
@@ -1041,6 +1074,41 @@ def test_i127_preserves_existing_evidence_on_new_output_line():
     assert not policy["required"]
     assert "docs/spec.md" in policy["target_paths"]
     assert {"scripts/new.py", "scripts/other.py"}.isdisjoint(policy["target_paths"])
+
+
+@pytest.mark.parametrize("malformed_delta", [False, True])
+def test_i127_keeps_comparison_reason_with_structural_error(malformed_delta):
+    data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+    data["issue"]["body"] = data["issue"]["body"].replace("## Outcome", "## Renamed Outcome")
+    data["issue"]["body"] += (
+        "\n## Acceptance Criteria\n"
+        "- [ ] AC1: <!-- runtime-verification: true --> Compare the current and previous issue bodies.\n"
+    )
+    if malformed_delta:
+        data["known_context"] = {"scope_signal_delta_input": None}
+    plan, code = run_planner(data)
+    assert code == 0
+    assert plan["fail_closed"]["required"]
+    assert "missing_required_section" in plan["fail_closed"]["reason_codes"]
+    assert ("ambiguous_scope_signal" if malformed_delta else "missing_scope_signal_delta_input") in plan["fail_closed"]["reason_codes"]
+
+
+def test_i127_evidence_clauses_do_not_inherit_output_classification():
+    data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+    data["issue"]["body"] += (
+        "\n## Outcome\n"
+        "- [ ] AC1: <!-- runtime-verification: true --> Create the report in `docs/report.md`.\n"
+        "- Add a check using existing `docs/source.md` as evidence.\n"
+        "- Create `scripts/result.py`; `scripts/check.py` rejects invalid input.\n"
+        "- Read `docs/report.md` as required retained evidence.\n"
+    )
+    plan, code = run_planner(data)
+    assert code == 0
+    policy = plan["decisions"]["investigation_policy"]
+    assert policy["required"]
+    assert any("`scripts/check.py` rejects invalid input" in claim for claim in policy["repo_claims"])
+    assert {"docs/report.md", "docs/source.md", "scripts/check.py"} <= set(policy["target_paths"])
+    assert "scripts/result.py" not in policy["target_paths"]
 
 
 class TestScopeSignalDeltaPlannerIntegration:

@@ -573,8 +573,10 @@ _EXTERNAL_SPEC_SUBJECT_RE = re.compile(
     r"(?:external|upstream) (?:api|cli|spec\w*))\b|公式(?:の)?(?:API|CLI|仕様|ドキュメント)|外部仕様|提供元の仕様",
     re.IGNORECASE,
 )
-_NAMED_INTERFACE_RE = re.compile(r"\b[A-Z][A-Za-z0-9.+_-]+\s+(?:API|CLI)\b")
-_LOCAL_INTERFACE_RE = re.compile(r"\b(?:repository[- ]local|internal|local)\s+(?:API|CLI)\b", re.IGNORECASE)
+_NAMED_INTERFACE_RE = re.compile(r"\b[A-Za-z][A-Za-z0-9.+_-]*\s+(?:API|CLI)\b")
+_LOCAL_INTERFACE_RE = re.compile(
+    r"\b(?:repository[- ]local|internal|local|the|an?|existing|current|recorded)\s+(?:API|CLI)\b", re.IGNORECASE
+)
 _NEW_OUTPUT_RE = re.compile(
     r"^(?:[-*]\s+)?(?:add|create|introduce|generate)\s|を(?:新規)?(?:追加|作成|生成)する", re.IGNORECASE,
 )
@@ -582,6 +584,29 @@ _EVIDENCE_SECTIONS = ("Outcome", "In Scope", "Acceptance Criteria", "Verificatio
 _EXTERNAL_SPEC_DETAIL_RE = re.compile(
     r"(?<![a-z0-9_])(?:apis?|cli|auth(?:entication|orization)?|migration|specification|"
     r"behaviou?r|compatibility|rate limit|schema)(?![a-z0-9_])|仕様|挙動|認証|互換", re.IGNORECASE,
+)
+_CONTRACT_ITEM_PREFIX_RE = re.compile(
+    r"^\s*(?:[-*+]\s+|\d+[.)]\s+)?(?:\[[ xX]\]\s*)?(?:AC\s*\d+\s*:\s*)?", re.IGNORECASE,
+)
+_EXTERNAL_SPEC_CHECK_RE = re.compile(
+    r"^(?:check|confirm)\s+(?:(?:the|that|whether)\s+)?", re.IGNORECASE,
+)
+_EXTERNAL_BEHAVIOR_DETAIL_RE = re.compile(
+    r"(?<![a-z0-9_])(?:auth(?:entication|orization)?|migration|specification|"
+    r"behaviou?r|compatibility|rate limit|pagination|schema)(?![a-z0-9_])|仕様|挙動|認証|互換", re.IGNORECASE,
+)
+_CONTRACT_CLAUSE_BOUNDARY = re.compile(
+    r"[;；。！？]|(?<!\be\.g\.)(?<!\bi\.e\.)(?<=[.!?])\s+|,\s+(?=(?:and|but)\s)",
+    re.IGNORECASE,
+)
+_CONTRACT_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_EVIDENCE_READ_RE = re.compile(
+    r"\b(?:read|consult|inspect|existing|as evidence)\b|既存|参照|証拠", re.IGNORECASE
+)
+_LIVE_EXTERNAL_SOURCE_RE = re.compile(r"\b(?:live|upstream)\b|実環境|実機", re.IGNORECASE)
+_RECORDED_EXTERNAL_EVIDENCE_RE = re.compile(
+    r"\b(?:recorded|cached|local)\s+(?:output|responses?|results?|records?|evidence|cache|traces?|artifacts?|fixtures?)\b",
+    re.IGNORECASE,
 )
 _EXTERNAL_SPEC_CLAIM_RE = re.compile(
     r"(?<![a-z0-9_])(?:verify|verification|validate|validation|specification|spec|documentation|"
@@ -1115,12 +1140,23 @@ def _proposed_output_paths(lines: list[str]) -> set[str]:
         forward = declaration.start() == 0
         candidates = (
             [match for match in matches if match.start() >= declaration.end()]
-            if forward else [match for match in reversed(matches) if match.end() <= declaration.start()]
+            if forward
+            else [match for match in reversed(matches) if match.end() <= declaration.start()]
         )
         previous = None
         for target in candidates:
+            if (
+                previous is None
+                and forward
+                and _EVIDENCE_READ_RE.search(text[declaration.end() : target.start()])
+            ):
+                break
             if previous is not None:
-                join = text[previous.end():target.start()] if forward else text[target.end():previous.start()]
+                join = (
+                    text[previous.end() : target.start()]
+                    if forward
+                    else text[target.end() : previous.start()]
+                )
                 if not _OUTPUT_PATH_JOIN.fullmatch(join):
                     break
             proposed.update(_extract_paths_from_text(target.group(0)))
@@ -1132,26 +1168,69 @@ def _extract_repo_evidence(issue_body: str) -> tuple[frozenset[str], list[str]]:
     """Collect read targets and existing-behavior claims without deciding dispatch."""
     sections = _extract_sections(issue_body)
     lines: list[str] = []
-    for section in _EVIDENCE_SECTIONS:
+    for section in (*_EVIDENCE_SECTIONS, "Required Design References"):
         if delta_iter_section_lines is None:
             lines.extend(_remove_fenced_code(sections.get(section, "")).splitlines())
         else:
-            lines.extend(line.text for line in delta_iter_section_lines(issue_body, section, semantic_only=True))
-    proposed = _proposed_output_paths(lines)
+            lines.extend(
+                line.text
+                for line in delta_iter_section_lines(issue_body, section, semantic_only=True)
+            )
+    clauses = [clause for line in lines for clause in _contract_clauses(line)]
+    proposed = _proposed_output_paths(clauses)
     targets: set[str] = set()
     claims: list[str] = []
     for line in lines:
-        stripped = line.strip()
-        paths = _extract_paths_from_text(stripped) - proposed
-        targets.update(paths)
-        if (
-            not stripped.startswith("# ")
-            and not _NEW_OUTPUT_RE.search(stripped)
-            and _REPO_FACT_RE.search(stripped)
-            and (paths or stripped.startswith("$ "))
-        ):
-            claims.append(stripped)
+        for clause in _contract_clauses(line):
+            paths = _extract_paths_from_text(clause) - _proposed_output_paths([clause])
+            # A future deliverable is not an input unless explicitly requested as evidence.
+            if not _EVIDENCE_READ_RE.search(clause):
+                paths -= proposed
+            targets.update(paths)
+            if (
+                not clause.startswith("# ")
+                and _REPO_FACT_RE.search(clause)
+                and (paths or clause.startswith("$ "))
+            ):
+                if not claims or claims[-1] != line.strip():
+                    claims.append(line.strip())
     return frozenset(targets), claims
+
+
+def _contract_clauses(line: str) -> list[str]:
+    line = _CONTRACT_ITEM_PREFIX_RE.sub("", _CONTRACT_COMMENT_RE.sub(" ", line), count=1)
+    return [clause.strip() for clause in _CONTRACT_CLAUSE_BOUNDARY.split(line) if clause.strip()]
+
+
+def _has_explicit_external_check(line: str) -> bool:
+    for clause in _contract_clauses(line):
+        clause = re.split(r",\s*not\b", clause, maxsplit=1, flags=re.IGNORECASE)[0]
+        subject = _EXTERNAL_SPEC_SUBJECT_RE.search(clause) or next(
+            (
+                match
+                for match in _NAMED_INTERFACE_RE.finditer(clause)
+                if not _LOCAL_INTERFACE_RE.fullmatch(match.group())
+            ),
+            None,
+        )
+        if subject is None:
+            continue
+        # Recorded inputs alone establish fixture behavior, not current external behavior.
+        if _RECORDED_EXTERNAL_EVIDENCE_RE.search(clause) and not (
+            _EXTERNAL_SPEC_SUBJECT_RE.search(clause) or _LIVE_EXTERNAL_SOURCE_RE.search(clause[:subject.start()])
+        ):
+            continue
+        existing_claim = _EXTERNAL_SPEC_DETAIL_RE.search(clause) and _EXTERNAL_SPEC_CLAIM_RE.search(
+            clause
+        )
+        directive = _EXTERNAL_SPEC_CHECK_RE.match(clause)
+        if existing_claim or (
+            directive
+            and directive.end() <= subject.start()
+            and _EXTERNAL_BEHAVIOR_DETAIL_RE.search(clause, subject.end())
+        ):
+            return True
+    return False
 
 
 def _extract_critical_external_claims(
@@ -1167,10 +1246,7 @@ def _extract_critical_external_claims(
         if section_name != "Verification Commands":
             content = _remove_fenced_code(content)
         for line in content.splitlines():
-            external_subject = _EXTERNAL_SPEC_SUBJECT_RE.search(line) or any(
-                not _LOCAL_INTERFACE_RE.fullmatch(match.group()) for match in _NAMED_INTERFACE_RE.finditer(line)
-            )
-            if external_subject and _EXTERNAL_SPEC_DETAIL_RE.search(line) and _EXTERNAL_SPEC_CLAIM_RE.search(line):
+            if _has_explicit_external_check(line):
                 claim = line.strip()
                 if claim:
                     claims.append(
@@ -1434,26 +1510,62 @@ def _validate_scope_comparison_binding(issue: dict, known_context: dict) -> None
 
 _COMPARISON_ACTION = re.compile(r"\bcompar(?:e|ing|ison)\b|比較|照合|差分", re.IGNORECASE)
 _PRIOR_VERSION = re.compile(r"\b(?:previous|prior|earlier|last)\b|前回|以前|直前|過去|旧", re.IGNORECASE)
-_COMPARISON_OBJECT = re.compile(r"\b(?:body|contract|snapshot|scope|allowed paths)\b|本文|契約|スコープ|範囲|スナップショット", re.IGNORECASE)
+_COMPARISON_OBJECT = re.compile(
+    r"\b(?:bod(?:y|ies)|contracts?|snapshots?|scope|allowed paths)\b|本文|契約|スコープ|範囲|スナップショット",
+    re.IGNORECASE,
+)
 _OPTIONAL_COMPARISON = re.compile(
     r"\b(?:not|no|never|without|unnecessary|optional|if available)\b|不要|必須ではない|行わない|しない|あれば",
     re.IGNORECASE,
 )
 _REQUIREMENT_ACTION = re.compile(r"\b(?:must|required|mandatory)\b|必要|必須", re.IGNORECASE)
+# A prohibition on proceeding without a comparison makes it a prerequisite;
+# it is not a prohibition on comparing.
+_COMPARISON_PREREQUISITE = re.compile(r"\b(?:not|never)\b.+\bwithout\s*$", re.IGNORECASE)
+
+
+def _has_required_scope_comparison(text: str) -> bool:
+    clauses = _contract_clauses(text)
+    for index, clause in enumerate(clauses):
+        action = _COMPARISON_ACTION.search(clause)
+        prerequisite = action and _COMPARISON_PREREQUISITE.search(clause[:action.start()])
+        if not prerequisite and _OPTIONAL_COMPARISON.search(clause):
+            continue
+        if "scope_signal_delta_input" in clause and _REQUIREMENT_ACTION.search(clause):
+            return True
+        if not (
+            _COMPARISON_ACTION.search(clause)
+            and _PRIOR_VERSION.search(clause)
+            and _COMPARISON_OBJECT.search(clause)
+        ):
+            continue
+        # An immediately following qualification can refer back to the comparison.
+        if index + 1 < len(clauses):
+            following = clauses[index + 1]
+            if (
+                _COMPARISON_ACTION.search(following)
+                and not _PRIOR_VERSION.search(following)
+                and _OPTIONAL_COMPARISON.search(following)
+            ):
+                continue
+        return True
+    return False
 
 
 def _scope_signal_delta_required(issue_body: str, known_context: dict | None) -> bool:
     if isinstance(known_context, dict) and known_context.get("scope_signal_delta_required"):
         return True
-    return any(
-        not _OPTIONAL_COMPARISON.search(line) and (
-            ("scope_signal_delta_input" in line and _REQUIREMENT_ACTION.search(line))
-            or (_COMPARISON_ACTION.search(line) and _PRIOR_VERSION.search(line) and _COMPARISON_OBJECT.search(line))
+    for name, content in _extract_sections(issue_body).items():
+        if name == "Out of Scope":
+            continue
+        lines = (
+            (line.text for line in delta_iter_section_lines(issue_body, name, semantic_only=True))
+            if delta_iter_section_lines is not None
+            else _remove_fenced_code(content).splitlines()
         )
-        for name, content in _extract_sections(issue_body).items()
-        if name != "Out of Scope"
-        for line in _remove_fenced_code(content).splitlines()
-    )
+        if any(_has_required_scope_comparison(line) for line in lines):
+            return True
+    return False
 
 
 def _detect_scope_signals(
@@ -2534,6 +2646,29 @@ def plan_refinement_loop(
         accumulated_missing_sections = _stable_sort_dedupe(accumulated_missing_sections)
         accumulated_missing_contract_keys = _stable_sort_dedupe(accumulated_missing_contract_keys)
 
+        scope_signal_delta_result = None
+        try:
+            if known_context and "scope_signal_delta_input" in known_context:
+                if require_snapshot_binding or _scope_signal_delta_required(
+                    issue_body, known_context
+                ):
+                    _validate_scope_comparison_binding(issue, known_context)
+                scope_signal_delta_result = _compute_scope_signal_delta_result(known_context)
+            scope_signal_triggered, scope_signal_reason, scope_signal_evidence = (
+                _detect_scope_signals(
+                    issue_number,
+                    issue_body,
+                    known_context,
+                    precomputed_delta=scope_signal_delta_result,
+                )
+            )
+        except ScopeSignalDeltaError as exc:
+            if not fail_closed_reasons:
+                raise
+            fail_closed_reasons.append(
+                getattr(exc, "reason_code", FAIL_CLOSED_REASON_AMBIGUOUS_SIGNAL)
+            )
+
         # Deduplicate reason_codes while preserving stable order.
         if fail_closed_reasons:
             fail_closed_reasons = list(dict.fromkeys(fail_closed_reasons))
@@ -2642,25 +2777,6 @@ def plan_refinement_loop(
                     source_ref=None,
                 )
             )
-
-        # Compute the scope_signal_delta result ONCE (fail-closed via
-        # ScopeSignalDeltaError) and share it between the legacy
-        # scope_signal_guard projection and the v2 lane split. A v2 build
-        # failure is NOT swallowed: it propagates to the fail-closed
-        # internal-error plan instead of silently omitting the artifact.
-        scope_signal_delta_result = None
-        if known_context and "scope_signal_delta_input" in known_context:
-            if require_snapshot_binding or _scope_signal_delta_required(issue_body, known_context):
-                _validate_scope_comparison_binding(issue, known_context)
-            scope_signal_delta_result = _compute_scope_signal_delta_result(known_context)
-
-        # Determine scope signal guard using _detect_scope_signals
-        scope_signal_triggered, scope_signal_reason, scope_signal_evidence = _detect_scope_signals(
-            issue_number,
-            issue_body,
-            known_context,
-            precomputed_delta=scope_signal_delta_result,
-        )
 
         # AC1/AC10 (#1090): opt-in SCOPE_SIGNAL_GUARD_DECISION_V2 lane split.
         # Only computed when known_context carries scope_signal_delta_input,
