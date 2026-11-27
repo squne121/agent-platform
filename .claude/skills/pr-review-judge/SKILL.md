@@ -19,24 +19,25 @@ description: implementation child issue に紐づく PR をレビューし、lin
 D13 時点の方針: `disable-model-invocation: true` は維持する。Claude が自分でこの Skill を起動しない。SubAgent（`pr-reviewer` / `pr-reviewer-lite`）へは dispatch も preload もしない。**D15 (#115) の現行状態**: この D13 時点の `disable-model-invocation: true` 維持と SubAgent への dispatch／preload 禁止は、後述の「Dispatched Read-only Review (D15)」が定める main session の明示 dispatch 経路に限り上書きされている（`pr-reviewer-lite` と、それ以外の自動 invoke／loop dispatch は引き続き禁止）。Claude が自分でこの Skill を起動しない運用方針は維持する。
 入力が無い・複数 PR・PR が存在しない場合は何もせず停止する。これは **運用指示** であり OS／権限による隔離ではない。CLI の tool permission だけで書込が技術的に拒否されるとは主張せず、実行した呼出しの観測で no-write を示す。
 
-**禁止（reviewer 実行中）**: `gh pr comment|edit|review|create|merge|ready|close|reopen|update-branch`、`gh issue comment|edit|close|create`、
-`gh api` の `-X`/`--method` POST|PATCH|PUT|DELETE と `-f`/`-F`/`--input`（暗黙 POST）、`git push|commit|merge|rebase|reset`、リポジトリのファイル編集、
-Bot／Broker／controlled `pr_*` route、追加認証、verdict の GitHub 投稿。Procedure の「0) Self-authored PR ガード」と「6) verdict 投稿」は **この経路では実行しない**。
-読取（`gh pr view|diff|checks`、`gh issue view`、`gh api` の GET、`gh repo view`、`git fetch`（ローカル ref のみ）、`git diff|log|merge-base`）だけを使う。
+**native 証跡の取得**: PR 番号／URL だけで開始し、追加の user input は要求しない。D13/D15 の正規入口に限り、M3 で必要になった native facts は Reviewer 自身が「1) Linked Issue を特定」の固定 read-only GraphQL query で fresh 取得し、既存の実効 permission の下で照合する。取得が許可されない、取得不能、不完全または不一致なら、M3 で blocker を記録して `REQUEST_CHANGES` で停止する。
+
+**禁止（reviewer 実行中）**: GraphQL mutation、REST 書込み、`gh pr comment|edit|review|create|merge|ready|close|reopen|update-branch`、`gh issue comment|edit|close|create`、
+`git push|commit|merge|rebase|reset`、リポジトリのファイル編集、Bot／Broker／controlled `pr_*` route、追加認証・認証変更・permission 設定変更、verdict の GitHub 投稿。Procedure の「0) Self-authored PR ガード」と「6) verdict 投稿」は **この経路では実行しない**。
+読取（`gh pr view|diff|checks`、`gh issue view`、`gh api` の GET、`gh repo view`、`git fetch`（ローカル ref のみ）、`git diff|log|merge-base`）だけを使う。HTTP POST transport の例外は、D13/D15 の正規入口で M1 が確定した単一 PR に対する次の 2 つの固定 read-only GraphQL query と、それぞれのページ取得だけ。M3 は「1) Linked Issue を特定」の固定 query で native facts（`closingIssuesReferences`・`commits`・照合用 identity）を取得する。M5 は既存 `ci_verdict_summary.py` の固定 `STATUS_CHECK_ROLLUP_QUERY` で current-head CI facts（`statusCheckRollup`・CheckRun provenance 等）を取得する。相互の代用はしない。Reviewer 自身が既存の実効 permission で取得・照合し、許可されない場合は迂回せず該当 step の blocker として停止する。その他の POST（`-f`/`-F`/`--input` 等の暗黙 POST を含む）・PATCH・PUT・DELETE は禁止する。
 
 **手順（M1→M8 の順に実行し、省略・並べ替えをしない）**。`<owner>/<repo>` は M1 で確定した値のみを使う。
 
-1. **M1 repo／PR identity**: `gh repo view --json nameWithOwner` と `gh pr view <PR> --json number,url,state,isDraft,isCrossRepository,headRefName,headRefOid,baseRefName,baseRefOid,body,closingIssuesReferences` を取得する。PR URL の repo が現在の repo と異なる、`isCrossRepository: true`、`state != OPEN`、取得失敗はいずれも blocker（`foreign_repository` 等）。以降 `headRefOid` を `reviewed_head_sha` とする。入力の `reviewed_head_sha` と異なれば stale として blocker。
-2. **M2 linked Issue**: PR 本文の `Closes #N`／`Refs #N`（または `closingIssuesReferences`）から候補 `N` を取り、`gh issue view <N> --json number,state,body` を fresh 取得する。同一 repo の Issue か、`Outcome`／`Acceptance Criteria`／`Allowed Paths`／`Verification Commands` を持つ実装 Issue かを確認する。特定不能・不正・foreign は blocker。
-3. **M3 reference evaluator**: 「1) Linked Issue を特定」の `validate_pr_body.py --evaluate-reference-policy` を実際に実行し `decision`／`body_verdict`／`reason_code` だけで判定する（reviewer が本文の文字列から推測しない）。`nonclosing_required` かつ A1/A2 のときは native auto-close risk check も実行する。facts を組み立てられない場合（`docs/dev/workflow.md` は未移管）、実行不能・出力不正・`fail_closed`・`body_verdict: block|repair` は blocker。
+1. **M1 repo／PR identity**: `gh repo view --json nameWithOwner` と `gh pr view <PR> --json number,url,state,isDraft,isCrossRepository,headRefName,headRefOid,baseRefName,baseRefOid,title,body,closingIssuesReferences` を取得する。PR URL の repo が現在の repo と異なる、`isCrossRepository: true`、`state != OPEN`、取得失敗はいずれも blocker（`foreign_repository` 等）。以降 `headRefOid` を `reviewed_head_sha` とする。入力の `reviewed_head_sha` と異なれば stale として blocker。
+2. **M2 linked Issue**: PR 本文の `Closes #N`／`Refs #N`（または `closingIssuesReferences`）から候補 `N` を取り、`gh issue view <N> --json number,state,body` を fresh 取得する。同一 repo の Issue か、`Outcome`／`Acceptance Criteria`／`Allowed Paths`／`Verification Commands` を持つ実装 Issue かを確認する。候補が複数なら対象契約と PR の対応を独立に照合し、根拠なく選ばない。特定不能・不正・foreign は blocker。
+3. **M3 reference evaluator**: 「1) Linked Issue を特定」の `validate_pr_body.py --evaluate-reference-policy` を実際に実行し `decision`／`body_verdict`／`reason_code` を使って判定する（reviewer が本文の文字列から推測しない）。`nonclosing_required` かつ linked Issue が OPEN のときは、既定 `Refs` と旧 A1/A2 のいずれでも Reviewer 自身が下記の固定 query で全ページを取得・照合し、native auto-close risk check を実行する。facts を組み立てられない場合、実行不能・出力不正・`fail_closed`・`body_verdict: block|repair`、必要な native check が `clear` 以外の場合は blocker。評価した本文の `pr_body_sha256` と repo・PR・HEAD・base・state・Draft・title、linked Issue との対応を既存の M3 手順ログに記録し、M6/M7 まで同じ `$PR_JSON` を使う。native check を実行した場合は同じログに全件の照合結果と既存の `status`／`reason_code`、採用メッセージの確認結果を、上の束縛と一緒に記録する（raw facts の受け渡しや出力 field の追加はしない）。
 4. **M4 Allowed Paths**: live Issue の `## Allowed Paths` の path pattern を **そのまま** JSON 配列にし（省略形・説明文中の path を補完しない。解釈不能なら blocker）、`git fetch --no-tags origin "+refs/pull/<PR>/head:refs/remotes/pr-review/<PR>"` で head をローカルに取得した上で次を実行する。`status != ok`（`fail_closed`／`indeterminate`）は blocker。
    `uv run --locked python3 .claude/skills/pr-review-judge/scripts/allowed_paths_review_gate.py --pr-number <PR> --base-ref <baseRefName> --current-base-sha <baseRefOid> --head-sha <HEAD_SHA> --reviewed-head-sha <HEAD_SHA> --allowed-paths '<JSON>' --issue-number <N>`
 5. **M5 head-scoped CI**: 「4) CI 証拠」の `wait_ci_checks.py` を、**M5 に限り** `--required --interval 1 --timeout-seconds 30` と `--head-sha <HEAD_SHA>` で実行する（節 4 の `--timeout-seconds 1` は M5 では使わない。helper は PR HEAD と required inventory の取得後、最初の checks 取得より前に経過時間を判定するため、GitHub API の読取りが 1 秒を超えると required が 0 件でも誤って `pending_timeout` になる。30 秒は API 遅延の許容上限であり CI 完了を待つ設定ではない。required 0 件の判定は最初の読取り完了後すぐ返り、inventory が非空で未 materialize の本当の pending は 30 秒後に `pending_timeout` として blocker のまま。helper の共通契約は変更しない）。(a) **effective required が非空**の場合（従来どおり）: `CI_WAIT_RESULT_V1.status == passed` かつ `current_head_sha == <HEAD_SHA>` のときだけ pass。(b) **effective required が 0 件と確認できる場合だけ（D14, #113）**: `status == no_checks` かつ `current_head_sha == <HEAD_SHA>` を「required 0 件」の証明とする（`wait_ci_checks.py` は Ruleset と Classic 双方の required inventory の取得に成功して空であり、かつ `gh pr checks --required` が 0 行のときだけ `no_checks` を返す。inventory の取得失敗・403・不正応答は `gh_error` 等の別 status、inventory が非空で未 materialize は `pending_timeout` になり、いずれも 0 件の証明にならない。`gh pr checks --required` 単独の error／空結果を 0 件の根拠にしない。required 設定は変更しない）。この (b) のときに限り、続く `ci_verdict_summary.py` が `exit 0`・`status == all_pass`・`errors == []`・`head_sha == expected_head_sha`・`checks` が非空で、既存の除外規則を適用した評価対象（`excluded_checks` の名前だけでは絞らない）の全件が current head で success（`failed_checks`／`pending_checks`／`stale_checks` が空）であることを確認できれば CI 条件を満たす。その場合 `warnings[]` に「required checks 0 件（inventory 空を確認）。CI は CheckRun 全件 success で評価（StatusContext＝旧 commit status は評価対象外）」と追記する。`pending_timeout`／`no_checks`（(b) の条件を満たさないもの）／`skipped_only`／`failed`／`cancelled`／`head_sha_changed`／`gh_error`／出力不正はすべて CI 不明または失敗として blocker（待って APPROVE に変えない）。(a)(b) いずれも続けて `ci_verdict_summary.py` を実行し、`exit != 0`（空 CI の `no_required_evidence`、pending、failed、skipped、stale、重複・曖昧結果を含む）は blocker。
    - **M5 の HEAD 照合**: summary の最上位 `head_sha` は PR HEAD。公開 `checks[].head_sha: null` は内部の `checkSuite.commit.oid` 欠落を意味しないが、`all_pass` 単独を個別の出所証明にも使わない。不明時は対象 commit の CheckRun を `filter=all` 付きの全ページ GET、または個別 CheckRun ID の GET で確認する。`excluded_checks` の名前だけで除外せず、ID・workflow・event・HEAD・結果を使って既存の除外／rerun 規則が実際に評価した行を識別する。Actions run を根拠にする場合は run ID・attempt・HEAD・状態と、該当 attempt の job ID から `check_run_url` 等で CheckRun ID への対応を確認する。正当に除外された shadow や旧 rerun を失敗扱いせず、評価対象行の出所を確定できなければ blocker。required inventory はこの照合から推測しない。
-6. **M6 deterministic gate**: `check_pr_review_gates.py --rule all --pr-body <PR本文> --pr-head-sha <HEAD_SHA> --local-head-sha <HEAD_SHA> --issue-body <Issue本文>` を実行する（単独 rule は schema 検証で失敗する。`--ci-artifact` は旧形式 artifact が実在する場合だけ渡す）。出力が得られない（exit 2）は blocker。`g3`／`g4`／`g5` のいずれかが `fail`／`indeterminate` なら blocker とし `REQUEST_CHANGES` を返す（`g4` の head 不一致＝stale は常に blocker）。`g1`／`g2`／`g6` の `fail` は、理由（実 CI・証拠・Allowed Paths の不整合か、旧形式の必須 artifact 欠落による checker の fail-closed か）を区別して扱う。**manual 専用の適用条件（D14, #113）**: 次をすべて満たす場合に限り、その gate の fail を「旧形式 artifact 未提供のため未評価」として blocker から外してよい。(i) `minimal_context` が **欠落だけ**を示す（g1: `--ci-artifact` を渡していない場合の `G1: required --ci-artifact missing or unreadable`。artifact を渡して同文言なら読取不能な旧 artifact の実在として blocker、g2: `G2: no structured findings block found in PR body`、g6: `allowed_paths_gate block missing; producer_role field missing` の両方が欠落）。(ii) 対応する manual 証拠が肯定的に確認済み（g1→M5 の CI、g2→M7 の実 diff／AC evidence、g6→M4 の Allowed Paths gate `status == ok`）。(iii) `g4` が `pass`。(iv) PR 本文・添付に旧形式 artifact（findings を示唆する fenced block があるのに g2 が未検出な壊れた block を含む。`ci_test_selection/v1` の uncovered 指摘、findings block、`allowed_paths_gate`／`producer_role` の一部記載）が**実在して矛盾・不完全**な場合は欠落ではなく不整合として blocker のまま。未評価と判断した gate は **`PASS` と報告せず**、`warnings[]` に「旧 g1/g2/g6 は artifact 未提供のため未評価（manual M4／M5／M7 で代替確認）」と明記する。(i)〜(iv) のいずれかを満たせない gate の fail は blocker とし `REQUEST_CHANGES` を返す。M4／M5／M7 のいずれかが否定的・証拠不足なら、旧 gate の扱いに関わらず `APPROVE` は禁止。旧 artifact を偽造せず、新しい判定器・wrapper・schema も作らない（共通 checker の `--rule all` の strict な fail-closed 挙動は変更せず、他の consumer に影響しない）。
-7. **M7 diff と AC／evidence**: M4 が評価した固定 base/head と `diff_base_sha` を使って全差分を読み、Issue の各 AC を PR 本文の達成状況と実差分・CI 証跡に照合する（「5) PR Evidence / AC の一致」「4.6b」の規則）。本文の自己申告だけを根拠にしない。scope 混入は blocker。immediate runtime AC の実 evidence が無い場合は未検証として `warnings[]` に残し、**このレビュー自身の出力をその PR の runtime evidence として数えない**。
+6. **M6 deterministic gate**: M3 の `$PR_JSON` から同じ本文を「1) Linked Issue を特定」の手順で復元・照合し、`check_pr_review_gates.py --rule all --pr-body="$PR_BODY" --pr-head-sha <HEAD_SHA> --local-head-sha <HEAD_SHA> --issue-body <Issue本文>` を実行する（単独 rule は schema 検証で失敗する。`--ci-artifact` は旧形式 artifact が実在する場合だけ渡す）。出力が得られない（exit 2）は blocker。`g3`／`g4`／`g5` のいずれかが `fail`／`indeterminate` なら blocker とし `REQUEST_CHANGES` を返す（`g4` の head 不一致＝stale は常に blocker）。`g1`／`g2`／`g6` の `fail` は、理由（実 CI・証拠・Allowed Paths の不整合か、旧形式の必須 artifact 欠落による checker の fail-closed か）を区別して扱う。**manual 専用の適用条件（D14, #113）**: 次をすべて満たす場合に限り、その gate の fail を「旧形式 artifact 未提供のため未評価」として blocker から外してよい。(i) `minimal_context` が **欠落だけ**を示す（g1: `--ci-artifact` を渡していない場合の `G1: required --ci-artifact missing or unreadable`。artifact を渡して同文言なら読取不能な旧 artifact の実在として blocker、g2: `G2: no structured findings block found in PR body`、g6: `allowed_paths_gate block missing; producer_role field missing` の両方が欠落）。(ii) 対応する manual 証拠が肯定的に確認済み（g1→M5 の CI、g2→M7 の実 diff／AC evidence、g6→M4 の Allowed Paths gate `status == ok`）。(iii) `g4` が `pass`。(iv) PR 本文・添付に旧形式 artifact（findings を示唆する fenced block があるのに g2 が未検出な壊れた block を含む。`ci_test_selection/v1` の uncovered 指摘、findings block、`allowed_paths_gate`／`producer_role` の一部記載）が**実在して矛盾・不完全**な場合は欠落ではなく不整合として blocker のまま。未評価と判断した gate は **`PASS` と報告せず**、`warnings[]` に「旧 g1/g2/g6 は artifact 未提供のため未評価（manual M4／M5／M7 で代替確認）」と明記する。(i)〜(iv) のいずれかを満たせない gate の fail は blocker とし `REQUEST_CHANGES` を返す。M4／M5／M7 のいずれかが否定的・証拠不足なら、旧 gate の扱いに関わらず `APPROVE` は禁止。旧 artifact を偽造せず、新しい判定器・wrapper・schema も作らない（共通 checker の `--rule all` の strict な fail-closed 挙動は変更せず、他の consumer に影響しない）。
+7. **M7 diff と AC／evidence**: M4 が評価した固定 base/head と `diff_base_sha` を使って全差分を読み、Issue の各 AC を M3/M6 と同じ本文（`pr_body_sha256` を再照合）の達成状況と実差分・CI 証跡に照合する（「5) PR Evidence / AC の一致」「4.6b」の規則）。本文の自己申告だけを根拠にしない。明示 closing がある場合は、M5 の固定 HEAD の CI と適用 AC の実証（必須 runtime を含む）、実際の Issue 完了と明示された close 意図の一致をそれぞれ確認する。不明・未完・runtime 未検証なら closing は認めず blocker とする。scope 混入は blocker。immediate runtime AC の実 evidence が無い場合は未検証として `warnings[]` に残し、**このレビュー自身の出力をその PR の runtime evidence として数えない**。
    - **M7 の読取と照合**: M4 の `diff_base_sha` から固定 HEAD までの Git diff を正本とし、全 changed-path inventory を確定する。`gh pr diff <PR>` を読取に使う場合はこの固定差分との一致を確認し、表示切断時は同じ Git objects の差分をファイル・hunk/行範囲に分け、rename・削除・binary を含む未読範囲を残さない。stat や途中までの出力で代用せず、範囲を確定できなければ未完了とする。有限列挙 claim は case ID・実 assertion・個別結果だけを対応づけ、例示を全称に広げない。同じ repo/PR/HEAD、比較範囲、契約・VC に束縛された独立調査の raw evidence は、該当箇所と出所を確認して再利用できる。最終判断は Reviewer が行う。指摘は実装欠陥・証跡不足・読取切断・審査未完了を区別し、証跡や読取だけの問題に新 commit や全 suite 再実行を求めない。
-8. **M8 head・比較範囲の再確認と出力**: `gh pr view <PR> --json headRefOid` を再取得し、続く PR の REST GET（`repos/<owner>/<repo>/pulls/<PR>`）で `head.sha`・`base.ref`（`baseRefName`）・`base.sha`（`baseRefOid`）を一緒に取得する。両方の HEAD と、REST GET の base ref 名・比較範囲を M4 と照合する。base OID だけが変わった場合は、必要なら読取専用の `git fetch --no-tags origin <観測済みbase OID>` で不足オブジェクトを取得する。移動し得る ref 名ではなく、その固定 OID と HEAD から求めた merge base が M4 の `diff_base_sha` と一致すると確認できた場合に限り、同じ比較範囲として扱う。HEAD・base ref 名・比較基点の不一致、または照合不能なら `APPROVE` せず最初から再レビューする（既存の上限どおり 1 回まで。再び不一致・照合不能なら `HUMAN_REVIEW_REQUIRED` で停止する）。続いて結果を呼び出し元の会話に返す。
+8. **M8 head・比較範囲の再確認と出力**: `gh pr view <PR> --json headRefOid` を再取得し、続く PR の REST GET（`repos/<owner>/<repo>/pulls/<PR>`）で `number`・`head.sha`・`base.repo.full_name`・`base.ref`（`baseRefName`）・`base.sha`（`baseRefOid`）・`state`・`draft`・`title`・`body` を同じ応答で取得する。REST の repo・PR と `jq -j '.body'` の SHA-256 を M3 の束縛と照合し、state（表記を正規化）・Draft・title も M1 と照合して結果を M8 手順ログに記録する。両方の HEAD と、REST GET の base ref 名・比較範囲を M4 と照合する。base OID だけが変わった場合は、必要なら読取専用の `git fetch --no-tags origin <観測済みbase OID>` で不足オブジェクトを取得する。移動し得る ref 名ではなく、その固定 OID と HEAD から求めた merge base が M4 の `diff_base_sha` と一致すると確認できた場合に限り、同じ比較範囲として扱う。repo・PR・HEAD・base ref 名・比較基点・state・Draft・title・本文の不一致（同一 HEAD の編集を含む）、または照合不能なら `APPROVE` せず最初から再レビューする（既存の上限どおり 1 回まで。再び不一致・照合不能なら `HUMAN_REVIEW_REQUIRED` で停止する）。続いて結果を呼び出し元の会話に返す。
 
 **verdict**: blocker があれば `REQUEST_CHANGES`。blocker が無く、semantic な判断や未検証の runtime AC が残る場合は `HUMAN_REVIEW_REQUIRED`。`APPROVE` は M1〜M8 がすべて完了し、blocker が 0 件で、CI が current head で `passed`（required 0 件が M5 (b) で確認できた場合は current head の全件 success）、reference／Allowed Paths が肯定的に確認でき、M8 で head が不変で、M4 の比較範囲との整合を確認したときに限る。不明・stale・foreign・欠落証跡・script 未接続・予期しない出力から `APPROVE` を出さない。
 
@@ -49,6 +50,8 @@ Bot／Broker／controlled `pr_*` route、追加認証、verdict の GitHub 投�
 **解除の副作用（隠さない）**: `disable-model-invocation` を外したため、Claude が本 Skill を自動 invoke することが技術的に可能になった。これは自動 dispatch・`impl-review-loop` の自動稼働・verdict 投稿・Final Gate の承認を意味しない。運用指示だけで自動 invoke を技術的に完全阻止できるとは主張せず、新しい hook や権限 wrapper による保証も作らない。`impl-review-loop` Step1/Step2/Step4/Step5 の正規自動 dispatch は引き続き禁止する。
 
 **手順**: 上記「Manual Read-only Review (D13)」の M1→M8（M5 (a)(b) と M6 の manual 適用条件を含む）を **同じ順序・同じ禁止事項で** 実行する。M1〜M8 を省略・並べ替えしない。PR 番号が無い・複数 PR・PR が存在しない場合は何もせず `insufficient_context` で停止する。
+
+**native 証跡の責務**: dispatch 元は既存の入力で単一 PR を指定する。親の raw ページの手渡しは不要で、Reviewer 自身が M3 で取得した fresh な応答だけを native 判定に使う。D13 と同じ固定 query・照合・停止条件を適用する。
 
 **返却**: 最終応答は `verdict` / `reviewed_head_sha` / `blockers` / `warnings` の 4 field と、M1〜M8 各 step の証拠を main session へ返す。GitHub への verdict 投稿、`gh pr review`、PR／Issue への書込、ファイル編集は行わない。SubAgent の返答は main session が独立に照合する。レビュー自身の出力を、その PR の runtime evidence として数えない。終端（terminal completion）前に完了を主張しない。
 
@@ -65,41 +68,69 @@ Bot／Broker／controlled `pr_*` route、追加認証、verdict の GitHub 投�
 
 ### 1) Linked Issue を特定（reference の判定は entrypoint の結果で決める、Issue #2878）
 
-linked Issue は PR 本文の `Closes #N` だけでなく `Refs #N` からも特定する。ただし「この reference が妥当か」「`Closes` が必要か」は reviewer が PR 本文の文字列から推測せず、
+linked Issue は PR 本文の `Closes #N` だけでなく `Refs #N` からも特定する。ただし「この reference が妥当か」は reviewer が PR 本文の文字列から推測せず、
 `open-pr` の単一 evaluator（`validate_pr_body.py`）の entrypoint 結果だけで決める。候補 Issue 番号 `N` は PR 本文が参照する `Closes #N` / `Refs #N`（または `closingIssuesReferences`）から取り、facts を gh で fresh 取得して実行する
 （reviewer は Bash でファイルを書けないため、入力は process substitution で渡す。`decision_comment` は PR 本文に `Reference-Decision:` 行がある場合のみ `gh api repos/<owner>/<repo>/issues/comments/<id>` の `html_url` / `id` / `issue_url` / `author_association` / `body` を `url` / `id` / `issue_url` / `author_association` / `body` として渡し、無ければ `null`）。
 
+M1/M2 の成功済み readback の `body`（文字列）を、JSON のまま保持した `$PR_JSON` / `$ISSUE_JSON` から `jq -j` で取り出す（末尾改行を追加・削除しない）。readback の取得・検証失敗や型不一致を空本文に置き換えない。evaluator の repo・Issue・PR・`pr_body_sha256` をこの readback と照合する。`$REFERENCE_FACTS_JSON` は下記と同一の facts JSON を保持する。
+M6 の `--pr-body` はファイルではなく本文引数。Bash の `$(...)` で直接本文を取り出すと末尾改行を失うため、M6/M7 は同じ `$PR_JSON` から `IFS= read -r -d '' PR_BODY < <(printf '%s' "$PR_JSON" | jq -ej '.body | select(type == "string" and (contains("\u0000") | not)) | ., "\u0000"')` で復元する。`read` の成功と `printf '%s' "$PR_BODY"` の SHA-256 が M3 の `pr_body_sha256` と一致することをそれぞれ確認し、失敗・欠落なら旧本文や別 readback を使わず停止する。
+
 ```bash
-uv run --locked python3 .claude/skills/open-pr/scripts/validate_pr_body.py --evaluate-reference-policy --body-file <(gh api repos/<owner>/<repo>/pulls/<PR番号> --jq '.body // ""') --linked-issue <N> --linked-issue-body-file <(gh api repos/<owner>/<repo>/issues/<N> --jq '.body // ""') --reference-facts-file <(jq -n --arg repo <owner>/<repo> --arg state <OPEN|CLOSED> --argjson pr <PR番号> --argjson comment <decision_comment JSON | null> '{repo:$repo,issue_state:$state,pr_number:$pr,decision_comment:$comment}')
+uv run --locked python3 .claude/skills/open-pr/scripts/validate_pr_body.py --evaluate-reference-policy --body-file <(printf '%s' "$PR_JSON" | jq -j '.body') --linked-issue <N> --linked-issue-body-file <(printf '%s' "$ISSUE_JSON" | jq -j '.body') --reference-facts-file <(jq -n --arg repo <owner>/<repo> --arg state <OPEN|CLOSED> --argjson pr <PR番号> --argjson comment <decision_comment JSON | null> '{repo:$repo,issue_state:$state,pr_number:$pr,decision_comment:$comment}')
 ```
 
-出力は JSON object 1 つ（decision によらず exit 0）。読む field は `decision`（`closing_required` / `nonclosing_required` / `fail_closed`）、`level`、`reason_code`、`body_verdict`（`valid` / `repair` / `block`）、`body_reason` のみ:
+出力は JSON object 1 つ（decision によらず exit 0）。上記 binding 照合後の判定 field は `decision`（`closing_required` / `nonclosing_required` / `fail_closed`）、`level`、`reason_code`、`body_verdict`（`valid` / `repair` / `block`）、`body_reason` のみ:
 
-- `reason_code`: `issue_closed` / `a1_explicit_decision` / `a1_decision_invalid` / `a1_decision_ambiguous` / `a2_contract_deferred` / `a3_close_ready` / `runtime_applicability_unresolved` / `facts_invalid`
+- `reason_code`: `issue_closed` / `a1_explicit_decision` / `a1_decision_invalid` / `a1_decision_ambiguous` / `a2_contract_deferred` / `default_refs` / `explicit_closing_reference` / `runtime_applicability_unresolved` / `facts_invalid`
 - `body_verdict: valid` → linked Issue を `Closes` または `Refs` から特定したものとして扱い、`Closes` 不在だけを理由に `REQUEST_CHANGES` にしない（`nonclosing_required` では `Refs` が正しい reference）。Refs 経由でも linked Issue の `Outcome` / `Acceptance Criteria` / `Allowed Paths` / `Verification Commands` を取得し、AC / evidence を通常どおり評価する
-- `decision: closing_required` かつ `body_verdict: repair`（`closing_missing`。根拠のない Refs-only）→ `Closes` 不足を blocker として `REQUEST_CHANGES`
-- `body_verdict: block`（`closing_for_other` / `closing_forbidden` / `reference_missing`）→ blocker として `REQUEST_CHANGES`
+- `closing_required` / `valid` は明示 closing の構文確認のみ。完了・マージ・クローズの承認ではない。従来の `repair`（非表示の closing など）は不正な参照として blocker。`Refs` から `Closes` を自動追記・変換しない
+- `body_verdict: block`（`closing_for_other` / `closing_forbidden` / `reference_missing` / `reference_candidate_invalid`）→ blocker として `REQUEST_CHANGES`
 - `decision: fail_closed`（A1 invalid / ambiguous、authority 不明、facts 不正）→ fail-closed。`blockers[]` に `reason_code` を記載して `REQUEST_CHANGES`（auto repair 前提にしない）
 - entrypoint を実行できない、候補 Issue 番号が特定できない場合も fail-closed（`REQUEST_CHANGES`）
 
-**native auto-close risk check（`decision: nonclosing_required`、level A1 / A2 のときだけ追加で実行する）**: `Refs` の本文は「本文は close しない」ことしか示さず、
+**native auto-close risk check（`decision: nonclosing_required` かつ linked Issue が OPEN のときに追加で実行する）**: `Refs` の本文は「本文は close しない」ことしか示さず、
 GitHub の手動 closing relation（Development 欄）や、採用される merge message の closing keyword では Issue が close され得る。そこで本文の判定とは別に、同じ `validate_pr_body.py` の次の entrypoint を実行する
-（evaluator の結果を再利用する pure 関数で、grammar は複製しない。facts は gh で fresh 取得して `<native facts JSON>` に渡す: `closing_relations` は PR の `closingIssuesReferences` の `number` と `repository`（`owner/name`）の list、
-`closing_relations_complete` は取り切れたか、`merge_settings` は `gh api repos/<owner>/<repo>` の live な `allow_squash_merge` / `allow_merge_commit` / `allow_rebase_merge` / `squash_merge_commit_title` / `squash_merge_commit_message`、
-`merge_method` は採用予定の方式（未定なら `null`）、`pr_title` / `pr_body` / `commit_messages`（`gh api repos/<owner>/<repo>/pulls/<PR番号>/commits --paginate` の full message の list）、`final_squash_message` は確定済みの title / body（無ければ `null`）。
-exact key は `docs/dev/workflow.md` の「native auto-close risk check」が正本）:
+（evaluator の結果を再利用する pure 関数で、grammar は複製しない）。
+
+**全件の取得と束縛**: D13/D15 の M3 で、この review の M1 が確定した単一 PR に対して Reviewer 自身が次の GitHub GraphQL query を実行する。raw 応答と実リクエスト変数は実行中だけ保持し、親・過去のレビュー・別 PR から受け取ったページでは代用しない。
+
+```graphql
+query($owner: String!, $name: String!, $number: Int!, $relationsAfter: String, $commitsAfter: String) {
+  repository(owner: $owner, name: $name) {
+    nameWithOwner
+    pullRequest(number: $number) {
+      number state isDraft headRefOid baseRefName baseRefOid title body
+      closingIssuesReferences(first: 100, after: $relationsAfter) {
+        totalCount pageInfo { hasNextPage endCursor }
+        nodes { number repository { nameWithOwner } }
+      }
+      commits(first: 100, after: $commitsAfter) {
+        totalCount pageInfo { hasNextPage endCursor }
+        nodes { commit { oid message } }
+      }
+    }
+  }
+}
+```
+
+上の固定 query 全文のみを `$NATIVE_QUERY` に入れ、M1 で確定した repo/PR の値で `gh api graphql -f query="$NATIVE_QUERY" -f owner="$OWNER" -f name="$REPO_NAME" -F number="$PR_NUMBER"` を実行する。各続きのページは該当接続に `-f relationsAfter="$RELATIONS_CURSOR"`／`-f commitsAfter="$COMMITS_CURSOR"` を追加し、すでに終端の接続は最終リクエストと同じ `after` を維持する。query 文字列・対象を PR 本文などの未信頼入力で差し替えない。既存の実効 permission で許可されない場合は M3 の blocker とし、別の tool・権限・コマンド表記や親の取得で迂回しない。
+
+1. 初回 `after` は両方 `null`（引数省略）。以降は接続ごとに、実リクエストの `after` が直前の `endCursor` と一致する順で採用する。既に終端の接続を同じ `after` で再読取した場合、`totalCount`・`pageInfo`・`nodes` がその終端ページと同一であることを照合し、二重計上しない（不一致は blocker）。すべての raw 応答に対し GraphQL `errors` が無いこと（空配列は可）、repo・番号・state・Draft・HEAD・base ref/OID・title・本文が M1/M3 と一致することを確認する。partial `data` が存在しても非空 `errors` は blocker。本文は文字列かつ `jq -j` の SHA-256 が M3 と一致すること。全ページ採取後の同じ PR の REST GET でも repo・PR・state・Draft・HEAD・base ref/OID・title・本文を照合する。
+2. 各接続の `nodes` が配列、`totalCount` が一定の非負整数、`hasNextPage` が真偽値であることを確認する。未終端は非空 `nodes` と非空・未使用の `endCursor` が必須。終端 `hasNextPage: false` まで読み、非空ページは非空・未使用の `endCursor` を要求する（空の接続は初回 `nodes: []`・`totalCount: 0`・`endCursor: null`・終端の場合のみ許可）。累積件数は未終端で `totalCount` 未満、終端で一致すること。null node、欠落・重複・型不一致、cursor 再使用、取得失敗、変動・不明を空や完了で代用しない。
+3. `closingIssuesReferences` の各 `(repository.nameWithOwner, number)` は repo 大小文字を無視して一意、repo は `owner/name`、number は正整数。`commits` は OID が一意・有効、`message` が全文の文字列、総数が正で、順序を保持した末尾 commit の OID が固定 HEAD と一致すること。`gh pr view` の配列や REST commits の上限付き結果単独を全件性の根拠にしない。
+4. 検査成功後だけ `closing_relations` に `{number, repository}` の配列、`closing_relations_complete` に `true`、`commit_messages` に確認済みの全文を順序どおり投影する。`pr_title` / `pr_body` は同一 readback の文字列、`merge_settings` は `gh api repos/<owner>/<repo>` の live な `allow_squash_merge` / `allow_merge_commit` / `allow_rebase_merge` / `squash_merge_commit_title` / `squash_merge_commit_message`（応答の `full_name` を照合）。`merge_method` は採用予定の方式（未定なら `null`）、`final_squash_message` は確定済みの title / body（無ければ `null`）。exact key と型の正本は `validate_pr_body.py` の `NATIVE_CLOSE_*_KEYS`。既存の手順ログに照合結果を残し、追加の schema や Reviewer 権限は作らない。
 
 ```bash
-uv run --locked python3 .claude/skills/open-pr/scripts/validate_pr_body.py --evaluate-native-auto-close-risk --body-file <PR本文ファイル> --linked-issue <N> --linked-issue-body-file <Issue本文ファイル> --reference-facts-file <facts JSON> --native-close-facts-file <native facts JSON>
+uv run --locked python3 .claude/skills/open-pr/scripts/validate_pr_body.py --evaluate-native-auto-close-risk --body-file <(printf '%s' "$PR_JSON" | jq -j '.body') --linked-issue <N> --linked-issue-body-file <(printf '%s' "$ISSUE_JSON" | jq -j '.body') --reference-facts-file <(printf '%s' "$REFERENCE_FACTS_JSON") --native-close-facts-file <(printf '%s' "$NATIVE_FACTS_JSON")
 ```
 
 - `status: clear` → 本文以外の自動 close 経路が無いと確認できた状態。このときに限り「`Refs` なので Issue は OPEN のまま維持される」とみなす
 - `status: blocked`（`native_relation_present` / `effective_message_closing_keyword`）→ blocker として `REQUEST_CHANGES`。`blockers[]` に `reason_code` と `findings` の具体的な矛盾を記載する
 - `status: fail_closed`（facts / 設定 / relation 取得が不完全）→ fail-closed。`blockers[]` に `reason_code` を記載して `REQUEST_CHANGES`
-- `status: not_applicable`（A3 / CLOSED）→ 追加の判定なし
-- この結果は review 時点のものである。人間は merge 画面で final squash message や relation を変更できるため、merge 直前に final message / final native relation に対して再実行する（または検証済み message を変更せず使う）ことを merge の最終 precondition とする。PR / Issue 本文の hash だけでは保証にならない（`docs/dev/workflow.md`）
+- `status: not_applicable`（明示 closing の lane / CLOSED）→ 追加の判定なし
+- この結果は review 時点のものである。人間は merge 画面で final squash message や relation を変更できるため、merge 直前に final message / final native relation に対して再実行する（または検証済み message を変更せず使う）ことを merge の最終 precondition とする。PR / Issue 本文の hash だけでは保証にならない。
 
-`pr-reviewer-lite` の allow-list は `Closes #N` の存在を要求するため、`Refs`-bound PR（`nonclosing_required`）は lite の適用対象外であり、この `pr-review-judge`（Sonnet `pr-reviewer`）で扱う（`pr-reviewer-lite.md` 自体は変更しない）。decision table と grammar の正本は `docs/dev/workflow.md` の「PR reference と Issue close の分離」。
+`pr-reviewer-lite` の allow-list は `Closes #N` の存在を要求するため、`Refs`-bound PR（`nonclosing_required`）は lite の適用対象外であり、この `pr-review-judge`（Sonnet `pr-reviewer`）で扱う（`pr-reviewer-lite.md` 自体は変更しない）。reference grammar と判定の正本は `validate_pr_body.py`。
 
 ### 2) Mergeability 取得
 
@@ -230,9 +261,9 @@ provider 呼び出し・fan-out・grounding evidence 検証を含む差分）ま
 - blocker あり → `REQUEST_CHANGES`
 - blocker なし → `APPROVE`
 
-Issue #1873 以降、機械的に対応可能な不備（entrypoint が `closing_required` / `body_verdict: repair` を返した場合の `Closes` 不足、PR body hygiene 欠陥等。`nonclosing_required` の `Refs` は不備ではない）を
+Issue #1873 以降、機械的に対応可能な不備（PR body hygiene 欠陥等。`nonclosing_required` の `Refs` は不備ではなく、closing の追記・変換は自動対応しない）を
 `required_auto_actions` という専用構造化フィールドで自己申告しない。これらは具体的な内容を
-`blockers[]` に記載した上で `REQUEST_CHANGES` を返す（`references/required-auto-actions.md` 参照）。
+`blockers[]` に記載した上で `REQUEST_CHANGES` を返す。
 `BEHIND` の update_branch 対応も reviewer が申告せず、control-plane が live mergeability から
 直接検出する。
 
@@ -349,7 +380,7 @@ script が計算するのは G1–G5（`references/deterministic-gates.md`）等
 - `references/safety-claim-gate.md`: safety-sensitive 判定と `Safety Claim Matrix` 要件、claim-to-evidence coverage（Issue #2765）。
 - `references/loop-verdict-v2-schema.md`: 最小 convention の必須フィールド。
 - `references/allowed-paths-gate.md`: `ALLOWED_PATHS_GATE_RESULT_V1` の再計算手順。
-- `references/required-auto-actions.md`: 機械的に対応可能な不備の blockers への反映方針。
+- `references/required-auto-actions.md`: D5 の verbatim pin を保持する歴史資料。現行の自動対応手順では参照せず、上記「1) Linked Issue を特定」と Step 5 に従う。closing keyword の欠落だけを blocker にせず、参照 evaluator が拒否した本文を `Closes` の追記で自動修正しない。
 - `references/verdict-output-template.md`: コメントテンプレート。
 - `references/deterministic-gates.md`: G1–G5 の重要 gate。
 

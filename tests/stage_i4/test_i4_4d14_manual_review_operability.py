@@ -711,7 +711,9 @@ def test_ac2_consistent_legacy_artifacts_are_still_reported_as_pass() -> None:
 
 def test_ac2_other_consumers_of_the_strict_checker_are_untouched(manifest: dict[str, Any]) -> None:
     summary_rel = SUMMARY.relative_to(ROOT).as_posix()
+    reference_rel = ".claude/skills/open-pr/scripts/validate_pr_body.py"
     d6 = json.loads((DEV / "i4-4d6-pr-review-core-manifest.json").read_text())
+    d7 = json.loads((DEV / "i4-4d7-open-pr-reference-evaluator-manifest.json").read_text())
     historical = d6["verbatim_files"][summary_rel]
     for rel, sha1 in manifest["unchanged_sources"].items():
         if rel == summary_rel:
@@ -719,6 +721,12 @@ def test_ac2_other_consumers_of_the_strict_checker_are_untouched(manifest: dict[
             assert (
                 hashlib.sha256(SUMMARY.read_bytes()).hexdigest()
                 == historical["current_d18"]["sha256"]
+            ), rel
+        elif rel == reference_rel:
+            reference = d7["documents"][rel]
+            assert reference["source_blob_sha1"] == sha1, rel
+            assert (
+                hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == reference["moved_sha256"]
             ), rel
         else:
             assert blob_sha1(rel) == sha1, rel
@@ -860,7 +868,10 @@ def test_ac5_d5_d6_d8_d13_source_pins_and_history_are_kept(d13: Any) -> None:
         rec8["historical_pre_d14"]["current_moved_sha256"]
         == rec5["historical_pre_d14"]["moved_sha256"]
     )
-    assert rec5["intentional_diff"][2]["moved"] in skill_text()
+    skill = skill_text()
+    manual_start = skill.index("## Manual Read-only Review (D13)")
+    dispatch_start = skill.index("## Dispatched Read-only Review (D15)")
+    assert rec5["intentional_diff"][2]["moved"] == skill[manual_start:dispatch_start]
     assert rec5["source_blob_sha1"] == "db2ae9d1f17498fa358528f552974f7e2666c8fa"
 
 

@@ -2,6 +2,8 @@
 
 > **移管状況 (I-4-4D3)**: 本書は移管元 `squne121/loop-protocol` tag `pre-split-agent-platform-20261020` (commit `6fa07b6a0ab932a62f08db6a8d521c0dfded2075`) の同名文書を最小差分で移管したもの。差分は `docs/dev/i4-4d3-step4-step5-manifest.json` の `intentional_diff` に記録している。本書が参照する `SKILL.md`・Agent 定義 (`pr-reviewer` / `test-runner` / `implementation-worker`)・`implement-issue` / `open-pr` / `pr-review-judge`・他の steps・補助 script 等のうち、本 repository に未移管のものは後続の I-4-4D スライスの担当であり、現時点では存在しない。未移管の対象を起動できるものとして扱ってはならない。本書の記述だけで Step 4 / Step 5 / Final Gate が本番稼働していると解釈してはならない。
 
+> **現行の実行境界（D13/D15）**: PR review は、ユーザーによる D13 の明示手動 invoke、またはユーザーの明示依頼を受けた main session による D15 の明示 dispatch に限る。この文書の Step 5 自動 dispatch、body-only lane、Final Gate は未有効で、以下の記述は後続 runtime 結線用。現行レビューから起動せず、既存の seq・binding・terminal 判定も迂回しない。
+
 Step 2-4 の結果を統合して、ループを次イテレーションに進めるか終了するかを判定する。
 
 ## 終了条件マトリクス（Issue #1873、`route_loop_verdict_v2()` の `route` を正本とする）
@@ -40,20 +42,20 @@ reviewer_verdict（`verdict`/`reviewed_head_sha`/`blockers`/`warnings`）と liv
 | `route_to_update_branch` | 合成された `update_branch` action を worker に委譲し、検証・PR review を再実行（終了しない） |
 | `route_scope_clean_reconciliation`（#2102） | main drift による base-bound evidence の選択的失効を実行してから Step 5 を resume する（終了しない。手順は下記「main drift の scope-clean reconciliation 再開（resume）手順」参照） |
 | `route_stale_head_rereview` | 現在 head で PR review を再実行（終了しない） |
-| body-only lane（`REQUEST_CHANGES` かつ `decide_body_only_repair` が eligible。`conflict_hard_stop` / `already_satisfied` / `route_to_update_branch` のいずれにも一致しなかった場合のみ評価。下記「body-only lane」節） | iteration を消費せず、`iteration` が `max_iterations` 未満・到達のどちらでも `continue_loop` に優先して body-only repair → fresh pr-review → `step5-terminal-gate`（終了しない） |
+| body-only lane（未有効・後続 runtime 結線後のみ。`REQUEST_CHANGES` かつ `decide_body_only_repair` が eligible。`conflict_hard_stop` / `already_satisfied` / `route_to_update_branch` のいずれにも一致しなかった場合のみ評価。下記「body-only lane」節） | iteration を消費せず、`iteration` が `max_iterations` 未満・到達のどちらでも `continue_loop` に優先して body-only repair → fresh pr-review → `step5-terminal-gate`（終了しない） |
 | `continue_loop` | LOOP_STATE.iteration += 1、Step 1 に戻る（blockers を fix_delta として渡す） |
 | `already_satisfied`（#2607。`step-5-mergeability-handling.md` の「already_satisfied recovery route」参照） | `termination_reason: already_satisfied` を立て、終了処理へ。`decision.selected_action` の `result`/`recommendation` を報告するのみで、PR/Issue の close 等の mutation は実行しない |
 | `route_human_escalation` | `termination_reason: human_escalation` を立て、即停止（`HUMAN_REVIEW_REQUIRED` verdict、または max iteration 到達・secret/protected-path gate 等の実 hard gate の場合のみ） |
 | `conflict_hard_stop` | CONFLICTING PR Escalation Runbook 発動（actual conflict のみ。#1860 Owner Decision の唯一の hard stop） |
 | `fail_closed`（`mergeability_unknown` / `merge_state_status_*_not_conflict_defer_to_ci_evaluator`） | warning として記録し、bounded retry または次サイクルでの current-head CI / branch-protection 再評価に委ねる（human escalation にはしない） |
-| `fail_closed`（`LOOP_STATE.iteration >= LOOP_STATE.max_iterations`。`decide_body_only_repair` が eligible の body-only lane を除く） | `termination_reason: max_iterations` を立て、fail-close で人間判断 |
+| `fail_closed`（`LOOP_STATE.iteration >= LOOP_STATE.max_iterations`。後続 runtime 結線後に限り、`decide_body_only_repair` が eligible の body-only lane を除く） | `termination_reason: max_iterations` を立て、fail-close で人間判断 |
 | `fail_closed`（`concurrent_base_churn_budget_exhausted`） | `evidence_epoch.drift_rebind_attempts` が上限（既定 2、#2039/#1023 の bounded no-progress budget と同じ考え方）を超過。drift 起因の再試行を打ち切り `termination_reason: human_escalation` ではなく機械的な fail-closed 停止として人間判断を仰ぐ（#2102） |
 
 ### terminal approval は `step5-terminal-gate` 経由に固定する（Issue #2837）
 
 上表の `approved` は、`step5-terminal-gate` が exit 0 を返した場合にのみ成立する。
 
-`termination_reason: approved` / `merge_ready: true` を確定する terminal approval は、`route_loop_verdict_v2()` を直接呼んだ結果ではなく、`adjudicate_vc_result.py step5-terminal-gate` の出力（exit 0 = approved）だけを根拠にする。この subcommand は既存の公開 wrapper `route_loop_verdict_v2_resolve_semantic_ambiguity()`（`main_drift` が `semantic_ambiguity` を省略している場合に実 git oracle で補完する現行の production 経路。caller が `semantic_ambiguity` を推測・固定値で渡してはならない）を呼んだうえで、route が `approved` の場合に限り次をすべて要求する。VC の再実行は行わず、新しい判定 schema・第二の分類器・新 route 定数も作らない。
+`termination_reason: approved` / `merge_ready: true` を確定する terminal approval は、`route_loop_verdict_v2()` を直接呼んだ結果ではなく、`adjudicate_vc_result.py step5-terminal-gate` の出力（exit 0 = approved）だけを根拠にする。この subcommand は既存の公開 wrapper `route_loop_verdict_v2_resolve_semantic_ambiguity()`（`main_drift` が `semantic_ambiguity` を省略している場合に実 git oracle で補完する現行の production 経路。caller が `semantic_ambiguity` を推測・固定値で渡してはならない）を呼んだうえで、route が `approved` の場合に限り次をすべて要求する。通常経路でも terminal 承認の直前に、下記「PR 参照と Issue 完了の照合」で当該レビューと live 本文を照合する。VC の再実行は行わず、新しい判定 schema・第二の分類器・新 route 定数も作らない。
 
 1. `--dispatch-seq` が `loop_state["dispatch"]["seq"]` と一致する（不一致、または `dispatch` が欠落・不正: `route: continue_loop` / `reason_code: dispatch_seq_mismatch` / `rerun_required.pr_review: true`）。
 2. `loop_state["dispatch"]["binding_key"]` が live の HEAD / Issue body SHA-256 / 順序付き command hashes から再計算した key と一致する（不一致: `continue_loop` / `binding_changed_since_dispatch` / `rerun_required` の `verification` と `pr_review` が true）。あわせて `--live-mergeability-file` の `head_sha` が `--expected-head-sha` と一致することも要求する（reviewer / mergeability 側の HEAD と VC 側の binding HEAD が食い違った split-head の合成承認を防ぐ。不一致や `head_sha` 欠落・非 object は fail-closed で同じ `binding_changed_since_dispatch`）。
@@ -149,19 +151,20 @@ semantic planning・overlap・contract snapshot・body SHA・artifact 異常に�
 3. `reviewed_head_sha` が現在 head と不一致の場合、dispatch 前に PR review を再実行する
 4. 再実行後に得られた新しい `reviewer_verdict` / `live_mergeability` で再度 `route_loop_verdict_v2()` を評価する
 
-body-only な自動修正（`update_pr_body_hygiene`、reference authority entrypoint が `closing_required` を返した場合に限る `ensure_closing_keyword` 追加等）が必要な場合も、reviewer は
+後続 runtime 結線後に body-only な自動修正（既存の `update_pr_body_hygiene`）が必要な場合も、reviewer は
 自己申告せず、具体的な内容を `blockers[]`/`warnings[]` に記載する。
 control-plane は blocker 文面を自由に解釈せず、body-only 修正を行うかどうかを `decide_body_only_repair`
 （`.claude/skills/impl-review-loop/scripts/body_only_repair_plan.py`）の結果だけで判断する。eligible なら
 下記「body-only lane」節の手順で `implementation-worker` の `update_pr_body_hygiene` mode に委譲し、ineligible なら
-`REQUEST_CHANGES` として `continue_loop` 経路で次イテレーションへ回す。`ensure_closing_keyword`
-（entrypoint が `closing_required` を返した場合のみ）は引き続き #2878 の single evaluator が所有し、
-`decide_body_only_repair` の eligibility 対象に含めない。これらの body-only 対応は head SHA を変えないため、`update_branch`
+`REQUEST_CHANGES` として `continue_loop` 経路で次イテレーションへ回す。参照不備に対する `Closes` の自動追記・変換は行わない。
+body-only 対応は head SHA を変えないため、`update_branch`
 と異なり verification の再実行は不要で、PR review のみ再実行する。`blockers` が非空のまま
 `verdict == APPROVE` を返した reviewer 結果は `route_loop_verdict_v2()` が `fail_closed`
 （`approve_with_blockers_inconsistent`）として扱う。
 
 ### body-only lane（`iteration ≥ max_iterations` の fail-close に対する例外、Issue #2971）
+
+**未有効・後続 runtime 結線用**: 以下の適用条件、worker 委譲、fresh reviewer の dispatch、terminal gate は将来の実行順序を示す。現行 D13/D15 ではいずれも実行しない。
 
 current PR HEAD の verification / runtime evidence / required CI が完了済みで、pr-reviewer の blockers が **PR 本文に既にある evidence の同期だけ**（`## Runtime Verification Evidence` section 欠落・stale な件数・pending 文言の closed な 3 kind）に限られる場合に限り、`iteration ≥ max_iterations` でも implementation iteration を消費せず body-only repair を 1 回だけ行える。eligibility は `decide_body_only_repair`（pure な単一 authority。新規 route / schema / registry / lock は作らない）だけが決め、`SKILL.md` の「body-only lane」節と同一の意味論に従う。 実行は production CLI（`body_only_repair_plan.py` の `plan` / `record` / `guard` / `ci-freshness`）と既存 `IMPLEMENTATION_WORKER_REQUEST_V2`（`update_pr_body_hygiene` mode）だけで行い、dry-run 専用経路とは別である。
 
@@ -241,7 +244,7 @@ control-plane は次の production CLI（`body_only_repair_plan.py` の `plan` /
      --body-file <body_file_path> --body-file-sha256 <body_file_sha256>
    ```
 
-   readback が `ok` の時点で `gh pr view <N> --repo <owner/repo> --json updatedAt --jq .updatedAt` の値を body edit の causality watermark（`body_edit_updatedAt`）として **1 回だけ**取得する。
+   readback が `ok` の時点で `gh api repos/<owner>/<repo>/pulls/<N>` を取得し、同じ repo・PR・HEAD・base と completed body の canonical 一致を確認する。この同一応答の raw `body` は `jq -j` の SHA-256 を既存の手順ログに残し、`updated_at` の値を body edit の causality watermark（`body_edit_updatedAt`）として **1 回だけ**取得する。取得・照合不能なら terminal approval へ進まない。
 6. post-edit required CI の fresh 判定: PR body の `edited` で同一 head の required check が再起動されるため、unchanged head で `wait_ci_checks.py --required` を再実行し、その出力を `ci-freshness` で判定する。この 2 つを **間隔 15 秒・合計 1800 秒の deadline** までの loop として実行する（固定 sleep で済ませず、`wait_ci_checks.py` の既存 polling を使う）。
 
    ```bash
@@ -255,8 +258,8 @@ control-plane は次の production CLI（`body_only_repair_plan.py` の `plan` /
 
    `ci-freshness` は各 required check の `workflow` 名を `.github/workflows/*.yml` の `name:` と突き合わせ、`on.pull_request.types` に `edited` を含む workflow の check は `startedAt >= body_edit_updatedAt` の pass だけを fresh とし（`startedAt < body_edit_updatedAt` の pass は `stale_pre_edit`）、`edited` を含まない workflow の check は head 一致の pass を `head_bound` として受理し、workflow を特定できない check は `unknown_workflow` で fail-closed とする。exit 0（全 required check が `fresh` / `head_bound`）の場合だけ live mergeability を取得して次へ進む。exit 非 0 かつ出力 `retryable: true` の間だけ 15 秒間隔で再実行し、deadline（1800 秒）超過・`retryable: false` は terminal approval に進まず通常 routing に戻る。`wait_ci_checks.py` は変更しない。watermark は readback 直後の同一の値を使い続けるため、PR comment 等で `updatedAt` が進んだ場合の永続的な `stale_pre_edit` も deadline で終端する。これは verification の再実行ではない。
 7. verification は再実行しない（HEAD が不変のため）。binding（head / Issue body SHA-256 / 順序付き command hashes）が不変なら `step4-adjudicate --reuse-stored` で `dispatch.seq` を +1 し、reviewer を起動する **前** に `<review-result-dir>/dispatch_seq` へ保存する。binding が変化した場合は `--reuse-stored` を使わず通常の `step4-adjudicate`（再検証あり）へ戻り、lane は消費済みとして通常 routing に従う。
-8. 新規 `pr-reviewer` を dispatch し、fresh reviewer completion を得る。
-9. 保存済み `dispatch_seq` と同一 binding を上記の `step5-terminal-gate` へ渡す。`APPROVE` かつ `blockers == []` かつ live mergeability が適格な場合のみ `approved`。fresh reviewer が code / test / contract change を要求した場合は通常 routing（iteration 消費・`max_iterations` fail-close）へ戻る。
+8. 後続 runtime 結線後の手順として、新規 `pr-reviewer` を dispatch し、fresh reviewer completion を得る。現行はこの dispatch を実行しない。
+9. 下記「PR 参照と Issue 完了の照合」を実施し、書込み後 readback・fresh reviewer の M3/M8・terminal 直前 readback の raw 本文 SHA-256 がすべて一致した場合だけ、保存済み `dispatch_seq` と同一 binding を上記の `step5-terminal-gate` へ渡す。`APPROVE` かつ `blockers == []` かつ live mergeability が適格な場合のみ `approved`。fresh reviewer が code / test / contract change を要求した場合は通常 routing（iteration 消費・`max_iterations` fail-close）へ戻る。
 
 **guard の所在と禁止事項**:
 
@@ -266,38 +269,20 @@ control-plane は次の production CLI（`body_only_repair_plan.py` の `plan` /
 - 次を禁止する: terminal gate bypass（`step5-terminal-gate` exit 0 以外での `approved` 確定）、古い reviewer result の carry-forward（lane 前の reviewer 結果の流用）、reviewer の直接呼出しのみでの fresh review 成立扱い（`step4-adjudicate --reuse-stored` による `dispatch_seq` の +1 と保存、`step5-terminal-gate` への受け渡しを省略する経路）。
 - `adjudicate_vc_result.py` / `route_loop_verdict_v2.py` / `step5-terminal-gate` に max-iteration の例外は入れない。terminal approval は引き続き `step5-terminal-gate` だけが authority である。
 
-### `ensure_closing_keyword` の適用条件（reference authority entrypoint、Issue #2878）
+### PR 参照と Issue 完了の照合（reference authority entrypoint、Issue #2878 / #130）
 
-`ensure_closing_keyword`（`Closes #N` 追記による body-only repair）は無条件の自動修復ではない。`Refs #N` が妥当な PR
-（post-merge live evidence を待つ #2842 型の OPEN Issue 等）に `Closes` を追記すると、merge が Issue を live evidence より先に close する。
-repair 判定は `open-pr` の単一 evaluator の entrypoint 結果（`decision` / `body_verdict` / `body_reason`）だけで行い、
-control-plane は facts（linked Issue の state / 本文、A1 の comment 事実）を gh で fresh 取得して次を実行する（grammar を再実装しない。`action` 名・schema は変更しない）:
+通常・本文修正後のどちらも、terminal approval へ進む前に、control-plane は当該 reviewer completion の既存 M3/M8 手順ログから repo・PR・HEAD・base 比較範囲・state・Draft・title と本文 `pr_body_sha256` の照合結果を確認する。fresh な `gh api repos/<owner>/<repo>/pulls/<PR>` の同一応答で repo・PR・HEAD・base 比較範囲（M8 と同じ規則）・state・Draft・title を独立に照合し、文字列 `body` を `$PR_JSON` に保持して `jq -j '.body'` の SHA-256 をその M3/M8 と照合する。本文修正後の経路では、さらに書込み後 readback の raw SHA-256 と照合する。証跡・型・取得が欠ける、または同一 HEAD でも本文が異なる場合、旧判定を使わず停止し fresh review を求める。正規経路で証跡が受け取れない場合も停止し、新しい field、transport、wrapper を作らない。
+
+control-plane は linked Issue の state / 本文と、旧 `Reference-Decision:` 行がある場合だけ A1 コメント facts を fresh に取得し、照合した同じ `$PR_JSON` の本文で `open-pr` の単一 evaluator を再実行する（grammar を再実装しない）。出力の repo・Issue・PR・`pr_body_sha256` も照合する:
 
 ```bash
-uv run --locked python3 .claude/skills/open-pr/scripts/validate_pr_body.py --evaluate-reference-policy --body-file <PR本文ファイル> --linked-issue <N> --linked-issue-body-file <Issue本文ファイル> --reference-facts-file <facts JSON>
+uv run --locked python3 .claude/skills/open-pr/scripts/validate_pr_body.py --evaluate-reference-policy --body-file <(printf '%s' "$PR_JSON" | jq -j '.body') --linked-issue <N> --linked-issue-body-file <Issue本文ファイル> --reference-facts-file <facts JSON>
 ```
 
-出力 JSON の `reason_code` は `issue_closed` / `a1_explicit_decision` / `a1_decision_invalid` / `a1_decision_ambiguous` / `a2_contract_deferred` / `a3_close_ready` / `runtime_applicability_unresolved` / `facts_invalid` のいずれか。
-step-5 の扱いは次の表が正本で、表に無い組合せは `blocker` として扱う:
-
-| decision | body_verdict | body_reason | step-5 の扱い |
-|---|---|---|---|
-| closing_required | repair | closing_missing | repair（`ensure_closing_keyword`: 根拠のない Refs-only に `Closes #N` を追記） |
-| closing_required | block | reference_missing | repair（`ensure_closing_keyword`: reference が無い本文に `Closes #N` を追記） |
-| closing_required | valid | ok | none（repair 不要） |
-| nonclosing_required | valid | ok | none（`Refs` が正しい reference。`Closes` へ戻さない） |
-| nonclosing_required | block | closing_forbidden | blocker（closing keyword は auto repair しない） |
-| nonclosing_required | block | reference_missing | blocker（auto repair しない） |
-| nonclosing_required | block | closing_for_other | blocker（番号違いの closing keyword は auto repair しない） |
-| closing_required | block | closing_for_other | blocker（番号違いの closing keyword は auto repair しない） |
-| fail_closed | block | not_evaluated | stop（auto repair しない。`reason_code` を blocker に記載して人間判断へ） |
-
-`nonclosing_required` / `valid` / `ok` の `none` は **PR 本文の判定**であり、本文以外の自動 close 経路（GitHub の手動 closing relation、採用される squash message の closing keyword）が無いことまでは保証しない。
-`nonclosing_required`（A1 / A2）の PR は merge 前に、`validate_pr_body.py --evaluate-native-auto-close-risk`（native auto-close risk check、手順と facts の exact key は `docs/dev/workflow.md` が正本）を
-**merge 直前の final message / final native relation に対して**再実行する（または `adopted_message_sha256` が一致する検証済み message を変更せず使う）。`status: blocked` / `fail_closed` の間は merge せず、`blockers[]` に `reason_code` と具体的な矛盾（relation の解除、message の修正）を記載して `REQUEST_CHANGES` とする。これは body-only repair の対象ではなく auto repair しない。PR / Issue 本文の hash だけでは自動 close の不在を保証しない。
-
-`fail_closed`（A1 invalid / ambiguous、authority 不明、facts 不正）は常に停止し、`ensure_closing_keyword` を発行しない。
-CLOSED の linked Issue（`level: CLOSED`）は常に `nonclosing_required` で、`Refs` が valid、closing keyword は `blocker`。
+- `nonclosing_required` / `valid` / `ok`: 有効な `Refs` に closing keyword の欠落はない。`Closes` を追加・変換せず、Issue 完了として扱わない。OPEN の既定 `Refs` と旧 A1 / A2 のすべてで、同じ正規 Reviewer completion の M3 手順ログにある native check の `status: clear` とその束縛、M8 の再照合を消費する。control-plane は native facts の収集・再構成や native checker の再実行を行わない。`clear` 以外は `reason_code` と矛盾を blocker に記載し、結果が欠落・不正・stale でも terminal approval に進めない。CLOSED の linked Issue は引き続き非クローズ専用。
+- native relation や採用メッセージは PR の HEAD・本文を変えずに変わり得る。上記 REST readback や本文 hash の一致は native relation の再確認ではない。terminal 判定に使う native 結果は、当該判定のために、本文修正などの準備完了後に正規の D13/D15 で行った fresh review の M3/M8 に限る。過去回のログは同一 HEAD／本文でも使わず、M3 以降の native relation・merge 設定・採用方式やメッセージの変化が分かった場合、または fresh と確認できない場合は停止する。必要なら人間に正規入口での新規レビューを求める（Step 5 から自動 dispatch しない。native facts の固定 GraphQL query は Reviewer の M3 のみ。M5 の固定 CI query は CI facts 専用で、いずれも Step 5 から実行しない）。これは観測時点の結果であり、merge 直前には人間が最終 native relation と最終メッセージを再確認する。Step 5 の結果をその確認の代用にしない。
+- `closing_required` / `valid` / `ok`: 明示 closing の構文確認に過ぎない。固定 HEAD の CI と適用 AC（必須 runtime を含む）の実証、実際の Issue 完了と明示された close 意図の一致を個別に再照合する。未完・不明・runtime 未検証のまま closing や terminal approval へ進めない。Runtime Verification Applicability は必要な実証を特定するだけで、完了・close 意図の根拠にしない。
+- `fail_closed`、`block`、`repair` または不明な組合せは停止し blocker とする。`ensure_closing_keyword` は発行せず、既存の body-only evidence 同期 lane を参照修正に流用しない。
 
 ### worker_status_result_routing（`implementation-worker` 結果の routing）
 

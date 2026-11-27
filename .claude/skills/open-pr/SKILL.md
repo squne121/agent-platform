@@ -36,7 +36,7 @@ uv run --locked python3 .claude/skills/open-pr/scripts/open_pr.py \
 3. linked Issue の state / 本文を fresh に取得する。取得できなければ `E_LINKED_ISSUE_STATE_UNKNOWN`。
 4. 同一 repo / head の OPEN PR を検索する。**`existing` / `absent` と、`error-or-ambiguous` を区別する**。検索失敗・非 JSON・件数上限到達・複数件・別 repository 由来の同名 head・base 違いは `absent` とみなさず停止（write 0）。
 5. 既存 PR が 1 件なら URL と実 PR の head / head SHA / base / 本文を独立に readback し、本文を D7 evaluator で再評価して `valid` なら **再利用**（create 0、本文は更新しない）。別 Issue を参照する PR・不正な reference の PR は報告して停止する。
-6. 無ければ、D7 の `validate_pr_body.py --evaluate-reference-policy` に facts（`repo` / `issue_state` / `pr_number`=`null` / `decision_comment`）を渡す。`closing_required` は `Closes #N`、`nonclosing_required` は `Refs #N` が必要な場合に限り末尾へ最小追記し、**最終本文で再評価**する。`decision` が `fail_closed`、または `body_verdict` が `valid` でなければ停止する。evaluator の exit 0 は許可を意味しない。親 Issue への `Refs #<親>` のような合法な非 closing 参照は保持し、`Closes` 化しない。
+6. 無ければ、D7 の `validate_pr_body.py --evaluate-reference-policy` に facts（`repo` / `issue_state` / `pr_number`=`null` / `decision_comment`）を渡す。既定は `Refs #N`。`Reference-Decision:` 行が無ければ A1 コメントや承認 marker は要求しない。候補本文に参照が無いと evaluator が判定した場合だけ `Refs #N` を末尾へ足し、**最終本文で再評価**する。合法な本文（親 Issue 等の付随参照を含む）はそのまま使い、別対象・不正・曖昧な候補を追記で直さない。`fail_closed` または `body_verdict != valid` は停止とし、exit 0 を許可とみなさない。`Closes` の追記・変換は一切行わない。明示 closing の構文が `valid` でも、Draft 作成は Issue 完了・マージ・クローズの承認ではない。
 7. `gh pr create --repo <trusted> --head <branch> --base main --title <title> --body-file <検証済みfile> --draft` を 1 回だけ実行し、作成後に PR を fresh に readback（repo / OPEN / head / head SHA / base / Draft / 本文 hash / reference）して確認する。
 8. create の失敗・timeout・URL 不明は **再 create しない**。read-only の再検索結果（`probe`）だけを報告して非 0 で終了する。
 

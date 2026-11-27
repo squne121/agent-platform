@@ -29,7 +29,13 @@
       "implementation scope coverage marker",
       "parent child materialization",
       "canonical API full_name / rename alias resolution"
-    ]
+    ],
+    "current_sha256": {
+      ".claude/skills/open-pr/SKILL.md": "83cf2951fc098c0d7252ca3e0a68e42b658e16931944b587099d14c20a32a566",
+      ".claude/skills/open-pr/scripts/open_pr.py": "3380fdd4cac6cac2c01d0a1b84138d91bfedc00bfd808502d653decbb0af6f0b",
+      ".claude/skills/open-pr/scripts/validate_pr_body.py": "d4efaebf4dbb8cfb9e213f59cda438f7e385efe123133c0ab555926aaf66da2b"
+    },
+    "current_evaluator_blob_sha1": "e2d871bc8aeafb28712d0c0b2b0adae27c827bd9"
   },
   "reused_unchanged": {
     ".claude/skills/open-pr/scripts/validate_pr_body.py": "9ab611caea3b006132d53782d08670ee978bf923"

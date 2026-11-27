@@ -608,7 +608,7 @@ def _validate_lp057_reference_policy(body: str, reference_policy: dict[str, obje
         f"reason_code={reference_policy.get('reason_code')} body_verdict={reference_policy.get('body_verdict')} "
         f"body_reason={reference_policy.get('body_reason')}.",
         "Re-run `validate_pr_body.py --evaluate-reference-policy` and follow its decision "
-        "(closing_required -> Closes, nonclosing_required -> Refs, fail_closed -> stop)."
+        "(Refs by default; validate explicit closing syntax without assuming completion; fail_closed -> stop)."
     )]
 
 
@@ -806,7 +806,44 @@ _CLOSING_REFERENCE = re.compile(
     r")",
     re.IGNORECASE,
 )
-_NON_CLOSING_REFERENCE = re.compile(r"(?<![A-Za-z0-9_])Refs[ \t\r\n]+#(?P<num>[0-9]+)(?![0-9])", re.IGNORECASE)
+_NON_CLOSING_REFERENCE = re.compile(
+    r"(?<![A-Za-z0-9_])Refs[ \t\r\n]+#(?P<num>[0-9]+)(?![A-Za-z0-9_/#-])", re.IGNORECASE
+)
+# Non-authoritative forms still count as candidates: do not repair them by appending a second link.
+_REFS_CANDIDATE = re.compile(
+    r"\bRefs(?![\w-])[ \t\r\n]*(?::|#|https?://|[\w.-]+/[\w.-]+#)", re.IGNORECASE
+)
+# Colon prose and links to another target are incidental context, never an Issue binding.
+_CONTEXTUAL_REFS = re.compile(
+    r"Refs(?:[ \t\r\n]*:|[ \t\r\n]+(?:"
+    r"https://github\.com/(?P<url_repo>[\w.-]+/[\w.-]+)/issues/(?P<url_num>[0-9]+)(?![\w-])"
+    r"|https?://"
+    r"|(?P<x_repo>[\w.-]+/[\w.-]+)#(?P<x_num>[0-9]+)(?![\w/#-])))",
+    re.IGNORECASE,
+)
+# Deeper quote containers are treated as hidden so hostile nesting cannot exhaust the stack.
+_MAX_QUOTE_NESTING = 64
+_LIST_MARKER = r"(?:[-+*]|[0-9]{1,9}[.)])"
+_LIST_ITEM = re.compile(rf" {{0,3}}{_LIST_MARKER}( +|$)")
+_THEMATIC_BREAK = re.compile(r" {0,3}(?:(?:\* *){3,}|(?:- *){3,}|(?:_ *){3,})$")
+_FENCE_OPEN = re.compile(r" {0,3}(?:(`{3,})[^`\n]*|(~{3,})[^\n]*)$")
+_QUOTE_PREFIX = re.compile(r" {0,3}> ?")
+_PARAGRAPH_GAP = re.compile(r"\n[ \t]*\n")
+_LINK_TITLE_END = {'"': '"', "'": "'", "(": ")"}
+_HTML_TAG_TAIL = r"(?=[\s/>])(?:[^\"'<>]|\"[^\"]*\"|'[^']*')*>"
+_HTML_COMMENT = r"<!--(?s:.*?)(?:-->|\Z)"
+_HTML_TAG = rf"</?[A-Za-z][A-Za-z0-9-]*{_HTML_TAG_TAIL}"
+_HTML_CODE_BOUNDARY = re.compile(
+    rf"{_HTML_COMMENT}|<(?P<close>/)?(?P<tag>pre|code){_HTML_TAG_TAIL}|{_HTML_TAG}",
+    re.IGNORECASE,
+)
+_REFERENCE_INLINE = (
+    rf"{_HTML_COMMENT}|<(?P<html_code>(?i:pre|code)){_HTML_TAG_TAIL}|{_HTML_TAG}|(?P<ticks>`+)"
+)
+_TICK_RUN = re.compile(r"`+")
+# Scan from left to right: markup inside an already hidden span cannot open a new span.
+_REFERENCE_MARKUP = re.compile(r"(?P<line>^(?!\Z))|" + _REFERENCE_INLINE, re.MULTILINE)
+_INLINE_AT_LINE_START = re.compile(_REFERENCE_INLINE, re.MULTILINE)
 _A1_URL = re.compile(
     r"https://github\.com/(?P<owner>[A-Za-z0-9][A-Za-z0-9._-]*)/(?P<name>[A-Za-z0-9._-]+)"
     r"/issues/(?P<number>[0-9]+)#issuecomment-(?P<comment_id>[0-9]+)"
@@ -815,39 +852,367 @@ _LINE_SPLIT = re.compile(r"\r\n|\n|\r")
 _prose_boundary_policy_module = None
 
 
-def _mask_fenced_and_quoted(text: str) -> str:
-    """Blank out fenced-code-block lines and quote lines (line structure is preserved)."""
+@dataclass(frozen=True)
+class _ReferenceLine:
+    indents: tuple[int, ...]
+    kind: Literal[
+        "blank", "prose", "boundary", "hidden", "fence", "quote", "quote-fence", "definition"
+    ]
+    continues: bool = False
+    fence: str = ""
+    definition_end: int = 0
+
+
+def _reference_line_end(text: str, start: int) -> int:
+    end = text.find("\n", start)
+    return len(text) if end < 0 else end
+
+
+def _reference_line(
+    raw: str,
+    previous: _ReferenceLine,
+    *,
+    text: str = "",
+    end: int = 0,
+    quotes: tuple[tuple[int, int], ...] = (),
+) -> _ReferenceLine:
+    """Classify one physical line for reference visibility, not general Markdown rendering."""
+    line = raw.expandtabs(4)
+    indents = previous.indents
+    paragraph = previous.kind in {"prose", "quote"}
+    if not line.strip():
+        return _ReferenceLine(indents, "blank")
+    leading = len(line) - len(line.lstrip(" "))
+    depth = len(indents)
+    while depth and leading < indents[depth - 1]:
+        depth -= 1
+    same_item = depth == len(indents)
+    container = indents[depth - 1] if depth else 0
+    local = line[container:]
+    if previous.kind == "prose" and same_item and not local.startswith("    "):
+        underline = local.strip(" ")
+        if underline and underline[0] in "=-" and not underline.strip(underline[0]):
+            return _ReferenceLine(indents, "boundary")
+    opened: list[int] = []
+    while not _THEMATIC_BREAK.fullmatch(line, container):
+        item = _LIST_ITEM.match(line, container)
+        if item is None:
+            break
+        padding = item.end(1) - item.start(1)
+        container = item.start(1) + (padding if item.end() < len(line) and padding <= 4 else 1)
+        opened.append(container)
+    if opened or not same_item:
+        indents = indents[:depth] + tuple(opened)
+    # Plain outdented text can be a lazy continuation. An explicit block or new list
+    # marker below ends the paragraph; an ordinary wrap keeps its original list context.
+    continues = paragraph and not opened
+    content = line[container:]
+    if fence := _FENCE_OPEN.fullmatch(content):
+        return _ReferenceLine(indents, "fence", fence=fence[1] or fence[2])
+    # An indented code block cannot interrupt an open paragraph in the same list item.
+    if content.startswith("    "):
+        if not continues:
+            return _ReferenceLine(indents, "hidden")
+    else:
+        left = content.lstrip(" ")
+        if _QUOTE_PREFIX.match(content):
+            if len(quotes) >= _MAX_QUOTE_NESTING:
+                return _ReferenceLine(indents, "hidden")
+            offset = quote_depth = 0
+            while prefix := _QUOTE_PREFIX.match(content, offset):
+                offset = prefix.end()
+                quote_depth += 1
+            quoted = content[offset:]
+            if previous.kind == "quote-fence" and same_item and not opened:
+                marker = previous.fence
+                run = quoted.strip(" ")
+                if len(run) >= len(marker) and not run.strip(marker[0]):
+                    return _ReferenceLine(indents, "hidden")
+                return _ReferenceLine(indents, "quote-fence", fence=marker)
+            inner = _reference_line(
+                quoted,
+                _ReferenceLine((), "prose" if previous.kind == "quote" else "blank"),
+                text=text,
+                end=end,
+                quotes=(*quotes, (container, quote_depth)),
+            )
+            if inner.kind == "fence":
+                return _ReferenceLine(indents, "quote-fence", fence=inner.fence)
+            if inner.kind == "definition":
+                return _ReferenceLine(indents, "definition", definition_end=inner.definition_end)
+            return _ReferenceLine(indents, "quote" if inner.kind == "prose" else "hidden")
+        if not continues and left.startswith("["):
+            definition_end = _link_definition_end(left, text, end, indents, quotes)
+            if definition_end is not None:
+                return _ReferenceLine(indents, "definition", definition_end=definition_end)
+        marks = len(left) - len(left.lstrip("#"))
+        tag = _INLINE_AT_LINE_START.match(left) if left.startswith("<") else None
+        if (
+            not left
+            or (0 < marks <= 6 and (marks == len(left) or left[marks] == " "))
+            or _THEMATIC_BREAK.fullmatch(content)
+            or left.startswith("<!--")
+            or (tag and (tag.group("html_code") or "").lower() == "pre")
+        ):
+            return _ReferenceLine(indents, "boundary")
+    if continues and previous.kind == "quote":
+        return _ReferenceLine(previous.indents, "quote")
+    return _ReferenceLine(previous.indents if continues else indents, "prose", continues=continues)
+
+
+def _link_continuation(
+    text: str, end: int, paragraph: _ReferenceLine, quotes: tuple[tuple[int, int], ...]
+) -> tuple[str, int] | None:
+    if end == len(text):
+        return None
+    next_end = _reference_line_end(text, end + 1)
+    line = text[end + 1:next_end].expandtabs(4)
+    # Explicit quote markers are container syntax, not title text. Missing markers
+    # or list indentation can still be a lazy continuation of ordinary prose.
+    for indent, depth in quotes:
+        if len(line) - len(line.lstrip(" ")) < indent:
+            break
+        line = line[indent:]
+        offset = matched = 0
+        while matched < depth and (prefix := _QUOTE_PREFIX.match(line, offset)):
+            offset = prefix.end()
+            matched += 1
+        line = line[offset:]
+        if matched != depth:
+            break
+    if not _reference_line(line, paragraph).continues:
+        return None
+    return line.lstrip(" "), next_end
+
+
+def _link_escape_at(line: str, i: int) -> bool:
+    # Backslash escapes ASCII punctuation only, never a line ending or arbitrary text.
+    return (
+        line[i] == "\\"
+        and i + 1 < len(line)
+        and "!" <= (escaped := line[i + 1]) <= "~"
+        and not escaped.isalnum()
+    )
+
+
+def _link_label_end(
+    line: str, text: str, end: int, paragraph: _ReferenceLine, quotes: tuple[tuple[int, int], ...]
+) -> tuple[str, int] | None:
+    """Return the text after `]:` only for a complete label in this paragraph."""
+    i = 1  # The caller has already identified the unescaped opening bracket.
+    length = 0
+    nonblank = False
+    while True:
+        while i < len(line):
+            char = line[i]
+            if char == "]":
+                if nonblank and line.startswith(":", i + 1):
+                    return line[i + 2:].lstrip(" "), end
+                return None
+            if char == "[":
+                return None
+            nonblank = nonblank or not char.isspace()
+            width = 2 if _link_escape_at(line, i) else 1
+            i += width
+            length += width
+            if length > 999:
+                return None
+        if length == 999:
+            return None
+        continuation = _link_continuation(text, end, paragraph, quotes)
+        if continuation is None:
+            return None
+        line, end = continuation
+        length += 1  # line ending inside the label
+        i = 0
+
+
+def _link_destination_end(line: str) -> int | None:
+    angle = line.startswith("<")
+    depth = 0
+    i = int(angle)
+    while i < len(line):
+        char = line[i]
+        if _link_escape_at(line, i):
+            i += 2
+            continue
+        if angle:
+            if char == ">":
+                return i + 1
+            if char == "<":
+                return None
+        elif char == " ":
+            break
+        elif ord(char) < 32 or ord(char) == 127:
+            return None
+        elif char == "(":
+            depth += 1
+        elif char == ")":
+            if not depth:
+                return None
+            depth -= 1
+        i += 1
+    return i if i and not angle and not depth else None
+
+
+def _link_title_end(
+    line: str, text: str, end: int, paragraph: _ReferenceLine, quotes: tuple[tuple[int, int], ...]
+) -> int | None:
+    if not line or (close := _LINK_TITLE_END.get(line[0])) is None:
+        return None
+    i = 1
+    while True:
+        while i < len(line):
+            char = line[i]
+            if _link_escape_at(line, i):
+                i += 2
+                continue
+            if char == close:
+                return end if not line[i + 1:].strip(" ") else None
+            if close == ")" and char == "(":
+                return None
+            i += 1
+        continuation = _link_continuation(text, end, paragraph, quotes)
+        if continuation is None:
+            return None
+        line, end = continuation
+        i = 0
+
+
+def _link_definition_end(
+    line: str, text: str, end: int, indents: tuple[int, ...], quotes: tuple[tuple[int, int], ...]
+) -> int | None:
+    """Commit only a complete label, destination and any valid title in the same block."""
+    paragraph = _ReferenceLine(indents, "prose")
+    label = _link_label_end(line, text, end, paragraph, quotes)
+    if label is None:
+        return None
+    line, end = label
+    if not line:
+        continuation = _link_continuation(text, end, paragraph, quotes)
+        if continuation is None:
+            return None
+        line, end = continuation
+    destination = _link_destination_end(line)
+    if destination is None:
+        return None
+    tail = line[destination:]
+    if tail.strip(" "):
+        # A same-line title must be separated by whitespace and complete, or the
+        # whole definition is prose. A failed next-line title leaves a bare definition.
+        if not tail.startswith(" "):
+            return None
+        return _link_title_end(tail.lstrip(" "), text, end, paragraph, quotes)
+    if continuation := _link_continuation(text, end, paragraph, quotes):
+        title_line, title_end = continuation
+        if (title := _link_title_end(title_line, text, title_end, paragraph, quotes)) is not None:
+            return title
+    return end
+
+
+def _reference_fence_end(text: str, end: int, container: int, marker: str) -> int:
+    close = re.compile(rf" {{{container},{container + 3}}}{marker[0]}{{{len(marker)},}} *$")
+    while end < len(text):
+        start = end + 1
+        end = _reference_line_end(text, start)
+        line = text[start:end].expandtabs(4)
+        if line.strip() and len(line) - len(line.lstrip(" ")) < container:
+            # An unclosed fence ends with its list item, not the whole document.
+            return start
+        if close.fullmatch(line):
+            break
+    return end
+
+
+def _reference_tick_end(text: str, start: int, width: int, block: _ReferenceLine) -> int | None:
+    """Find an equal-length run only in this line or its paragraph continuations."""
+    while True:
+        end = _reference_line_end(text, start)
+        for run in _TICK_RUN.finditer(text, start, end):
+            if run.end() - run.start() == width:
+                return run.end()
+        if block.kind != "prose" or end == len(text):
+            return None
+        start = end + 1
+        next_end = _reference_line_end(text, start)
+        if not _reference_line(text[start:next_end], block).continues:
+            return None
+
+
+def _visible_reference_text(text: str) -> str:
+    """Hide code, quotes, comments and HTML tags without joining disjoint visible tokens."""
+    text = _LINE_SPLIT.sub("\n", text)
     out: list[str] = []
-    in_fence = False
-    fence_token = ""
-    for line in text.splitlines(keepends=True):
-        stripped = line.strip()
-        newline = "\n" if line.endswith(("\n", "\r")) else ""
-        if FENCE_PATTERN.match(stripped):
-            token = stripped[:3]
-            if not in_fence:
-                in_fence = True
-                fence_token = token
-            elif token == fence_token:
-                in_fence = False
-                fence_token = ""
-            out.append(newline)
-            continue
-        if in_fence or stripped.startswith(">"):
-            out.append(newline)
-            continue
-        out.append(line)
+    pos = scan = 0
+    block = _ReferenceLine((), "blank")
+    while match := _REFERENCE_MARKUP.search(text, scan):
+        start, end = match.span()
+        if match.group("line") is not None:
+            line_end = _reference_line_end(text, start)
+            block = _reference_line(text[start:line_end], block, text=text, end=line_end)
+            if block.kind == "fence":
+                container = block.indents[-1] if block.indents else 0
+                end = _reference_fence_end(text, line_end, container, block.fence)
+            elif block.kind == "definition":
+                end = block.definition_end
+            elif block.kind in {"hidden", "quote", "quote-fence"}:
+                end = line_end
+            elif block.kind == "blank":
+                scan = line_end + 1
+                continue
+            else:
+                # The zero-width line event must not hide an inline opener at the same offset.
+                match = _INLINE_AT_LINE_START.match(text, start)
+                if match is None:
+                    scan = start + 1
+                    continue
+                end = match.end()
+        if match is not None and match.group("ticks"):
+            backslashes = start
+            while backslashes > 0 and text[backslashes - 1] == "\\":
+                backslashes -= 1
+            # In prose, an odd number of backslashes escapes just the first tick. Inside
+            # a code span, backslashes are literal: any equal-length run closes the span.
+            start += (start - backslashes) % 2
+            if start == end:
+                scan = end
+                continue
+            closing_end = _reference_tick_end(text, end, end - start, block)
+            if closing_end is None:
+                scan = end
+                continue
+            end = closing_end
+        if match is not None and (tag := match.group("html_code")) and not match[0].endswith("/>"):
+            depth = 1
+            tag = tag.lower()
+            for boundary in _HTML_CODE_BOUNDARY.finditer(text, end):
+                if (name := boundary.group("tag")) is None or name.lower() != tag:
+                    continue
+                if boundary.group("close"):
+                    depth -= 1
+                elif not boundary[0].endswith("/>"):
+                    depth += 1
+                if depth == 0:
+                    end = boundary.end()
+                    break
+            else:
+                end = len(text)
+        out.extend((text[pos:start], "\x00", "\n" * text.count("\n", start, end)))
+        pos = scan = end
+    out.append(text[pos:])
     return "".join(out)
 
 
-def _mask_inline_code(text: str) -> str:
-    return re.sub(r"(`+)[^\n]*?\1", " ", text)
-
-
-def _closing_candidates(text: str, default_repo: str) -> list[tuple[str, str]]:
+def _closing_candidates(
+    text: str, default_repo: str, *, require_target_boundary: bool = False
+) -> list[tuple[str, str]]:
     """Return `(repo_lower, number_string)` for every closing-keyword + issue-target occurrence."""
     candidates: list[tuple[str, str]] = []
     for match in _CLOSING_REFERENCE.finditer(text):
+        if require_target_boundary and (
+            _PARAGRAPH_GAP.search(match[0]) or re.match(r"[\w/-]", text[match.end() : match.end() + 1])
+        ):
+            continue
         if match.group("num") is not None:
             candidates.append((default_repo.lower(), match.group("num")))
         elif match.group("x_num") is not None:
@@ -857,14 +1222,32 @@ def _closing_candidates(text: str, default_repo: str) -> list[tuple[str, str]]:
     return candidates
 
 
+def _is_contextual_refs(text: str, start: int, repo: str, issue_number: int) -> bool:
+    match = _CONTEXTUAL_REFS.match(text, start)
+    if match is None or _PARAGRAPH_GAP.search(match[0]):
+        return False
+    linked_repo = match["url_repo"] or match["x_repo"]
+    number = match["url_num"] or match["x_num"]
+    # The same number in another repository is easily mistaken for this Issue.
+    return not (linked_repo and linked_repo.lower() != repo.lower() and number == str(issue_number))
+
+
 def _assess_reference_text(text: str, repo: str, issue_number: int) -> dict[str, bool]:
     target = (repo.lower(), str(issue_number))
     raw_candidates = _closing_candidates(text, repo)
-    outside_fence_quote = _mask_fenced_and_quoted(text)
-    outside_candidates = _closing_candidates(outside_fence_quote, repo)
-    non_closing_text = _mask_inline_code(outside_fence_quote)
-    refs_target = any(m.group("num") == str(issue_number) for m in _NON_CLOSING_REFERENCE.finditer(non_closing_text))
-    sections, _ = _extract_sections(text)
+    visible_text = _visible_reference_text(text)
+    outside_candidates = _closing_candidates(visible_text, repo, require_target_boundary=True)
+    ref_starts = [candidate.start() for candidate in _REFS_CANDIDATE.finditer(visible_text)]
+    visible_refs = [_NON_CLOSING_REFERENCE.match(visible_text, start) for start in ref_starts]
+    refs_target = any(
+        m and m.group("num") == target[1] and not _PARAGRAPH_GAP.search(m[0]) for m in visible_refs
+    )
+    # Other well-formed Refs may be contextual links, but cannot satisfy this Issue binding.
+    bad_refs = any(
+        m is None and not _is_contextual_refs(visible_text, start, repo, issue_number)
+        for start, m in zip(ref_starts, visible_refs, strict=True)
+    )
+    sections, _ = _extract_sections(visible_text)
     notes_info = sections.get("Notes")
     notes_value = _extract_notes_related_issue(notes_info[0]) if notes_info else None
     notes_only = False
@@ -876,6 +1259,8 @@ def _assess_reference_text(text: str, repo: str, issue_number: int) -> dict[str,
         "closing_target": any(candidate == target for candidate in raw_candidates),
         "closing_target_outside_fence_quote": any(candidate == target for candidate in outside_candidates),
         "refs_target": refs_target,
+        "bad_refs": bad_refs,
+        "refs_candidate": notes_value is not None or bool(_REFS_CANDIDATE.search(text)),
         "notes_only": notes_only,
     }
 
@@ -892,26 +1277,29 @@ def _map_body_verdict(level: str, assessment: dict[str, bool], decision: str) ->
         kind = "none"
     if assessment["closing_other"]:
         return kind, "block", "closing_for_other"
+    if assessment["bad_refs"]:
+        return kind, "block", "reference_candidate_invalid"
+    missing_reason = (
+        "reference_candidate_invalid" if assessment["refs_candidate"] else "reference_missing"
+    )
     if level == "CLOSED":
         if kind == "closing":
             return kind, "block", "closing_forbidden"
         if kind in {"non-closing", "notes-only"}:
             return kind, "valid", "ok"
-        return kind, "block", "reference_missing"
+        return kind, "block", missing_reason
     if decision == "closing_required":
         if kind == "closing":
             if assessment["closing_target_outside_fence_quote"]:
                 return kind, "valid", "ok"
             return kind, "repair", "closing_missing"
-        if kind == "non-closing":
-            return kind, "repair", "closing_missing"
-        return kind, "block", "reference_missing"
+        return kind, "block", missing_reason
     # nonclosing_required
     if kind == "non-closing":
         return kind, "valid", "ok"
     if kind == "closing":
         return kind, "block", "closing_forbidden"
-    return kind, "block", "reference_missing"
+    return kind, "block", missing_reason
 
 
 def _load_prose_boundary_policy_module():
@@ -1122,9 +1510,13 @@ def evaluate_reference_policy(
     applicability = _classify_runtime_applicability(linked_issue_body)
     if applicability == "A2":
         return finish("nonclosing_required", "A2", "a2_contract_deferred")
-    if applicability == "A3":
-        return finish("closing_required", "A3", "a3_close_ready")
-    return fail("runtime_applicability_unresolved", repo)
+    if assessment["closing_target"]:
+        # Keep the legacy deferred/unknown protection for explicit closing text. This lane
+        # checks syntax only; neither the text nor runtime applicability proves completion.
+        if applicability != "A3":
+            return fail("runtime_applicability_unresolved", repo)
+        return finish("closing_required", "A3", "explicit_closing_reference")
+    return finish("nonclosing_required", "A3", "default_refs")
 
 
 def non_closing_authority_from_result(result: dict[str, object]) -> dict[str, object]:
@@ -1150,7 +1542,7 @@ def evaluate_reference_policy_from_files(
 
 
 # ---------------------------------------------------------------------------
-# Native auto-close risk check (Issue #2878, PR #2896 review). `nonclosing_required` (A1 / A2) is a
+# Native auto-close risk check (Issue #2878, PR #2896 review). `nonclosing_required` is a
 # claim about the PR *body*; GitHub can still close the Issue through a manually linked closing
 # relation (Development sidebar) or a closing keyword in the commit message that is actually adopted
 # by the chosen merge method. This is a second, pure function over structured facts: it reuses the
@@ -1235,6 +1627,8 @@ def _validated_native_close_facts(facts: object) -> dict | None:
         relation_repo = relation["repository"]
         if not isinstance(relation_repo, str) or _REPO_PATTERN.fullmatch(relation_repo) is None:
             return None
+    if len({(r["repository"].lower(), r["number"]) for r in relations}) != len(relations):
+        return None
     settings = facts["merge_settings"]
     if not isinstance(settings, dict) or set(settings) != NATIVE_CLOSE_SETTINGS_KEYS:
         return None
@@ -1252,7 +1646,11 @@ def _validated_native_close_facts(facts: object) -> dict | None:
     if not isinstance(facts["pr_title"], str) or not isinstance(facts["pr_body"], str):
         return None
     commits = facts["commit_messages"]
-    if not isinstance(commits, list) or not all(isinstance(message, str) for message in commits):
+    if (
+        not isinstance(commits, list)
+        or not commits
+        or not all(isinstance(message, str) for message in commits)
+    ):
         return None
     final_message = facts["final_squash_message"]
     if final_message is not None:
@@ -1303,7 +1701,7 @@ def _squash_adopted_message(facts: dict) -> tuple[str, str] | None:
 
 
 def evaluate_native_auto_close_risk(policy_result: object, native_facts: object) -> dict[str, object]:
-    """Pure native auto-close risk check for a `nonclosing_required` (A1 / A2) merge (Issue #2878).
+    """Pure native auto-close risk check for an OPEN `nonclosing_required` merge (Issue #2878).
 
     `policy_result` is the single reference evaluator's output; `native_facts` is a structured
     snapshot the caller fetched fresh (GitHub's closing relation, the live repository merge settings,
@@ -1323,7 +1721,7 @@ def evaluate_native_auto_close_risk(policy_result: object, native_facts: object)
         return _native_close_result(policy, "fail_closed", "reference_policy_fail_closed")
     if decision != "nonclosing_required":
         return _native_close_result(policy, "not_applicable", "closing_required_lane")
-    if not isinstance(level, str) or level not in {"A1", "A2"}:
+    if not isinstance(level, str) or level not in {"A1", "A2", "A3"}:
         return _native_close_result(policy, "not_applicable", "issue_closed")
     facts = _validated_native_close_facts(native_facts)
     policy_repo = policy.get("repo")
@@ -1334,6 +1732,12 @@ def evaluate_native_auto_close_risk(policy_result: object, native_facts: object)
         or facts["repo"].lower() != policy_repo.lower()
         or type(issue_number) is not int
     ):
+        return _native_close_result(policy, "fail_closed", "facts_invalid")
+    try:
+        body_sha = hashlib.sha256(facts["pr_body"].encode("utf-8")).hexdigest()
+    except UnicodeEncodeError:
+        return _native_close_result(policy, "fail_closed", "facts_invalid")
+    if body_sha != policy.get("pr_body_sha256"):
         return _native_close_result(policy, "fail_closed", "facts_invalid")
     if not facts["closing_relations_complete"]:
         return _native_close_result(policy, "fail_closed", "relations_incomplete")
@@ -1369,8 +1773,21 @@ def evaluate_native_auto_close_risk(policy_result: object, native_facts: object)
             if adopted is None:
                 return _native_close_result(policy, "fail_closed", "squash_settings_invalid")
             title, body = adopted
-            adopted_sha = hashlib.sha256(f"{title}\n\n{body}".encode("utf-8")).hexdigest()
-            sources = [("squash_title", title), ("squash_body", body)]
+            assembled = f"{title}\n\n{body}"
+            adopted_sha = hashlib.sha256(assembled.encode("utf-8")).hexdigest()
+            # Check the exact adopted text first. This also finds a keyword and target split
+            # across title and body. Keep the existing source labels for isolated matches.
+            if _targets_issue(assembled, repo, issue_number):
+                sources = [
+                    source
+                    for source, text in (("squash_title", title), ("squash_body", body))
+                    if _targets_issue(text, repo, issue_number)
+                ] or ["squash_body"]
+                findings.extend(
+                    {"kind": "effective_message", "method": method, "source": source}
+                    for source in sources
+                )
+            continue
         elif method == "merge":
             sources = [("pr_title", facts["pr_title"]), ("pr_body", facts["pr_body"])]
             sources += [("commit_message", message) for message in facts["commit_messages"]]

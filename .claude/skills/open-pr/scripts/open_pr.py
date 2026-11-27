@@ -236,19 +236,15 @@ def evaluate(body: str, issue: int, issue_body: str, facts: dict[str, object]) -
 def reference_body(
     body: str, issue: int, issue_body: str, facts: dict[str, object]
 ) -> tuple[str, dict[str, object]]:
-    """Append the one reference the evaluator requires (only when missing/repairable), then re-evaluate."""
+    """Add only a non-closing reference to a reference-free candidate, then re-evaluate."""
     result = evaluate(body, issue, issue_body, facts)
     if (
-        result["decision"] in {"closing_required", "nonclosing_required"}
-        and result["body_reason"] != "closing_for_other"
-        and (
-            result["body_verdict"] == "repair"
-            or result["body_reason"] == "reference_missing"
-            or result["effective_kind"] == "notes-only"
-        )
+        result["decision"] == "nonclosing_required"
+        and result["body_verdict"] == "block"
+        and result["body_reason"] == "reference_missing"
+        and result["effective_kind"] == "none"
     ):
-        kind = "Closes" if result["decision"] == "closing_required" else "Refs"
-        body = body + ("\n" if body.endswith("\n") else "\n\n") + f"{kind} #{issue}\n"
+        body = body + ("\n" if body.endswith("\n") else "\n\n") + f"Refs #{issue}\n"
         result = evaluate(body, issue, issue_body, facts)
     return body, result
 

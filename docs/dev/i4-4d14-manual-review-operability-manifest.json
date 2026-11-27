@@ -103,7 +103,7 @@
       "i4-4d5-pr-review-consumers",
       "i4-4d8-hookless-reviewer"
     ],
-    "rule": "Only the current pr-review-judge SKILL.md hash / line count and the recorded Manual Read-only Review section (intentional_diff[2]) were synchronized; the D13 test's M6 wording assertions and its mutation helper (replace every occurrence) were updated. source_blob_sha1 / source_sha256 and the D5-time, D8-time and D13-time records are kept (historical_pre_d8 / historical_pre_d13 / historical_pre_d14). The D6, D11 and D13 manifests are unchanged."
+    "rule": "Only the current pr-review-judge SKILL.md hash / line count and the recorded Manual Read-only Review section (intentional_diff[2]) were synchronized; the D13 test's M6 wording assertions and its mutation helper (replace every occurrence) were updated. source_blob_sha1 / source_sha256 and the D5-time, D8-time and D13-time records are kept (historical_pre_d8 / historical_pre_d13 / historical_pre_d14). The D6, D11 and D13 manifests are unchanged. #130 keeps unchanged_sources as D14-time pins; verify the reference evaluator's current bytes against its D7 moved_sha256, not the D14-time blob."
   },
   "rollback": "Revert the single D14 PR: it restores the D13 M5 / M6 text, removes this manifest, the D14 test and CI lane, and restores the D5 / D8 current hashes and the D13 test assertions. D13 and earlier history, the strict legacy checker contract, D11 open-pr and the hook-free policy are not modified.",
   "ci_binding": "The i4-4d14 job runs this manifest through scripts/ci/run_stage1b1_tests.py and the full tests/stage_i4 directory; no new permissions, runner or secrets.",
