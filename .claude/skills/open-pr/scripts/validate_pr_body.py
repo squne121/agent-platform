@@ -813,6 +813,16 @@ _NON_CLOSING_REFERENCE = re.compile(
 _REFS_CANDIDATE = re.compile(
     r"\bRefs(?![\w-])[ \t\r\n]*(?::|#|https?://|[\w.-]+/[\w.-]+#)", re.IGNORECASE
 )
+# Colon prose and links to another target are incidental context, never an Issue binding.
+_CONTEXTUAL_REFS = re.compile(
+    r"Refs(?:[ \t\r\n]*:|[ \t\r\n]+(?:"
+    r"https://github\.com/(?P<url_repo>[\w.-]+/[\w.-]+)/issues/(?P<url_num>[0-9]+)(?![\w-])"
+    r"|https?://"
+    r"|(?P<x_repo>[\w.-]+/[\w.-]+)#(?P<x_num>[0-9]+)(?![\w/#-])))",
+    re.IGNORECASE,
+)
+# Deeper quote containers are treated as hidden so hostile nesting cannot exhaust the stack.
+_MAX_QUOTE_NESTING = 64
 _LIST_MARKER = r"(?:[-+*]|[0-9]{1,9}[.)])"
 _LIST_ITEM = re.compile(rf" {{0,3}}{_LIST_MARKER}( +|$)")
 _THEMATIC_BREAK = re.compile(r" {0,3}(?:(?:\* *){3,}|(?:- *){3,}|(?:_ *){3,})$")
@@ -906,6 +916,8 @@ def _reference_line(
     else:
         left = content.lstrip(" ")
         if _QUOTE_PREFIX.match(content):
+            if len(quotes) >= _MAX_QUOTE_NESTING:
+                return _ReferenceLine(indents, "hidden")
             offset = quote_depth = 0
             while prefix := _QUOTE_PREFIX.match(content, offset):
                 offset = prefix.end()
@@ -1210,20 +1222,31 @@ def _closing_candidates(
     return candidates
 
 
+def _is_contextual_refs(text: str, start: int, repo: str, issue_number: int) -> bool:
+    match = _CONTEXTUAL_REFS.match(text, start)
+    if match is None or _PARAGRAPH_GAP.search(match[0]):
+        return False
+    linked_repo = match["url_repo"] or match["x_repo"]
+    number = match["url_num"] or match["x_num"]
+    # The same number in another repository is easily mistaken for this Issue.
+    return not (linked_repo and linked_repo.lower() != repo.lower() and number == str(issue_number))
+
+
 def _assess_reference_text(text: str, repo: str, issue_number: int) -> dict[str, bool]:
     target = (repo.lower(), str(issue_number))
     raw_candidates = _closing_candidates(text, repo)
     visible_text = _visible_reference_text(text)
     outside_candidates = _closing_candidates(visible_text, repo, require_target_boundary=True)
-    visible_refs = [
-        _NON_CLOSING_REFERENCE.match(visible_text, candidate.start())
-        for candidate in _REFS_CANDIDATE.finditer(visible_text)
-    ]
+    ref_starts = [candidate.start() for candidate in _REFS_CANDIDATE.finditer(visible_text)]
+    visible_refs = [_NON_CLOSING_REFERENCE.match(visible_text, start) for start in ref_starts]
     refs_target = any(
         m and m.group("num") == target[1] and not _PARAGRAPH_GAP.search(m[0]) for m in visible_refs
     )
     # Other well-formed Refs may be contextual links, but cannot satisfy this Issue binding.
-    bad_refs = any(m is None for m in visible_refs)
+    bad_refs = any(
+        m is None and not _is_contextual_refs(visible_text, start, repo, issue_number)
+        for start, m in zip(ref_starts, visible_refs, strict=True)
+    )
     sections, _ = _extract_sections(visible_text)
     notes_info = sections.get("Notes")
     notes_value = _extract_notes_related_issue(notes_info[0]) if notes_info else None

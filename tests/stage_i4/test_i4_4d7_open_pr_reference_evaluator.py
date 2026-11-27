@@ -1002,6 +1002,28 @@ def test_ac2_a_stop_is_still_exit_zero_so_the_exit_code_cannot_authorise(tmp_pat
     ):
         _, result = run_reference(tmp_path, body)
         assert (result["body_verdict"], result["body_reason"]) == expected, body
+    for contextual in (
+        "Refs squne121/agent-platform#101",
+        "Refs https://github.com/squne121/agent-platform/issues/101",
+        "Refs other/repo#5",
+        "Refs https://example.com/design",
+        "The old Refs: format is no longer accepted.",
+        "Refs: #101",
+        "> - " * 1500 + "x",
+    ):
+        for state, issue_body in (("OPEN", A2_BODY), ("CLOSED", NO_SECTION), ("OPEN", NO_SECTION)):
+            _, valid = run_reference(
+                tmp_path, f"Refs #330\n\n{contextual}\n", state=state, issue_body=issue_body
+            )
+            assert strict_reference_consumer(valid), (state, contextual[:80])
+        _, alone = run_reference(tmp_path, f"{contextual}\n", issue_body=A2_BODY)
+        assert not strict_reference_consumer(alone), contextual[:80]
+    for confusable in (
+        "Refs https://github.com/other/repo/issues/330",
+        "Refs other/repo#5oops",
+    ):
+        _, invalid = run_reference(tmp_path, f"Refs #330\n\n{confusable}\n")
+        assert not strict_reference_consumer(invalid), confusable
     hidden_refs = (
         "> Quoted example\nRefs #330",
         "> > Nested example\ncontinued\nRefs #330",
