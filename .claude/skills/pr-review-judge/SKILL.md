@@ -23,7 +23,7 @@ D13 時点の方針: `disable-model-invocation: true` は維持する。Claude �
 
 **禁止（reviewer 実行中）**: GraphQL mutation、REST 書込み、`gh pr comment|edit|review|create|merge|ready|close|reopen|update-branch`、`gh issue comment|edit|close|create`、
 `git push|commit|merge|rebase|reset`、リポジトリのファイル編集、Bot／Broker／controlled `pr_*` route、追加認証・認証変更・permission 設定変更、verdict の GitHub 投稿。Procedure の「0) Self-authored PR ガード」と「6) verdict 投稿」は **この経路では実行しない**。
-読取（`gh pr view|diff|checks`、`gh issue view`、`gh api` の GET、`gh repo view`、`git fetch`（ローカル ref のみ）、`git diff|log|merge-base`）だけを使う。HTTP POST transport の例外は、D13/D15 の M3 で確定した単一 PR に対する下記の固定 GraphQL query（ページ変数を含む）だけ。その他の POST（`-f`/`-F`/`--input` 等の暗黙 POST を含む）・PATCH・PUT・DELETE は禁止する。
+読取（`gh pr view|diff|checks`、`gh issue view`、`gh api` の GET、`gh repo view`、`git fetch`（ローカル ref のみ）、`git diff|log|merge-base`）だけを使う。HTTP POST transport の例外は、D13/D15 の正規入口で M1 が確定した単一 PR に対する次の 2 つの固定 read-only GraphQL query と、それぞれのページ取得だけ。M3 は「1) Linked Issue を特定」の固定 query で native facts（`closingIssuesReferences`・`commits`・照合用 identity）を取得する。M5 は既存 `ci_verdict_summary.py` の固定 `STATUS_CHECK_ROLLUP_QUERY` で current-head CI facts（`statusCheckRollup`・CheckRun provenance 等）を取得する。相互の代用はしない。Reviewer 自身が既存の実効 permission で取得・照合し、許可されない場合は迂回せず該当 step の blocker として停止する。その他の POST（`-f`/`-F`/`--input` 等の暗黙 POST を含む）・PATCH・PUT・DELETE は禁止する。
 
 **手順（M1→M8 の順に実行し、省略・並べ替えをしない）**。`<owner>/<repo>` は M1 で確定した値のみを使う。
 

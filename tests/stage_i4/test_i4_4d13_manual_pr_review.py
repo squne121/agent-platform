@@ -574,7 +574,12 @@ def test_ac4_output_contract_fields_and_step_log_are_declared() -> None:
         "リポジトリのファイル編集",
         "追加認証・認証変更・permission 設定変更",
         "verdict の GitHub 投稿",
-        "HTTP POST transport の例外は、D13/D15 の M3 で確定した単一 PR",
+        "HTTP POST transport の例外は、D13/D15 の正規入口で M1 が確定した単一 PR",
+        "2 つの固定 read-only GraphQL query と、それぞれのページ取得だけ",
+        "固定 query で native facts（`closingIssuesReferences`・`commits`・照合用 identity）",
+        "既存 `ci_verdict_summary.py` の固定 `STATUS_CHECK_ROLLUP_QUERY` で current-head CI facts",
+        "相互の代用はしない",
+        "許可されない場合は迂回せず該当 step の blocker として停止",
         "その他の POST",
     ):
         assert needle in manual
@@ -629,6 +634,12 @@ def test_ac4_output_contract_fields_and_step_log_are_declared() -> None:
     step5 = (
         ROOT / ".claude/skills/impl-review-loop/steps/step-5-feedback-and-termination.md"
     ).read_text(encoding="utf-8")
+    assert "ユーザーによる D13 の明示手動 invoke" in step5
+    assert "ユーザーの明示依頼を受けた main session による D15 の明示 dispatch に限る" in step5
+    assert "Step 5 自動 dispatch、body-only lane、Final Gate は未有効" in step5
+    assert "既存の seq・binding・terminal 判定も迂回しない" in step5
+    assert "現行 D13/D15 ではいずれも実行しない" in step5
+    assert "現行はこの dispatch を実行しない" in step5
     assert "通常・本文修正後のどちらも" in step5
     assert "書込み後 readback・fresh reviewer の M3/M8・terminal 直前 readback" in step5
     assert "同一 HEAD でも本文が異なる場合、旧判定を使わず停止" in step5
@@ -643,6 +654,7 @@ def test_ac4_output_contract_fields_and_step_log_are_declared() -> None:
         "本文修正などの準備完了後に正規の D13/D15 で行った fresh review の M3/M8 に限る",
         "過去回のログは同一 HEAD／本文でも使わず",
         "Step 5 から自動 dispatch しない",
+        "M5 の固定 CI query は CI facts 専用で、いずれも Step 5 から実行しない",
         "merge 直前には人間が最終 native relation と最終メッセージを再確認",
     ):
         assert needle in terminal
