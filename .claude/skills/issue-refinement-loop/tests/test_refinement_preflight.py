@@ -279,6 +279,7 @@ def test_i127_current_contract_retains_must_read_without_dispatch(tmp_path, caps
         "security_delta",
         "missing_history",
         "missing_history_and_structure",
+        "security_delta_and_structure",
         "wrong_body",
     ],
 )
@@ -286,14 +287,14 @@ def test_i127_scope_comparison_stops_trusted_anchor_when_required(tmp_path, caps
     if case not in {"missing_history", "missing_history_and_structure"}:
         seed_previous_snapshot(tmp_path, issue_number=200, repo=TRUSTED_REPO, body=VALID_ISSUE_BODY)
     body = VALID_ISSUE_BODY
-    if case in {"security_delta", "wrong_body"}:
+    if case in {"security_delta", "security_delta_and_structure", "wrong_body"}:
         body = body.replace(
             "## Allowed Paths\n\n- scripts/example.py",
             "## Allowed Paths\n\n- scripts/example.py\n- scripts/auth.py",
         )
     if case.startswith("missing_history"):
         body += "\n## Notes for Reviewer\nCompare with the previous approved body before applying any update.\n"
-    if case == "missing_history_and_structure":
+    if case in {"missing_history_and_structure", "security_delta_and_structure"}:
         body = body.replace("## Outcome", "## Renamed Outcome")
     url = f"https://github.com/{TRUSTED_REPO}/issues/200#issuecomment-1"
     anchor = {
@@ -357,7 +358,13 @@ def test_i127_scope_comparison_stops_trusted_anchor_when_required(tmp_path, caps
         assert result["next_action"] == "issue_editor_required"
         assert result["contract_update"]["writes"] == 0
         return
-    consumer.assert_not_called()
+    if case == "security_delta_and_structure":
+        # The consumer is reached, but both it and the structural error stop.
+        assert result["contract_update"]["status"] == "failed"
+        assert result["contract_update"]["writes"] == 0
+        assert {"PLANNER_FAIL_CLOSED", "missing_required_section"} <= set(result["blockers"])
+    else:
+        consumer.assert_not_called()
     planner_input = json.loads(
         Path(result["artifacts"]["planner_input"]).read_text(encoding="utf-8")
     )
@@ -367,6 +374,9 @@ def test_i127_scope_comparison_stops_trusted_anchor_when_required(tmp_path, caps
         assert not plan["decisions"]["scope_signal_guard"]["triggered"]
         assert plan["scope_signal_guard_decision_v2"]["route"] == "security_risk_gate_required"
         assert "security_risk_gate_required" in result["blockers"]
+    elif case == "security_delta_and_structure":
+        # The structural error stops first; it never opens the update consumer.
+        assert "missing_required_section" in plan["fail_closed"]["reason_codes"]
     else:
         reason = (
             "missing_scope_signal_delta_input"
@@ -594,6 +604,7 @@ def test_i127_latest_trusted_blocked_supersedes_old_scope_go(tmp_path, trusted):
         ("omitted_retained_history", "missing_scope_signal_delta_input"),
         ("superseded_comparison", "missing_scope_signal_delta_input"),
         ("security_empty_reframe", "security_risk_gate_required"),
+        ("retained_scope_expansion", "scope_expansion_requires_review"),
         ("live_with_fixture", "required_contract_evidence_unverified"),
         ("repo_evidence", "required_contract_evidence_unverified"),
         ("external_evidence", "required_contract_evidence_unverified"),
@@ -644,6 +655,11 @@ def test_i134_direct_consumer_write_zero(tmp_path, monkeypatch, case, failure):
         body = body.replace(
             "## Allowed Paths\n\n- scripts/example.py",
             "## Allowed Paths\n\n- scripts/example.py\n- scripts/auth.py",
+        )
+    if case == "retained_scope_expansion":
+        body = body.replace(
+            "## Allowed Paths\n\n- scripts/example.py",
+            "## Allowed Paths\n\n- scripts/example.py\n- scripts/other.py",
         )
     updated_at = "2026-01-01T00:00:00Z"
     issue = {"number": 200, "body": body, "updatedAt": updated_at}
@@ -716,6 +732,7 @@ def test_i134_direct_consumer_write_zero(tmp_path, monkeypatch, case, failure):
         "fake_source",
         "superseded_comparison",
         "security_empty_reframe",
+        "retained_scope_expansion",
     }:
         previous = body
         if case == "superseded_comparison":
@@ -724,11 +741,15 @@ def test_i134_direct_consumer_write_zero(tmp_path, monkeypatch, case, failure):
             )
         if case == "requested_revision_mismatch":
             previous = earlier
-        if case == "security_empty_reframe":
+        if case in {"security_empty_reframe", "retained_scope_expansion"}:
             previous = VALID_ISSUE_BODY
         seed_previous_snapshot(tmp_path, issue_number=200, repo=TRUSTED_REPO, body=previous)
         # A mismatch case retains a source other than the current revision.
-        mismatched = case in {"superseded_comparison", "requested_revision_mismatch"}
+        mismatched = case in {
+            "superseded_comparison",
+            "requested_revision_mismatch",
+            "retained_scope_expansion",
+        }
         comments = [_i127_go_comment(previous, 1)] if mismatched or case == "confirmed" else []
         current = {
             "schema_version": "raw_issue_snapshot/v1",

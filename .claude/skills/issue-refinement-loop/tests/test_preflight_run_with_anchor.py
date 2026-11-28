@@ -865,6 +865,74 @@ def test_i134_freeform_no_op_covers_only_consumed_lines(extra, proven):
     assert result["writes"] == calls["apply_transaction"] == 0
 
 
+@pytest.mark.parametrize("structured", [False, True], ids=["freeform-bullet", "reframe-delta"])
+@pytest.mark.parametrize(
+    "hidden",
+    [
+        pytest.param("<!--\n{line}\n-->", id="comment"),
+        pytest.param("```text\n{line}\n```", id="fence"),
+        pytest.param("<!--\n{line}", id="unclosed-comment"),
+    ],
+)
+def test_i134_hidden_issue_text_is_not_applied(hidden, structured):
+    from scope_signal_delta import classify_scope_delta_authority
+
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=structured)
+    line = f"- {_E2E_DELTA}" if structured else "- none"
+    target = line if structured else "## Stop Conditions\n\n- none"
+    assert issue_body.count(target) == 1
+    issue_body = issue_body.replace(
+        target, target.replace(line, hidden.format(line=line) + "\n- docs/other.md")
+    )
+    anchor_body = _e2e_anchor_body() if structured else "## Stop Conditions\n\n- none\n"
+    anchor = dict(_e2e_anchor_comment(), body=anchor_body)
+    context = {"human_context_comment_urls": [_E2E_URL]}
+    plan = {
+        "schema_version": "CONTRACT_PATCH_PLAN_V1",
+        "target_issue_number": _E2E_ISSUE,
+        "base_issue_body_sha256": _e2e_sha256(issue_body),
+        "source_evidence": [],
+        "operations": [],
+    }
+    if structured:
+        context["scope_delta_decision"] = _e2e_approved_scope_delta_decision(
+            anchor_body=anchor_body
+        )
+    else:
+        evidence = _e2e_preflight._build_scope_delta_authority_evidence(
+            comment_payload=anchor,
+            comment_body=anchor_body,
+            repo=_E2E_REPO,
+            issue_number=_E2E_ISSUE,
+            anchor_url=_E2E_URL,
+            captured_at="2026-08-09T00:00:00Z",
+            human_context_comment_urls=[_E2E_URL],
+        )
+        plan = classify_scope_delta_authority(
+            [evidence],
+            source_body=anchor_body,
+            target_issue_number=_E2E_ISSUE,
+            expected_repo=_E2E_REPO,
+            base_issue_body_sha256=_e2e_sha256(issue_body),
+        )["contract_patch_plan"]
+    callbacks, calls = _e2e_callbacks(issue_body=issue_body, anchor_comment=anchor)
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        issue={"body": issue_body},
+        anchor_url=_E2E_URL,
+        anchor_payload=anchor,
+        anchor_body=anchor_body,
+        contract_patch_plan=plan,
+        callbacks=callbacks,
+        known_context=context,
+    )
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+
+    assert projected.get("disposition") != "proven_no_change"
+    assert result["writes"] == calls["apply_transaction"] == 0
+
+
 def test_negative_4_malformed_operations_type_fails_closed_without_coercion():
     """Regression #4: operations is not a list -- fails closed immediately,
     never coerced to []; run_trusted_anchor_iteration_zero is never reached."""

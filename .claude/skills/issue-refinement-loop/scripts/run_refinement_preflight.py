@@ -7381,8 +7381,52 @@ def _decide_human_review_directive_editor_route(
     }
 
 
+def _visible_issue_body(body: str) -> str:
+    """Drop text that states no contract: HTML comments and fenced examples.
+
+    Fences under Verification Commands are kept because commands live there.
+    An unclosed comment or fence hides the rest, which only defers the anchor.
+    """
+    from scope_signal_delta import _is_fence_closer, _parse_fence_opener, _parse_heading
+
+    visible: list[str] = []
+    fence: Optional[tuple[str, int]] = None
+    in_comment = keep_fence = False
+    section = ""
+    for line in body.splitlines():
+        if fence is not None:
+            if keep_fence:
+                visible.append(line)
+            if _is_fence_closer(line, *fence):
+                fence = None
+            continue
+        if in_comment or "<!--" in line:
+            kept, rest = "", line
+            while rest:
+                if in_comment:
+                    _, closed, rest = rest.partition("-->")
+                    in_comment = not closed
+                else:
+                    before, opened, rest = rest.partition("<!--")
+                    kept += before
+                    in_comment = bool(opened)
+            if not kept.strip():
+                continue
+            line = kept
+        fence = _parse_fence_opener(line)
+        if fence is not None:
+            keep_fence = section == "verification commands"
+            if keep_fence:
+                visible.append(line)
+            continue
+        if line.startswith("## "):
+            section = (_parse_heading(line) or "").lower()
+        visible.append(line)
+    return "\n".join(visible) + "\n"
+
+
 def _anchor_directives_fully_reflected(
-    *, anchor_body: str, evidence: Optional[dict], body: str
+    *, anchor_body: str, evidence: Optional[dict], body: str, allowed_path_deltas: list[str]
 ) -> bool:
     """Whether every line of the anchor is accounted for as already applied.
 
@@ -7398,6 +7442,14 @@ def _anchor_directives_fully_reflected(
         derive_contract_patch_operations,
     )
 
+    body = _visible_issue_body(body)
+    if allowed_path_deltas and (
+        _check_scope_reframe_deltas_reflected(
+            current_body=body, allowed_path_deltas=allowed_path_deltas
+        )
+        != "present"
+    ):
+        return False
     residual = anchor_body
     for match in re.finditer(
         r"^```yaml[ \t]*\r?\n(?:(?!```).*\r?\n)*```[ \t]*\r?$", anchor_body, re.MULTILINE
@@ -8061,6 +8113,7 @@ def consume_trusted_anchor_contract_patch_plan(
             agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
         ),
         body=fresh_body,
+        allowed_path_deltas=_validated_allowed_path_deltas,
     ):
         return {
             "status": "no_change",
