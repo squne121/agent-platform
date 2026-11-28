@@ -1508,64 +1508,9 @@ def _validate_scope_comparison_binding(issue: dict, known_context: dict) -> None
         expected_repo = repo[0]
 
 
-_COMPARISON_ACTION = re.compile(r"\bcompar(?:e|ing|ison)\b|比較|照合|差分", re.IGNORECASE)
-_PRIOR_VERSION = re.compile(r"\b(?:previous|prior|earlier|last)\b|前回|以前|直前|過去|旧", re.IGNORECASE)
-_COMPARISON_OBJECT = re.compile(
-    r"\b(?:bod(?:y|ies)|contracts?|snapshots?|scope|allowed paths)\b|本文|契約|スコープ|範囲|スナップショット",
-    re.IGNORECASE,
-)
-_OPTIONAL_COMPARISON = re.compile(
-    r"\b(?:not|no|never|without|unnecessary|optional|if available)\b|不要|必須ではない|行わない|しない|あれば",
-    re.IGNORECASE,
-)
-_REQUIREMENT_ACTION = re.compile(r"\b(?:must|required|mandatory)\b|必要|必須", re.IGNORECASE)
-# A prohibition on proceeding without a comparison makes it a prerequisite;
-# it is not a prohibition on comparing.
-_COMPARISON_PREREQUISITE = re.compile(r"\b(?:not|never)\b.+\bwithout\s*$", re.IGNORECASE)
-
-
-def _has_required_scope_comparison(text: str) -> bool:
-    clauses = _contract_clauses(text)
-    for index, clause in enumerate(clauses):
-        action = _COMPARISON_ACTION.search(clause)
-        prerequisite = action and _COMPARISON_PREREQUISITE.search(clause[:action.start()])
-        if not prerequisite and _OPTIONAL_COMPARISON.search(clause):
-            continue
-        if "scope_signal_delta_input" in clause and _REQUIREMENT_ACTION.search(clause):
-            return True
-        if not (
-            _COMPARISON_ACTION.search(clause)
-            and _PRIOR_VERSION.search(clause)
-            and _COMPARISON_OBJECT.search(clause)
-        ):
-            continue
-        # An immediately following qualification can refer back to the comparison.
-        if index + 1 < len(clauses):
-            following = clauses[index + 1]
-            if (
-                _COMPARISON_ACTION.search(following)
-                and not _PRIOR_VERSION.search(following)
-                and _OPTIONAL_COMPARISON.search(following)
-            ):
-                continue
-        return True
-    return False
-
-
-def _scope_signal_delta_required(issue_body: str, known_context: dict | None) -> bool:
-    if isinstance(known_context, dict) and known_context.get("scope_signal_delta_required"):
-        return True
-    for name, content in _extract_sections(issue_body).items():
-        if name == "Out of Scope":
-            continue
-        lines = (
-            (line.text for line in delta_iter_section_lines(issue_body, name, semantic_only=True))
-            if delta_iter_section_lines is not None
-            else _remove_fenced_code(content).splitlines()
-        )
-        if any(_has_required_scope_comparison(line) for line in lines):
-            return True
-    return False
+def _scope_signal_delta_required(known_context: dict | None) -> bool:
+    """Consume the producer's structured requirement, never Issue prose."""
+    return isinstance(known_context, dict) and bool(known_context.get("scope_signal_delta_required"))
 
 
 def _detect_scope_signals(
@@ -1589,7 +1534,7 @@ def _detect_scope_signals(
         issue_body = issue_number_or_body
         known_context = issue_body_or_known_context if isinstance(issue_body_or_known_context, dict) else None
 
-    if "scope_signal_delta_input" not in (known_context or {}) and _scope_signal_delta_required(issue_body, known_context):
+    if "scope_signal_delta_input" not in (known_context or {}) and _scope_signal_delta_required(known_context):
         raise ScopeSignalDeltaError(
             "A required scope comparison has no valid scope_signal_delta_input",
             reason_code=SCOPE_SIGNAL_REASON_MISSING_DELTA_INPUT,
@@ -2649,9 +2594,7 @@ def plan_refinement_loop(
         scope_signal_delta_result = None
         try:
             if known_context and "scope_signal_delta_input" in known_context:
-                if require_snapshot_binding or _scope_signal_delta_required(
-                    issue_body, known_context
-                ):
+                if require_snapshot_binding or _scope_signal_delta_required(known_context):
                     _validate_scope_comparison_binding(issue, known_context)
                 scope_signal_delta_result = _compute_scope_signal_delta_result(known_context)
             scope_signal_triggered, scope_signal_reason, scope_signal_evidence = (

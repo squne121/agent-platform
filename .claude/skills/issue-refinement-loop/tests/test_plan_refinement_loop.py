@@ -1010,12 +1010,9 @@ def test_i127_current_body_evidence_is_not_a_scope_delta(outcome, investigation_
     assert decisions["scope_signal_guard"]["reason_code"] == "no_scope_signal"
 
 
-@pytest.mark.parametrize("context", [{"scope_signal_delta_required": True}, None])
-def test_i127_required_comparison_missing_even_without_phase(context):
+def test_i127_required_comparison_missing_even_without_phase():
     data = fixture_to_input("no_repo_fact_claim", "negative", 7)
-    data["known_context"] = context
-    if context is None:
-        data["issue"]["body"] += "\n比較には scope_signal_delta_input が必要。\n"
+    data["known_context"] = {"scope_signal_delta_required": True}
     output, exit_code = run_planner(data)
     assert exit_code == 0
     assert output["fail_closed"]["required"]
@@ -1023,26 +1020,26 @@ def test_i127_required_comparison_missing_even_without_phase(context):
 
 
 @pytest.mark.parametrize(
-    ("note", "required"),
+    "note",
     [
-        ("Compare current Allowed Paths with the previous version.", True),
-        ("Compare with the previous contract; do not rely on labels.", True),
-        ("Compare the current and previous issue bodies.", True),
-        ("Do not update the Issue without comparing the current and previous issue bodies.", True),
-        ("Compare the previous contract with the current contract; do not modify the Issue.", True),
-        ("Do not compare with the previous body; report the current contract.", False),
-        ("Compare the previous contract with the current contract, and do not modify the Issue.", True),
-        ("Compare (e.g. using a table) the previous contract against the current one.", True),
-        ("Compare the previous body; the comparison is optional.", False),
-        ("Compare the reported paths against the current contract; do not modify the previous snapshot.", False),
-        ("scope_signal_delta_input must be supplied before updating; do not modify the Issue.", True),
-        ("Do not modify the Issue; compare the previous contract with the current contract.", True),
-        ("前回のスコープとの差分を確認する。", True),
-        ("Do not compare with the previous body.", False),
-        ("If available, compare with the previous body.", False),
-        ("scope_signal_delta_input must be supplied before updating.", True),
-        ("Inspect the current scope_signal_guard output.", False),
-        ("Review the current contract.\n\n```text\nCompare with the previous contract.\n```", False),
+        "Compare current Allowed Paths with the previous version.",
+        "Compare with the previous contract; do not rely on labels.",
+        "Compare the current and previous issue bodies.",
+        "Do not update the Issue without comparing the current and previous issue bodies.",
+        "Compare the previous contract with the current contract; do not modify the Issue.",
+        "Do not compare with the previous body; report the current contract.",
+        "Compare the previous contract with the current contract, and do not modify the Issue.",
+        "Compare (e.g. using a table) the previous contract against the current one.",
+        "Compare the previous body; the comparison is optional.",
+        "Compare the reported paths against the current contract; do not modify the previous snapshot.",
+        "scope_signal_delta_input must be supplied before updating; do not modify the Issue.",
+        "Do not modify the Issue; compare the previous contract with the current contract.",
+        "前回のスコープとの差分を確認する。",
+        "Do not compare with the previous body.",
+        "If available, compare with the previous body.",
+        "scope_signal_delta_input must be supplied before updating.",
+        "Inspect the current scope_signal_guard output.",
+        "Review the current contract.\n\n```text\nCompare with the previous contract.\n```",
     ],
 )
 @pytest.mark.parametrize(
@@ -1053,12 +1050,24 @@ def test_i127_required_comparison_missing_even_without_phase(context):
         ("Acceptance Criteria", "- [ ] AC1: <!-- runtime-verification: true --> "),
     ],
 )
-def test_i127_distinguishes_history_directives_from_mentions(note, required, section, prefix):
+def test_planner_leaves_prose_comparison_to_semantic_review(note, section, prefix):
     data = fixture_to_input("no_repo_fact_claim", "negative", 7)
     data["issue"]["body"] += f"\n## {section}\n{prefix}{note}\n"
     output, code = run_planner(data)
     assert code == 0
-    assert ("missing_scope_signal_delta_input" in output["fail_closed"]["reason_codes"]) is required
+    assert "missing_scope_signal_delta_input" not in output["fail_closed"]["reason_codes"]
+
+
+def test_regression_test_reference_is_not_a_preflight_history_requirement():
+    data = fixture_to_input("no_repo_fact_claim", "negative", 7)
+    data["issue"]["body"] += (
+        "\n## Verification Commands\n"
+        "AC1 の baseline は旧契約との整合を確認する回帰であり、新しい受入期待は変更後に照合する。\n"
+    )
+    plan, code = run_planner(data)
+    assert code == 0
+    assert not plan["fail_closed"]["required"]
+    assert plan["decisions"]["scope_signal_guard"]["reason_code"] == "no_scope_signal"
 
 
 def test_i127_preserves_existing_evidence_on_new_output_line():
@@ -1084,8 +1093,9 @@ def test_i127_keeps_comparison_reason_with_structural_error(malformed_delta):
         "\n## Acceptance Criteria\n"
         "- [ ] AC1: <!-- runtime-verification: true --> Compare the current and previous issue bodies.\n"
     )
+    data["known_context"] = {"scope_signal_delta_required": True}
     if malformed_delta:
-        data["known_context"] = {"scope_signal_delta_input": None}
+        data["known_context"]["scope_signal_delta_input"] = None
     plan, code = run_planner(data)
     assert code == 0
     assert plan["fail_closed"]["required"]

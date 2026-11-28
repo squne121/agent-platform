@@ -522,7 +522,7 @@ contract_patch_plan_v1:
 `forbidden` は常に `direct_github_write` と `implementation_phase_transition` の 2 値を含む。
 本 plan の生成コードパスから Issue 本文への実際の書き込みや実装フェーズへの遷移を実行することはできない
 （`build_contract_patch_plan_v1()` は dict を返すのみで、`gh` 呼び出しを一切含まない）。
-実際の適用は既存 Issue 更新専用の `issue-editor` / `edit-issue` skill 経由でのみ行う。
+Step 0g の旧 consumer も transaction や GitHub 本文更新要求を発行しない。実際の適用は通常審査を経た既存 `issue-editor` / `edit-issue` の Step 4 権限・証拠検査の下でのみ行う。適格な既存二 handoff は編集や実装の認可ではない。
 
 ### decide_next_loop_action.py の非破壊分岐（AC20）
 
@@ -540,7 +540,7 @@ sidecar 引数**（`--scope-signal-guard-decision-v2-file` / `--scope-signal-gua
 `proceed_with_notes`）であり、`contract_update_required` という値を取ることは一切ない。PR #1332 review で
 この 2 つの `route` フィールドの階層が混同されていた実装バグが指摘され修正済み）を受け取ると、
 `NEXT_ACTION: proceed_with_contract_update` を返す（`termination_reason` は一切変更しない。loop は継続したまま、
-契約更新 → refinement 再実行の non-destructive branch に入る）。sidecar が未指定、`scope_delta_authority` キー欠落、
+構造化指示と比較事実を通常審査へ渡し、正規 Step 4 の更新がある場合は fresh refinement を行う）。sidecar が未指定、`scope_delta_authority` キー欠落、
 またはパース失敗時は soft-fail（絶対値として扱わず、既存の `scope_signal_guard.triggered` ベースの hard stop 判定に
 フォールバックする）。
 

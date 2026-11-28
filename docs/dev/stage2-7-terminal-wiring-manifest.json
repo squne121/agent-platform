@@ -201,8 +201,8 @@
         "deferred": 0
       },
       "stage1a-core-manifest.json": {
-        "collect": 908,
-        "ran": 908,
+        "collect": 956,
+        "ran": 956,
         "deferred": 0
       },
       "stage1b1-leaf-manifest.json": {
@@ -271,12 +271,13 @@
         "deferred": 0
       }
     },
-    "collect": 4728,
-    "ran": 4652,
+    "collect": 4776,
+    "ran": 4700,
     "deferred": 76,
     "note": "sums of the existing stage manifests plus this manifest; the per-lane runners (run_stage0_tests.py, run_stage1a_tests.py, run_stage1b1_tests.py <manifest>) verify each lane's real collect/ran/deferred/skip counts in CI. stage0 pins collect counts only."
   },
   "intentional_diffs": [
+    "Issue #134: read-only planning does not infer a comparison prerequisite from free text. Step 2/2.5 owns semantic applicability and evidence confirmation. Step 0g is write-zero even with exact operations and trusted GO; it retains only the existing eligible handoffs and forwards unapplied directives to normal review and Step 4 rewrite. The existing provenance sidecar can point to stdout captured from the actual planner subprocess; fixture execution is not live evidence. A proven no-op also requires every anchor line outside the one reframe fence to be accounted for as already applied; otherwise Step 0g defers the anchor to normal review.",
     "test_thin_entrypoint.py (counted in the stage1a-core lane, which owns that directory): ruff format only (import/blank-line layout); assertions byte-identical to the source",
     "scripts/agent-ops/workflow_capability_preflight.py: _KNOWN_OPERATION_ROUTES = {issue_comment, issue_edit, issue_create} (source: the full production route set); _MUTATION_OPERATION_NAMES gains the unapproved label / state / native parent / dependency / relationship names, and an allowlist (_READ_ONLY_OPERATION_NAMES = issue_read, read_issue) is the only way to be non-mutating: every other name (unregistered, re-cased, padded, separator-variant, non-ASCII) is mutating and unavailable whatever requires_mutation says; the planned-operations file rejects names outside [a-z0-9_]+",
     "scripts/agent-ops/tests/test_workflow_capability_preflight.py and test_workflow_start_entry_canonical_executor.py: the old 'issue_* routes are unavailable' expectations are replaced by (a) positive controls for the three approved operations (route available, permission unverified, inner preflight starts) and (b) negative controls for pr_*, label, state, native parent / dependency / relationship and unregistered operations (blocked, inner preflight never starts)",

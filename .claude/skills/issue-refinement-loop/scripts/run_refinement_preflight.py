@@ -83,12 +83,10 @@ import contextlib
 import errno
 import hashlib
 import importlib.metadata
-import io
 import json
 import os
 import pwd
 import re
-import shlex
 import stat
 import subprocess
 import sys
@@ -195,7 +193,6 @@ except ImportError:  # pragma: no cover - defensive fallback
     _parse_h2_sections = None
     _section_line_bounds = None
     _DERIVED_SCALAR_FIELD_VALIDATORS = {}
-
 
 
 _IMPL_MAIN_DRIFT_SCRIPTS_DIR = Path(__file__).resolve().parents[4] / "scripts" / "agent-ops"
@@ -338,33 +335,37 @@ BLOCKER_CONTRACT_UPDATE_FAILED = "CONTRACT_UPDATE_FAILED"
 # The transaction layer may return an exception string in `failure` from a
 # callback. Never forward it into stdout/artifacts; only these fixed tokens
 # are diagnostic authority for the bounded handoff.
-CONTRACT_UPDATE_FAILED_REASONS = frozenset({
-    "unsafe_unstructured_patch_operation",
-    "contract_patch_plan_missing",
-    "contract_patch_plan_operations_not_list",
-    "invalid_scope_delta_decision_binding",
-    "invalid_scope_delta_decision",
-    "invalid_patch_plan_producer_unavailable",
-    "invalid_operations_key_missing",
-    "invalid_operations_not_list",
-    "invalid_allowed_path_deltas_not_list",
-    "invalid_blank_delta_entry",
-    "invalid_anchor_binding_mismatch",
-    "invalid_source_evidence_binding_mismatch",
-    "invalid_allowed_paths_parser_unavailable",
-    "human_review_directive_route_import_failed",
-    "human_review_directive_route_classifier_error",
-    "human_review_directive_route_fresh_readback_failed",
-    "scope_reframe_router_import_failed",
-    "scope_delta_status_required_when_allowed_path_deltas_present",
-    "candidate_readiness_not_go",
-    "anchor_identity_or_trust_changed",
-    "body_drift_retry_exhausted",
-    "final_readback_postcondition_failed",
-    "section_postcondition_failed",
-    "post_update_gate_failed",
-    "contract_update_failed",
-})
+CONTRACT_UPDATE_FAILED_REASONS = frozenset(
+    {
+        "unsafe_unstructured_patch_operation",
+        "contract_patch_plan_missing",
+        "contract_patch_plan_operations_not_list",
+        "invalid_scope_delta_decision_binding",
+        "invalid_scope_delta_decision",
+        "invalid_patch_plan_producer_unavailable",
+        "invalid_operations_key_missing",
+        "invalid_operations_not_list",
+        "invalid_allowed_path_deltas_not_list",
+        "invalid_blank_delta_entry",
+        "invalid_anchor_binding_mismatch",
+        "invalid_source_evidence_binding_mismatch",
+        "invalid_allowed_paths_parser_unavailable",
+        "human_review_directive_route_import_failed",
+        "human_review_directive_route_classifier_error",
+        "human_review_directive_route_fresh_readback_failed",
+        "scope_reframe_router_import_failed",
+        "scope_delta_status_required_when_allowed_path_deltas_present",
+        "candidate_readiness_not_go",
+        "anchor_identity_or_trust_changed",
+        "body_drift_retry_exhausted",
+        "final_readback_postcondition_failed",
+        "section_postcondition_failed",
+        "post_update_gate_failed",
+        "contract_update_failed",
+    }
+)
+# Not a failure: Step 0g declines the early write and the normal review runs.
+_DIRECT_UPDATE_NOT_ELIGIBLE = "direct_update_not_eligible"
 BLOCKER_ANCHOR_REPO_MISMATCH = "ANCHOR_REPO_MISMATCH"
 BLOCKER_ANCHOR_ISSUE_NUMBER_MISMATCH = "ANCHOR_ISSUE_NUMBER_MISMATCH"
 BLOCKER_ANCHOR_COMMENT_NOT_FOUND = "ANCHOR_COMMENT_NOT_FOUND"
@@ -389,7 +390,9 @@ BLOCKER_REWRITE_CONSTRAINTS_INVARIANT_VIOLATION = "REWRITE_CONSTRAINTS_INVARIANT
 BLOCKER_PLANNER_FAIL_CLOSED_PAYLOAD_INVALID = "planner_fail_closed_payload_invalid"
 BLOCKER_ARTIFACT_PROJECTION_MISMATCH = "ARTIFACT_PROJECTION_MISMATCH"
 BLOCKER_ISSUE_EXECUTION_DECISION_INVALID = "ISSUE_EXECUTION_DECISION_INVALID"
-BLOCKER_ISSUE_EXECUTION_DECISION_VALIDATOR_UNAVAILABLE = "ISSUE_EXECUTION_DECISION_VALIDATOR_UNAVAILABLE"
+BLOCKER_ISSUE_EXECUTION_DECISION_VALIDATOR_UNAVAILABLE = (
+    "ISSUE_EXECUTION_DECISION_VALIDATOR_UNAVAILABLE"
+)
 # #1891 iteration 2 (PR #1923 OWNER REQUEST_CHANGES): the multi-turn-candidate
 # route and the heavy-mutation gate must actually reach the `blockers` list
 # consumed by `_apply_exit_code_mapping()`, not just live inside
@@ -510,6 +513,7 @@ def _resolve_scope_delta_source_kind(
     if in_human:
         return "issue_comment"
     return "generated_by_agent"
+
 
 # ---------------------------------------------------------------------------
 # Helper functions
@@ -2236,7 +2240,9 @@ STRUCTURAL_REPAIR_APPLY_FAILURE_READBACK_UNRESOLVABLE = "final_readback_unresolv
 STRUCTURAL_REPAIR_APPLY_FAILURE_READINESS_NEEDS_FIX = "structural_readiness_needs_fix"
 STRUCTURAL_REPAIR_APPLY_FAILURE_READINESS_HUMAN_JUDGMENT = "structural_readiness_human_judgment"
 STRUCTURAL_REPAIR_APPLY_FAILURE_READINESS_RUNTIME_ERROR = "structural_readiness_runtime_error"
-STRUCTURAL_REPAIR_APPLY_FAILURE_READINESS_INPUT_OR_RUNTIME_ERROR = "structural_readiness_input_or_runtime_error"
+STRUCTURAL_REPAIR_APPLY_FAILURE_READINESS_INPUT_OR_RUNTIME_ERROR = (
+    "structural_readiness_input_or_runtime_error"
+)
 
 _STRUCTURAL_READINESS_EXPECTED_EXIT_CODES = {
     "go": 0,
@@ -2964,8 +2970,8 @@ CANONICALIZATION_ID = "loop-protocol-json-c14n-v1"
 #     .json` audit artifact only (the pre-#2053-iteration-3 behavior).
 #   - MUTATION_LANE_CONTRACT_PATCH_PLAN_CONSUMER: a CONTRACT_PATCH_PLAN_V1 and
 #     anchor_context were supplied -- the mutation is delegated to the real,
-#     existing controlled-mutation lane (consume_trusted_anchor_contract_
-#     patch_plan() -> edit_issue_txn.py), and `mutation_applied` reflects that
+#     read-only Step 0g consumer. The local artifact does not prove a GitHub
+#     edit and `mutation_applied` is false in that lane.
 #     lane's actual outcome, not merely the local artifact write succeeding.
 MUTATION_LANE_ARTIFACT_ONLY = "artifact_only"
 MUTATION_LANE_CONTRACT_PATCH_PLAN_CONSUMER = "contract_patch_plan_consumer"
@@ -3297,17 +3303,12 @@ def consume_authority_transport(
     #2053 P0 fix-delta (iteration 3, OWNER PR review): when `contract_patch_plan`
     (a CONTRACT_PATCH_PLAN_V1 dict) and `anchor_context` (a dict with
     `issue`, `anchor_url`, `anchor_payload`, `anchor_body`, and optionally
-    `callbacks` / `known_context`) are both supplied, the mutation step is
-    delegated to the existing, real controlled-mutation lane --
-    `consume_trusted_anchor_contract_patch_plan()` (which, via its default
-    callbacks, drives `edit_issue_txn.py`) -- instead of merely writing the
-    local `consumed_authority_payload_v1.json` audit artifact. The receipt's
-    `mutation_applied` claim reflects that lane's real, independently
-    projected outcome (`_bounded_contract_update_handoff()`), never just the
-    local artifact write succeeding. When `contract_patch_plan` /
-    `anchor_context` are omitted (the default), behavior is unchanged from
-    before this fix-delta: the bounded local artifact write is the mutation.
-    Either way, `mutation_lane` on the receipt records which happened.
+    `callbacks` / `known_context`) are both supplied, the read-only Step 0g
+    consumer checks disposition without applying a GitHub update. The
+    receipt's `mutation_applied` is false in that lane; classification is
+    separate from the locally persisted audit artifact. When no bound patch
+    plan is supplied, `mutation_applied` retains its historical meaning for
+    the `artifact_only` lane. `mutation_lane` records which path was used.
     """
 
     # #2053 AC10 P0 fix-delta (iteration 2): termination telemetry recording
@@ -3440,7 +3441,10 @@ def consume_authority_transport(
     except (OSError, json.JSONDecodeError):
         return _receipt(status="environment_failure", reason_code="malformed_json")
 
-    if not isinstance(manifest, dict) or manifest.get("schema_version") != AUTHORITY_TRANSPORT_SCHEMA_VERSION:
+    if (
+        not isinstance(manifest, dict)
+        or manifest.get("schema_version") != AUTHORITY_TRANSPORT_SCHEMA_VERSION
+    ):
         return _receipt(status="environment_failure", reason_code="malformed_json")
 
     if manifest.get("issue_number") != issue_number:
@@ -3474,9 +3478,51 @@ def consume_authority_transport(
     # write is always performed as the audit/readback record -- it is the
     # ONLY mutation performed when no contract_patch_plan is supplied
     # (MUTATION_LANE_ARTIFACT_ONLY). When a contract_patch_plan IS supplied
-    # (below), it remains the readback record for the transported payload,
-    # but the load-bearing mutation is delegated to the real controlled
-    # consumer lane instead.
+    # (below), this is still just a readback record for the transported
+    # payload; the bound consumer has no write authority.
+    bound_consumer = contract_patch_plan is not None or anchor_context is not None
+    if bound_consumer and (
+        not isinstance(contract_patch_plan, dict)
+        or not isinstance(anchor_context, dict)
+        or not isinstance(anchor_context.get("issue"), dict)
+        or not isinstance(anchor_context.get("anchor_url"), str)
+        or not isinstance(anchor_context.get("anchor_payload"), dict)
+        or not isinstance(anchor_context.get("anchor_body"), str)
+    ):
+        return _receipt(
+            status="environment_failure",
+            reason_code="schema_invalid",
+            mutation_lane=MUTATION_LANE_CONTRACT_PATCH_PLAN_CONSUMER,
+        )
+    if bound_consumer:
+        anchor = anchor_context["anchor_payload"]
+        anchor_digest = _sha256(anchor_context["anchor_body"])
+        evidence = manifest.get("payload")
+        if isinstance(evidence, list) and len(evidence) == 1:
+            evidence = evidence[0]
+        user = anchor.get("user")
+        if (
+            not isinstance(evidence, dict)
+            or not isinstance(user, dict)
+            or anchor_context["anchor_url"] != manifest.get("source_comment_url")
+            or anchor.get("id") != manifest.get("source_comment_id")
+            or manifest.get("source_issue_body_sha256")
+            not in (anchor_digest, f"sha256:{anchor_digest}")
+            or evidence.get("comment_url") != manifest.get("source_comment_url")
+            or evidence.get("comment_id") != manifest.get("source_comment_id")
+            or evidence.get("body_sha256") != manifest.get("source_issue_body_sha256")
+            or (
+                evidence.get("author_association"),
+                evidence.get("author_login"),
+                evidence.get("author_type"),
+            )
+            != (anchor.get("author_association"), user.get("login"), user.get("type"))
+        ):
+            return _receipt(
+                status="environment_failure",
+                reason_code="contract_patch_plan_consumer_failed",
+                mutation_lane=MUTATION_LANE_CONTRACT_PATCH_PLAN_CONSUMER,
+            )
     consumed_path = invocation_dir / "consumed_authority_payload_v1.json"
     # #2053 P1 fix-delta (iteration 2, OWNER PR review): bind the
     # transaction/idempotency state BEFORE mutation, not just via
@@ -3505,13 +3551,8 @@ def consume_authority_transport(
     )
     _artifacts_seen["consumed_artifact"] = _artifact_ref(consumed_path)
 
-    # --- #2053 P0 fix-delta (iteration 3): real controlled-mutation lane.
-    # When the caller supplies a CONTRACT_PATCH_PLAN_V1 and the anchor
-    # context it applies to, delegate the actual mutation authorization to
-    # the existing, real consumer (consume_trusted_anchor_contract_patch_plan
-    # -> edit_issue_txn.py) instead of treating the local artifact write
-    # above as sufficient. `mutation_applied` is overwritten by that lane's
-    # real, independently-projected outcome.
+    # With a bound patch plan use the read-only consumer outcome, not the
+    # successful local artifact write, to classify the receipt.
     mutation_lane = MUTATION_LANE_ARTIFACT_ONLY
     contract_update_status: "str | None" = None
     if isinstance(contract_patch_plan, dict) and isinstance(anchor_context, dict):
@@ -3543,8 +3584,9 @@ def consume_authority_transport(
                 )
             handoff = _bounded_contract_update_handoff(raw_consumer_result)
             contract_update_status = handoff.get("status")
-            mutation_applied = contract_update_status in {"applied", "no_change", "rebased"}
-            if not mutation_applied:
+            # The local receipt was persisted, but this lane never edits the Issue.
+            mutation_applied = False
+            if contract_update_status not in {"no_change", "handoff_required"}:
                 return _receipt(
                     status="environment_failure",
                     reason_code="contract_patch_plan_consumer_failed",
@@ -3579,9 +3621,7 @@ def consume_authority_transport(
             base_issue_body_sha256=manifest.get("source_issue_body_sha256"),
         )
         fresh_rerun_route_action = (
-            fresh_result.get("route", {}).get("action")
-            if isinstance(fresh_result, dict)
-            else None
+            fresh_result.get("route", {}).get("action") if isinstance(fresh_result, dict) else None
         )
         fresh_rerun_performed = (
             fresh_rerun_route_action == SCOPE_DELTA_AUTHORITY_ROUTE_CONTRACT_UPDATE_REQUIRED
@@ -3593,7 +3633,9 @@ def consume_authority_transport(
     if not fresh_rerun_performed:
         return _receipt(
             status="environment_failure",
-            reason_code="fresh_rerun_route_drift" if fresh_rerun_error is None else "fresh_rerun_error",
+            reason_code="fresh_rerun_route_drift"
+            if fresh_rerun_error is None
+            else "fresh_rerun_error",
             transport_payload_sha256=manifest_payload_sha256,
             consumed_payload_sha256=recomputed,
             mutation_applied=mutation_applied,
@@ -3615,7 +3657,9 @@ def consume_authority_transport(
         contract_update_status=contract_update_status,
     )
     if final_receipt["status"] == "ok":
-        ok, _readback2, error2 = _atomic_write_json_with_readback(consumption_receipt_path, final_receipt)
+        ok, _readback2, error2 = _atomic_write_json_with_readback(
+            consumption_receipt_path, final_receipt
+        )
         if not ok:
             final_receipt = _receipt(
                 status="environment_failure",
@@ -4193,7 +4237,10 @@ def _classify_final_environment_failure(blockers: list[str], planner_exit_code: 
 # never relabelled as an external outage. `gh` exits 1 for HTTP errors and
 # connection failures alike, so the exit code alone cannot tell them apart.
 _GH_OUTAGE_STDERR_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
-    ("rate_limited", re.compile(r"api rate limit exceeded|secondary rate limit|http 429", re.IGNORECASE)),
+    (
+        "rate_limited",
+        re.compile(r"api rate limit exceeded|secondary rate limit|http 429", re.IGNORECASE),
+    ),
     ("upstream_environment_failure", re.compile(r"http 5\d\d\b", re.IGNORECASE)),
     (
         "transport_connectivity_failure",
@@ -4475,7 +4522,6 @@ def _anchor_scope_reframe_fence_present(comment_body: str) -> bool:
     return found_related
 
 
-
 _TERMINAL_CLOSE_NOT_PLANNED_MARKER_RE = re.compile(
     r"^Decision:\s*CLOSE\s*/\s*NOT_PLANNED\s*$", re.IGNORECASE
 )
@@ -4534,6 +4580,7 @@ def _is_approved_close_not_planned_decision(decision: "dict | None") -> bool:
         and decision.get("anchor_author_association") == "OWNER"
         and decision.get("implementation_go") is False
     )
+
 
 def _classify_anchor_scope_reframe(
     *,
@@ -6165,140 +6212,65 @@ def _build_result(
     return result
 
 
-
-def _bounded_contract_update_gate(value: Any, allowed: frozenset[str]) -> str:
-    return value if isinstance(value, str) and value in allowed else "unavailable"
-
-
-_CONTRACT_UPDATE_PREFLIGHT_STATES = frozenset({
-    "pass", "warn", "needs_fix", "blocked", "environment_failure", "unavailable", "not_run",
-})
-_CONTRACT_UPDATE_REVIEW_STATES = frozenset({"approve", "needs_fix", "unavailable", "not_run"})
-_CONTRACT_UPDATE_READINESS_STATES = frozenset({
-    "go", "human_judgment", "input_or_runtime_error", "unavailable", "not_run",
-})
-
-
 def _bounded_contract_update_handoff(consumer_result: dict[str, Any]) -> dict[str, Any]:
-    """Project the transaction-local consumer result into the existing result.
-
-    This intentionally retains only the phase outcome needed by the parent
-    orchestrator.  Source bodies, candidate bodies, operation identities, and
-    transaction payloads remain local to the controlled phase.
-
-    PR #2057 OWNER REQUEST_CHANGES revision (P0-2 / P1-3): the returned dict
-    now carries an explicit ``disposition`` (patch / proven_no_change /
-    full_rewrite_required / invalid, echoing the single canonical
-    classifier) alongside ``status``, and TWO status values that used to
-    collapse into an existing enum member now have their own outcome:
-
-    - An `invalid` disposition (malformed/binding-mismatched scope-delta
-      decision) is `status: failed` with `disposition: invalid` -- distinct
-      from an ordinary `no_change`/`proven_no_change` outcome, which it
-      previously matched byte-for-byte.
-    - A `full_rewrite_required` disposition (approved scope reframe, empty
-      operations[], not yet reflected) is `status: handoff_required` --
-      NOT `failed`. No write was ever attempted (`writes` stays 0); this is
-      a legitimate control transfer to issue-editor, not a mutation
-      failure. `final_readback` is `not_applicable` (nothing was written,
-      so there is nothing to read back -- never a synthesized `verified`).
-    """
+    """Project a Step 0g read-only result, never a mutation or approval."""
+    projection = {
+        "status": "failed",
+        "writes": 0,
+        "iterations": 0,
+        "final_readback": "not_applicable",
+        "fresh_preflight": "unavailable",
+        "fresh_review": "unavailable",
+        "fresh_readiness": "unavailable",
+    }
     raw_status = consumer_result.get("status")
-    states = consumer_result.get("states")
-    state = states.get("contract_update", {}).get("status") if isinstance(states, dict) else None
-    iterations = consumer_result.get("iterations", 0)
-    fresh = consumer_result.get("fresh_checks")
-    if not isinstance(fresh, dict):
-        fresh = {}
+    disposition = consumer_result.get("disposition")
     rewrite_route = consumer_result.get("rewrite_route")
-    disposition_sidecar = consumer_result.get("disposition")
-
     if raw_status == "invalid" or (
-        isinstance(disposition_sidecar, dict) and disposition_sidecar.get("disposition") == "invalid"
+        isinstance(disposition, dict) and disposition.get("disposition") == "invalid"
     ):
-        raw_reason = disposition_sidecar.get("reason_code") if isinstance(disposition_sidecar, dict) else None
-        reason_code = (
-            raw_reason if isinstance(raw_reason, str) and raw_reason in CONTRACT_UPDATE_FAILED_REASONS
-            else "invalid_scope_delta_decision"
-        )
+        reason = disposition.get("reason_code") if isinstance(disposition, dict) else None
         return {
-            "status": "failed",
+            **projection,
             "disposition": "invalid",
-            "writes": 0,
-            "iterations": int(iterations) if isinstance(iterations, int) else 0,
-            "final_readback": "not_applicable",
-            "fresh_preflight": "unavailable",
-            "fresh_review": "unavailable",
-            "fresh_readiness": "unavailable",
-            "reason_code": reason_code,
+            "reason_code": reason
+            if isinstance(reason, str) and reason in CONTRACT_UPDATE_FAILED_REASONS
+            else "invalid_scope_delta_decision",
         }
-
     if isinstance(rewrite_route, dict) and rewrite_route.get("route") == "issue_editor_required":
-        rewrite_reason = rewrite_route.get("reason_code")
-        if not isinstance(rewrite_reason, str) or rewrite_reason not in {
+        reason = rewrite_route.get("reason_code")
+        if isinstance(reason, str) and reason in {
             "approved_scope_requires_full_contract_rewrite",
             "explicit_trusted_human_directive_requires_issue_editor",
         }:
             return {
-                "status": "failed", "disposition": "invalid", "writes": 0, "iterations": 0,
-                "final_readback": "not_applicable", "fresh_preflight": "unavailable",
-                "fresh_review": "unavailable", "fresh_readiness": "unavailable",
-                "reason_code": "contract_update_failed",
+                **projection,
+                "status": "handoff_required",
+                "disposition": "full_rewrite_required",
+                "reason_code": reason,
             }
-        return {
-            "status": "handoff_required",
-            "disposition": "full_rewrite_required",
-            "writes": 0,
-            "iterations": 0,
-            "final_readback": "not_applicable",
-            "fresh_preflight": _bounded_contract_update_gate(fresh.get("preflight"), _CONTRACT_UPDATE_PREFLIGHT_STATES),
-            "fresh_review": _bounded_contract_update_gate(fresh.get("review"), _CONTRACT_UPDATE_REVIEW_STATES),
-            "fresh_readiness": _bounded_contract_update_gate(fresh.get("readiness"), _CONTRACT_UPDATE_READINESS_STATES),
-            "reason_code": rewrite_reason,
-        }
+        return {**projection, "disposition": "invalid", "reason_code": "contract_update_failed"}
 
-    # A completed transaction is not an implementation authorization.  The
-    # post-update rerun is a six-gate conjunction: missing, warn, or failing
-    # checks must fail the phase even though the controlled write itself
-    # reached final readback successfully.  Do not infer a pass from prose or
-    # an earlier transaction result.
-    post_update_gate_passed = (
-        fresh.get("preflight") == "pass"
-        and fresh.get("review") == "approve"
-        and fresh.get("readiness") == "go"
-        and fresh.get("allowed_paths") == "pass"
-        and fresh.get("permission_profile") == "pass"
-        and fresh.get("runtime_evidence") == "pass"
-    )
-    if raw_status == "applied" and iterations == 1 and post_update_gate_passed:
-        status = "rebased"
-    elif raw_status in {"applied", "no_change"} and post_update_gate_passed:
-        status = state if state in {"applied", "no_change", "rebased"} else "failed"
-    else:
-        status = "failed"
-    disposition = "patch" if raw_status == "applied" else ("proven_no_change" if raw_status == "no_change" else None)
-    raw_failure = consumer_result.get("failure")
-    reason_code = (
-        raw_failure if isinstance(raw_failure, str) and raw_failure in CONTRACT_UPDATE_FAILED_REASONS
-        else "post_update_gate_failed" if raw_status in {"applied", "no_change"}
-        else "contract_update_failed"
-    )
-    writes = consumer_result.get("writes", 0)
-    writes = writes if type(writes) is int and writes in {0, 1} else 0
-    if raw_status in {"applied", "no_change"}:
-        final_readback = "verified"
-    else:
-        final_readback = "not_applicable" if writes == 0 else "failed"
+    failure = consumer_result.get("failure")
+    invalid_plan_reasons = {
+        "invalid_contract_patch_plan": "invalid_operations_key_missing",
+        "invalid_contract_patch_plan_binding": "invalid_source_evidence_binding_mismatch",
+        "contract_patch_plan_operations_not_list": "invalid_operations_not_list",
+        "unsafe_unstructured_patch_operation": "unsafe_unstructured_patch_operation",
+    }
+    if isinstance(failure, str) and failure in invalid_plan_reasons:
+        return {**projection, "disposition": "invalid", "reason_code": invalid_plan_reasons[failure]}
+    if raw_status == "no_change" and consumer_result.get("writes") == 0:
+        if failure == _DIRECT_UPDATE_NOT_ELIGIBLE:
+            return {**projection, "status": "no_change"}
+        if failure is None and consumer_result.get("changed") is False:
+            return {**projection, "status": "no_change", "disposition": "proven_no_change"}
     return {
-        "status": status,
-        "disposition": disposition,
-        "writes": writes,
-        "iterations": int(iterations) if isinstance(iterations, int) else 0,
-        "final_readback": final_readback,
-        "fresh_preflight": _bounded_contract_update_gate(fresh.get("preflight"), _CONTRACT_UPDATE_PREFLIGHT_STATES),
-        "fresh_review": _bounded_contract_update_gate(fresh.get("review"), _CONTRACT_UPDATE_REVIEW_STATES),
-        "fresh_readiness": _bounded_contract_update_gate(fresh.get("readiness"), _CONTRACT_UPDATE_READINESS_STATES),
-        **({"reason_code": reason_code} if status == "failed" else {}),
+        **projection,
+        "disposition": None,
+        "reason_code": failure
+        if isinstance(failure, str) and failure in CONTRACT_UPDATE_FAILED_REASONS
+        else "contract_update_failed",
     }
 
 
@@ -7310,14 +7282,15 @@ def _decide_human_review_directive_editor_route(
         )
         == "issue_comment"
     )
-    anchor_binding_ok = (
-        evidence_primary.get("comment_url") == anchor_url
-        and evidence_primary.get("body_sha256") == _sha256(anchor_body)
-    )
+    anchor_binding_ok = evidence_primary.get("comment_url") == anchor_url and evidence_primary.get(
+        "body_sha256"
+    ) == _sha256(anchor_body)
     same_target_ok = evidence_primary.get("source_issue_number") == issue_number
 
     fresh_patch_plan = authority.get("contract_patch_plan")
-    fresh_operations = fresh_patch_plan.get("operations") if isinstance(fresh_patch_plan, dict) else None
+    fresh_operations = (
+        fresh_patch_plan.get("operations") if isinstance(fresh_patch_plan, dict) else None
+    )
     operations_empty = isinstance(fresh_operations, list) and not fresh_operations
 
     route_state = HUMAN_REVIEW_DIRECTIVE_EDITOR_ROUTE_STATE_V1(
@@ -7358,9 +7331,38 @@ def _decide_human_review_directive_editor_route(
         return _human_review_directive_route_environment_failure(
             "human_review_directive_route_fresh_readback_failed"
         )
-    fresh_anchor_body = fresh_anchor.get("body", "")
+    fresh_anchor_body = fresh_anchor.get("body")
+    fresh_issue_body = fresh_issue.get("body")
+    fresh_evidence = (
+        _build_scope_delta_authority_evidence(
+            comment_payload=fresh_anchor,
+            comment_body=fresh_anchor_body,
+            repo=repo,
+            issue_number=issue_number,
+            anchor_url=anchor_url,
+            captured_at=evidence_primary.get("captured_at", ""),
+            human_context_comment_urls=known_context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
+            agent_report_comment_urls=known_context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
+        )
+        if isinstance(fresh_anchor_body, str)
+        else None
+    )
     fresh_binding_ok = (
-        fresh_anchor.get("html_url") == anchor_url and _sha256(fresh_anchor_body) == _sha256(anchor_body)
+        fresh_anchor.get("html_url") == anchor_url
+        and isinstance(fresh_issue_body, str)
+        and _sha256(fresh_issue_body) == issue_body_sha256
+        and isinstance(fresh_evidence, dict)
+        and all(
+            fresh_evidence.get(key) == evidence_primary.get(key)
+            for key in (
+                "body_sha256",
+                "author_association",
+                "author_login",
+                "author_type",
+                "comment_id",
+                "source_issue_number",
+            )
+        )
     )
     if not fresh_binding_ok:
         # The anchor changed (body/identity/binding) since this evidence
@@ -7379,6 +7381,138 @@ def _decide_human_review_directive_editor_route(
     }
 
 
+def _visible_issue_body(body: str) -> str:
+    """Drop text that states no contract: HTML comments and fenced examples.
+
+    Fences under Verification Commands are kept because commands live there.
+    An unclosed comment or fence hides the rest, which only defers the anchor.
+    """
+    from scope_signal_delta import _is_fence_closer, _parse_fence_opener, _parse_heading
+
+    visible: list[str] = []
+    fence: Optional[tuple[str, int]] = None
+    in_comment = keep_fence = False
+    section = ""
+    for line in body.splitlines():
+        if fence is not None:
+            if keep_fence:
+                visible.append(line)
+            if _is_fence_closer(line, *fence):
+                fence = None
+            continue
+        if in_comment or "<!--" in line:
+            kept, rest = "", line
+            while rest:
+                if in_comment:
+                    _, closed, rest = rest.partition("-->")
+                    in_comment = not closed
+                else:
+                    before, opened, rest = rest.partition("<!--")
+                    kept += before
+                    in_comment = bool(opened)
+            if not kept.strip():
+                continue
+            line = kept
+        fence = _parse_fence_opener(line)
+        if fence is not None:
+            keep_fence = section == "verification commands"
+            if keep_fence:
+                visible.append(line)
+            continue
+        if line.startswith("## "):
+            section = (_parse_heading(line) or "").lower()
+        visible.append(line)
+    return "\n".join(visible) + "\n"
+
+
+def _anchor_directives_fully_reflected(
+    *, anchor_body: str, evidence: Optional[dict], body: str, allowed_path_deltas: list[str]
+) -> bool:
+    """Whether every line of the anchor is accounted for as already applied.
+
+    A no-op proves nothing about text the canonical parser does not turn into
+    an operation, so any such line leaves the anchor to normal review. The one
+    structured reframe fence is excluded: its deltas are checked separately.
+    """
+    from scope_signal_delta import (
+        _BULLET_LINE_RE,
+        _COMMENT_SECTION_HEADINGS,
+        _parse_heading,
+        build_section_aware_candidate_body,
+        derive_contract_patch_operations,
+    )
+
+    body = _visible_issue_body(body)
+    if allowed_path_deltas and (
+        _check_scope_reframe_deltas_reflected(
+            current_body=body, allowed_path_deltas=allowed_path_deltas
+        )
+        != "present"
+    ):
+        return False
+    residual = anchor_body
+    for match in re.finditer(
+        r"^```yaml[ \t]*\r?\n(?:(?!```).*\r?\n)*```[ \t]*\r?$", anchor_body, re.MULTILINE
+    ):
+        if _parse_anchor_scope_reframe_body(match.group(0)) is not None:
+            residual = anchor_body[: match.start()] + anchor_body[match.end() :]
+            break
+    if not residual.strip():
+        return True
+    operations = (
+        derive_contract_patch_operations([evidence], source_body=anchor_body) if evidence else []
+    )
+    if not operations:
+        return False
+    # Allowed Paths compare as normalized paths (backticks are optional in the
+    # Issue body); every other section must be unchanged by the canonical append.
+    paths = [
+        line.removeprefix("- ")
+        for op in operations
+        if op["section"] == "Allowed Paths"
+        for line in op["text"].split("\n")
+    ]
+    if paths and (
+        _check_scope_reframe_deltas_reflected(current_body=body, allowed_path_deltas=paths)
+        != "present"
+    ):
+        return False
+    try:
+        if build_section_aware_candidate_body(
+            body=body,
+            operations=[op for op in operations if op["section"] != "Allowed Paths"],
+            source_identity={},
+        )["changed"]:
+            return False
+    except (ValueError, TypeError):
+        return False
+    # Coverage is bound to the section: the same text elsewhere proves nothing.
+    covered = {
+        (op["section"], line.strip().removeprefix("- "))
+        for op in operations
+        for line in op["text"].split("\n")
+    }
+    section, in_item = None, False
+    for line in residual.splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        heading = _parse_heading(line)
+        if heading is not None:
+            section, in_item = _COMMENT_SECTION_HEADINGS.get(heading.lower()), False
+            if section is None:
+                return False
+            continue
+        # The parser consumes only bullets and their indented continuations.
+        if _BULLET_LINE_RE.fullmatch(line):
+            in_item = True
+        elif not (in_item and line.startswith(("  ", "\t"))):
+            return False
+        if (section, text.removeprefix("- ").removeprefix("* ")) not in covered:
+            return False
+    return True
+
+
 def consume_trusted_anchor_contract_patch_plan(
     *,
     repo: str,
@@ -7392,18 +7526,14 @@ def consume_trusted_anchor_contract_patch_plan(
     known_context: Optional[dict[str, Any]] = None,
     patch_plan_producer_available: bool = True,
 ) -> dict:
-    """Connect an approved patch plan to the controlled transaction lane.
+    """Validate an anchor proposal without authority to edit the Issue.
 
-    The planner remains read-only. This explicit consumer accepts an existing
-    ``CONTRACT_PATCH_PLAN_V1`` or the narrowly represented missing-plan state
-    from the opt-in preflight execution path. Its default callbacks use the
-    existing readiness checker and ``edit_issue_txn.py``; tests can inject
-    fixture callbacks without a GitHub mutation.
+    Only the existing eligible handoffs and proven no-op remain. An
+    unapplied section-bound proposal returns to the normal review/rewrite.
     """
     from scope_signal_delta import is_safe_contract_patch_append, run_trusted_anchor_iteration_zero
 
     callbacks = callbacks or {}
-    temporary_paths: list[Path] = []
 
     # #2048 Scope Delta: `contract_patch_plan["operations"]` must be a real
     # list. A malformed type (not a list) is never coerced to `[]` -- that
@@ -7415,7 +7545,9 @@ def consume_trusted_anchor_contract_patch_plan(
     # The latter is a genuine plan representation whose ordinary no-op path
     # must remain unavailable to missing-plan input.
     _missing_contract_patch_plan = not isinstance(contract_patch_plan, dict)
-    _raw_operations = [] if _missing_contract_patch_plan else contract_patch_plan.get("operations", [])
+    _raw_operations = (
+        [] if _missing_contract_patch_plan else contract_patch_plan.get("operations", [])
+    )
     if not isinstance(_raw_operations, list):
         return {
             "status": "blocked",
@@ -7428,7 +7560,8 @@ def consume_trusted_anchor_contract_patch_plan(
     # operations: they have their own builder validation and must not be
     # conflated with the unsafe raw freeform append fallback.
     if any(
-        isinstance(op, dict) and op.get("op", op.get("kind")) == "append"
+        isinstance(op, dict)
+        and op.get("op", op.get("kind")) == "append"
         and not is_safe_contract_patch_append(op, anchor_body=anchor_body)
         for op in _raw_operations
     ):
@@ -7491,29 +7624,46 @@ def consume_trusted_anchor_contract_patch_plan(
         not isinstance(body, str)
         or (known_context is not None and not isinstance(known_context, dict))
         or issue.get("number", issue_number) != issue_number
-        or issue.get("url", f"https://github.com/{repo}/issues/{issue_number}") not in {
+        or issue.get("url", f"https://github.com/{repo}/issues/{issue_number}")
+        not in {
             f"https://github.com/{repo}/issues/{issue_number}",
             f"https://api.github.com/repos/{repo}/issues/{issue_number}",
         }
     ):
         return blocked("invalid_contract_patch_plan_binding")
+    if not _missing_contract_patch_plan and (
+        contract_patch_plan.get("schema_version") != "CONTRACT_PATCH_PLAN_V1"
+        or contract_patch_plan.get("target_issue_number") != issue_number
+        or contract_patch_plan.get("base_issue_body_sha256") != _sha256(body)
+        or not isinstance(contract_patch_plan.get("source_evidence"), list)
+    ):
+        return blocked("invalid_contract_patch_plan_binding")
     context = known_context or {}
     if _validated_allowed_path_deltas:
         reframe = _classify_anchor_scope_reframe(
-            comment_payload=anchor_payload, anchor_body=anchor_body, repo=repo,
-            issue_number=issue_number, anchor_url=anchor_url,
+            comment_payload=anchor_payload,
+            anchor_body=anchor_body,
+            repo=repo,
+            issue_number=issue_number,
+            anchor_url=anchor_url,
         )
-        if (reframe.get("status") != "approved_by_trusted_anchor"
-                or reframe.get("allowed_path_deltas") != _validated_allowed_path_deltas):
+        if (
+            reframe.get("status") != "approved_by_trusted_anchor"
+            or reframe.get("allowed_path_deltas") != _validated_allowed_path_deltas
+        ):
             return blocked("invalid_scope_delta_decision_binding")
     repo_root = _find_repo_root()
     latest = _load_valid_issue_snapshot(
-        _issue_artifact_dir(repo_root, issue_number) / "raw_issue_snapshot.json", issue_number, repo,
+        _issue_artifact_dir(repo_root, issue_number) / "raw_issue_snapshot.json",
+        issue_number,
+        repo,
     )
     comparison = context.get("scope_signal_delta_input")
     if "scope_signal_delta_input" in context:
         try:
-            _validate_scope_comparison_binding({"number": issue_number, "body": body}, {**context, "repo": repo})
+            _validate_scope_comparison_binding(
+                {"number": issue_number, "body": body}, {**context, "repo": repo}
+            )
             ref = comparison["source_refs"]["current"]
             path = Path(ref.removeprefix("artifact:").partition("#")[0])
             archive_root = _snapshot_archive_dir(repo_root, issue_number).resolve()
@@ -7521,7 +7671,8 @@ def consume_trusted_anchor_contract_patch_plan(
                 return blocked("ambiguous_scope_signal")
             snapshot = _load_valid_issue_snapshot(path, issue_number, repo)
             if (
-                snapshot is None or _snapshot_body(snapshot) != body
+                snapshot is None
+                or _snapshot_body(snapshot) != body
                 or snapshot["issue"].get("updatedAt") != issue.get("updatedAt")
                 or ref != _snapshot_source_ref(path, snapshot)
                 or not isinstance(snapshot.get("comments"), list)
@@ -7530,38 +7681,58 @@ def consume_trusted_anchor_contract_patch_plan(
             # An Issue-body timestamp does not cover comments. Re-select
             # authority using the newest retained complete comment readback.
             comment_snapshot = snapshot
-            if latest and isinstance(latest.get("comments"), list) and (
-                datetime.fromisoformat(_snapshot_fetched_at(latest))
-                >= datetime.fromisoformat(_snapshot_fetched_at(snapshot))
+            if (
+                latest
+                and isinstance(latest.get("comments"), list)
+                and (
+                    datetime.fromisoformat(_snapshot_fetched_at(latest))
+                    >= datetime.fromisoformat(_snapshot_fetched_at(snapshot))
+                )
             ):
                 comment_snapshot = latest
             if _approved_scope_baseline(comment_snapshot["comments"], repo, issue_number)[1]:
                 return blocked("missing_scope_signal_delta_input")
             retained = _ensure_scope_signal_delta_input(
-                repo_root=repo_root, issue=issue, raw_snapshot=snapshot, known_context=context,
-                issue_number=issue_number, repo=repo, comments=comment_snapshot["comments"],
+                repo_root=repo_root,
+                issue=issue,
+                raw_snapshot=snapshot,
+                known_context=context,
+                issue_number=issue_number,
+                repo=repo,
+                comments=comment_snapshot["comments"],
             )
             if retained.get("scope_signal_delta_input") != comparison:
                 return blocked("ambiguous_scope_signal")
         except (ScopeSignalDeltaError, KeyError, TypeError, ValueError, OSError):
             return blocked("ambiguous_scope_signal")
     else:
-        if _scope_signal_delta_required(body, context):
+        if _scope_signal_delta_required(context):
             return blocked("missing_scope_signal_delta_input")
         # Absence of a caller flag is not absence of retained history.
         retained = _find_previous_immutable_snapshot(
-            repo_root, issue_number, repo, {"fetched_at": _now_iso()},
+            repo_root,
+            issue_number,
+            repo,
+            {"fetched_at": _now_iso()},
         )
         comments = latest.get("comments") if latest else None
-        digest, _ = _approved_scope_baseline(comments, repo, issue_number) if isinstance(comments, list) else (None, False)
+        digest, _ = (
+            _approved_scope_baseline(comments, repo, issue_number)
+            if isinstance(comments, list)
+            else (None, False)
+        )
         if (retained is not None and _snapshot_body(retained[0]) != body) or (
             digest is not None and digest != _sha256(body)
         ):
             return blocked("missing_scope_signal_delta_input")
 
     historical_delta = compute_scope_signal_delta(comparison) if comparison is not None else None
-    historical_paths = historical_delta["sections"]["allowed_paths"]["added"] if historical_delta else []
-    if _is_security_sensitive_scope_delta([*historical_paths, *(_validated_allowed_path_deltas or [])], None):
+    historical_paths = (
+        historical_delta["sections"]["allowed_paths"]["added"] if historical_delta else []
+    )
+    if _is_security_sensitive_scope_delta(
+        [*historical_paths, *(_validated_allowed_path_deltas or [])], None
+    ):
         return blocked("security_risk_gate_required")
 
     # Empty plans still go through the two existing editor lanes. A nonempty
@@ -7576,57 +7747,82 @@ def consume_trusted_anchor_contract_patch_plan(
         if (
             anchor_payload.get("body") != anchor_body
             or anchor_payload.get("html_url") != anchor_url
-            or anchor_payload.get("issue_url") != f"https://api.github.com/repos/{repo}/issues/{issue_number}"
+            or anchor_payload.get("issue_url")
+            != f"https://api.github.com/repos/{repo}/issues/{issue_number}"
             or not isinstance(anchor_payload.get("user"), dict)
             or anchor_payload["user"].get("type") != "User"
             or not normalize_trusted_anchor_iteration_zero(
-                repo=repo, issue_number=issue_number, anchor=anchor_payload, source_body=anchor_body,
+                repo=repo,
+                issue_number=issue_number,
+                anchor=anchor_payload,
+                source_body=anchor_body,
             )["accepted"]
-            or contract_patch_plan.get("schema_version") != "CONTRACT_PATCH_PLAN_V1"
-            or contract_patch_plan.get("target_issue_number") != issue_number
-            or contract_patch_plan.get("base_issue_body_sha256") != _sha256(body)
         ):
             return blocked("invalid_contract_patch_plan_binding")
 
         supplied_evidence = contract_patch_plan.get("source_evidence")
-        captured = supplied_evidence[0] if isinstance(supplied_evidence, list) and len(supplied_evidence) == 1 else {}
+        captured = (
+            supplied_evidence[0]
+            if isinstance(supplied_evidence, list) and len(supplied_evidence) == 1
+            else {}
+        )
         evidence = _build_scope_delta_authority_evidence(
-            comment_payload=anchor_payload, comment_body=anchor_body, repo=repo, issue_number=issue_number,
-            anchor_url=anchor_url, captured_at=captured.get("captured_at", "") if isinstance(captured, dict) else "",
+            comment_payload=anchor_payload,
+            comment_body=anchor_body,
+            repo=repo,
+            issue_number=issue_number,
+            anchor_url=anchor_url,
+            captured_at=captured.get("captured_at", "") if isinstance(captured, dict) else "",
             human_context_comment_urls=context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
             agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
         )
         authority = classify_scope_delta_authority(
-            [evidence] if evidence else [], source_body=anchor_body, target_issue_number=issue_number,
-            expected_repo=repo, base_issue_body_sha256=_sha256(body),
+            [evidence] if evidence else [],
+            source_body=anchor_body,
+            target_issue_number=issue_number,
+            expected_repo=repo,
+            base_issue_body_sha256=_sha256(body),
         )
         canonical_plan = authority.get("contract_patch_plan")
         authorized = set()
         if _validated_allowed_path_deltas:
-            authorized.update(("Allowed Paths", f"- `{path}`") for path in _validated_allowed_path_deltas)
+            authorized.update(
+                ("Allowed Paths", f"- `{path}`") for path in _validated_allowed_path_deltas
+            )
         if not (authorized and supplied_evidence == []):
-            if (not canonical_plan or not isinstance(captured, dict) or not isinstance(captured.get("captured_at"), str)
-                    or not captured["captured_at"] or supplied_evidence != canonical_plan["source_evidence"]):
+            if (
+                not canonical_plan
+                or not isinstance(captured, dict)
+                or not isinstance(captured.get("captured_at"), str)
+                or not captured["captured_at"]
+                or supplied_evidence != canonical_plan["source_evidence"]
+            ):
                 return blocked("invalid_contract_patch_plan_binding")
             authorized = {(op["section"], op["text"]) for op in canonical_plan["operations"]}
-        if any(
-            not is_safe_contract_patch_append(op, anchor_body=anchor_body)
-            or set(op) - {"section", "op", "text", "rationale", "source_evidence_index"}
-            or type(op.get("source_evidence_index")) is not int or op["source_evidence_index"] != 0
-            for op in _raw_operations
-        ) or {(op["section"], op["text"]) for op in _raw_operations} != authorized:
+        if (
+            any(
+                not is_safe_contract_patch_append(op, anchor_body=anchor_body)
+                or set(op) - {"section", "op", "text", "rationale", "source_evidence_index"}
+                or type(op.get("source_evidence_index")) is not int
+                or op["source_evidence_index"] != 0
+                for op in _raw_operations
+            )
+            or {(op["section"], op["text"]) for op in _raw_operations} != authorized
+        ):
             return blocked("unsafe_unstructured_patch_operation")
 
         try:
             candidate_body = build_section_aware_candidate_body(
-                body=body, operations=_raw_operations, source_identity={},
+                body=body,
+                operations=_raw_operations,
+                source_identity={},
             )["candidate_body"]
         except (ValueError, TypeError):
             return blocked("unsafe_unstructured_patch_operation")
-        if comparison is None and _scope_signal_delta_required(candidate_body, context):
-            return blocked("missing_scope_signal_delta_input")
         candidate_comparison = {
-            "before_body": body, "current_body": body, "after_body": candidate_body,
+            "before_body": body,
+            "current_body": body,
+            "after_body": candidate_body,
             "source_refs": dict.fromkeys(("before", "current", "after")),
         }
         # Check both retained history and the exact change about to be proposed.
@@ -7634,15 +7830,24 @@ def consume_trusted_anchor_contract_patch_plan(
             if delta is None:
                 continue
             added = delta["sections"]["allowed_paths"]["added"]
-            if _is_security_sensitive_scope_delta(added, "\n".join(op["text"] for op in _raw_operations)):
+            if _is_security_sensitive_scope_delta(
+                added, "\n".join(op["text"] for op in _raw_operations)
+            ):
                 return blocked("security_risk_gate_required")
-            explicit_paths = {text.removeprefix("- `").removesuffix("`") for section, text in authorized
-                              if section == "Allowed Paths"}
-            if (set(added) - explicit_paths or any(
-                signal["triggered"] and not (added and set(added) <= explicit_paths
-                                              and signal["reason_code"] == "new_allowed_path_layer")
+            explicit_paths = {
+                text.removeprefix("- `").removesuffix("`")
+                for section, text in authorized
+                if section == "Allowed Paths"
+            }
+            if set(added) - explicit_paths or any(
+                signal["triggered"]
+                and not (
+                    added
+                    and set(added) <= explicit_paths
+                    and signal["reason_code"] == "new_allowed_path_layer"
+                )
                 for signal in delta["signals"]
-            )):
+            ):
                 return blocked("scope_expansion_requires_review")
         if candidate_body != body and (
             _extract_critical_external_claims(candidate_body, [anchor_payload])
@@ -7650,6 +7855,13 @@ def consume_trusted_anchor_contract_patch_plan(
             or any(any(_extract_repo_evidence(version)) for version in (body, candidate_body))
         ):
             return blocked("required_contract_evidence_unverified")
+        if candidate_body != body:
+            return {
+                "status": "no_change",
+                "failure": _DIRECT_UPDATE_NOT_ELIGIBLE,
+                "writes": 0,
+                "iterations": 0,
+            }
 
     # PR #2623 review fix (P1 finding 2): `fetch_current()` is hoisted
     # above the #2620 freeform editor-route branch below so that branch can
@@ -7660,15 +7872,10 @@ def consume_trusted_anchor_contract_patch_plan(
     # the SAME primitive (and the SAME `callbacks["fetch_current"]`
     # injection point) `run_trusted_anchor_iteration_zero()` is given below;
     # no new GitHub access layer is introduced.
-    body_drifted = False
-
     def fetch_current() -> tuple[dict, dict]:
-        nonlocal body_drifted
         injected = callbacks.get("fetch_current")
         if injected is not None:
-            fresh_issue, fresh_anchor = injected()
-            body_drifted = fresh_issue.get("body") != body
-            return fresh_issue, fresh_anchor
+            return injected()
         current_issue, issue_error = _fetch_issue(repo, issue_number)
         if current_issue is None:
             raise RuntimeError(f"issue_readback_failed:{issue_error}")
@@ -7676,9 +7883,8 @@ def consume_trusted_anchor_contract_patch_plan(
         current_anchor, anchor_error = _fetch_single_comment(repo, int(comment_id))
         if current_anchor is None:
             raise RuntimeError(f"anchor_readback_failed:{anchor_error}")
-        body_drifted = current_issue.get("body") != body
         current_anchor = dict(current_anchor)
-        current_anchor["html_url"] = anchor_url
+        current_anchor.setdefault("html_url", anchor_url)
         current_anchor["source_body_sha256"] = f"sha256:{_sha256(current_anchor.get('body', ''))}"
         return current_issue, current_anchor
 
@@ -7715,18 +7921,63 @@ def consume_trusted_anchor_contract_patch_plan(
     if _decision_kind == "absent" and _raw_operations:
         from scope_signal_delta import derive_contract_patch_operations
 
-        evidence_list = known_context.get("scope_delta_authority_evidence") if isinstance(known_context, dict) else None
+        evidence_list = (
+            known_context.get("scope_delta_authority_evidence")
+            if isinstance(known_context, dict)
+            else None
+        )
         if isinstance(evidence_list, list) and any(
             isinstance(item, dict)
-            and item.get("directive_markers") and item.get("extracted_directives")
+            and item.get("directive_markers")
+            and item.get("extracted_directives")
             and item.get("body_sha256") == _sha256(anchor_body)
             and not derive_contract_patch_operations([item], source_body=anchor_body)
             for item in evidence_list
         ):
             return {
-                "status": "blocked", "failure": "unsafe_unstructured_patch_operation",
-                "writes": 0, "iterations": 0,
+                "status": "blocked",
+                "failure": "unsafe_unstructured_patch_operation",
+                "writes": 0,
+                "iterations": 0,
             }
+
+    if not _raw_operations and not _missing_contract_patch_plan:
+        from scope_signal_delta import derive_contract_patch_operations
+
+        # An empty plan is not permission to drop bound operations. Derive
+        # from the actual anchor, using the same parser as for nonempty plans.
+        # Structured scope handoffs carry a distinct, already bound decision.
+        if _decision_kind == "absent":
+            evidence = _build_scope_delta_authority_evidence(
+                comment_payload=anchor_payload,
+                comment_body=anchor_body,
+                repo=repo,
+                issue_number=issue_number,
+                anchor_url=anchor_url,
+                captured_at="",
+                human_context_comment_urls=context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
+                agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
+            )
+            if evidence and derive_contract_patch_operations([evidence], source_body=anchor_body):
+                return blocked("unsafe_unstructured_patch_operation")
+        if contract_patch_plan["source_evidence"]:
+            supplied = contract_patch_plan["source_evidence"]
+            retained = context.get("scope_delta_authority_evidence")
+            if not isinstance(retained, list) or len(supplied) != 1 or len(retained) != 1:
+                return blocked("invalid_contract_patch_plan_binding")
+            source = supplied[0]
+            if (
+                not isinstance(source, dict)
+                or not isinstance(retained[0], dict)
+                or (
+                    source.get("source_ref") != anchor_url
+                    or source.get("source_body_sha256") != _sha256(anchor_body)
+                    or source.get("source_ref") != retained[0].get("source_ref")
+                    or str(source.get("source_comment_id")) != str(anchor_payload.get("id"))
+                    or source.get("author_association") != anchor_payload.get("author_association")
+                )
+            ):
+                return blocked("invalid_contract_patch_plan_binding")
 
     # #2620: an explicit trusted human_review_directive whose derived
     # operations[] is empty (no safe section-bound patch representation)
@@ -7750,7 +8001,11 @@ def consume_trusted_anchor_contract_patch_plan(
         # ordinary, genuinely empty/no-change plan. No mutation is attempted.
         from scope_signal_delta import derive_contract_patch_operations
 
-        evidence_list = known_context.get("scope_delta_authority_evidence") if isinstance(known_context, dict) else None
+        evidence_list = (
+            known_context.get("scope_delta_authority_evidence")
+            if isinstance(known_context, dict)
+            else None
+        )
         if isinstance(evidence_list, list) and any(
             isinstance(item, dict)
             and item.get("directive_markers")
@@ -7765,300 +8020,137 @@ def consume_trusted_anchor_contract_patch_plan(
                 "iterations": 0,
             }
 
-    # PR #2057 OWNER review P1-4/P1-5: the Allowed-Paths-reflected tri-state
-    # is intentionally NOT computed here against `issue["body"]` (the
-    # pre-fetch snapshot passed into this function). It is computed by
-    # `run_trusted_anchor_iteration_zero()` itself, against a FRESH
-    # `fetch_current()` re-read, immediately before it decides between
-    # `proven_no_change` and `full_rewrite_required` -- closing the TOCTOU
-    # window where the Issue body could have been edited (by a concurrent
-    # issue-editor write reflecting the very delta this call is
-    # classifying) between this consumer being invoked and the disposition
-    # being decided.
+    if not _raw_operations and not _validated_allowed_path_deltas:
+        # No attributable operation or reflected scope delta was verified.
+        # An empty proposal alone cannot prove the anchor is already satisfied.
+        return {
+            "status": "no_change",
+            "failure": _DIRECT_UPDATE_NOT_ELIGIBLE,
+            "writes": 0,
+            "iterations": 0,
+        }
+
+    # A no-op or editor handoff depends on the fresh anchor and body, not
+    # merely an unchanged candidate derived from the initial snapshot.
+    try:
+        fresh_issue, fresh_anchor = fetch_current()
+    except (RuntimeError, OSError, TypeError, ValueError):
+        return {
+            "status": "environment_failure",
+            "failure": "contract_update_failed",
+            "writes": 0,
+            "iterations": 0,
+        }
+    if not isinstance(fresh_issue, dict) or not isinstance(fresh_anchor, dict):
+        return blocked("anchor_identity_or_trust_changed")
+    fresh_body = fresh_issue.get("body")
+    fresh_user, original_user = fresh_anchor.get("user", {}), anchor_payload.get("user", {})
+    if (
+        not isinstance(fresh_body, str)
+        or fresh_anchor.get("body") != anchor_body
+        or fresh_anchor.get("html_url", anchor_url) != anchor_url
+        or any(
+            fresh_anchor.get(key) != anchor_payload.get(key)
+            for key in ("id", "author_association", "issue_url")
+        )
+        or not isinstance(fresh_user, dict)
+        or not isinstance(original_user, dict)
+        or any(fresh_user.get(key) != original_user.get(key) for key in ("login", "type"))
+    ):
+        return blocked("anchor_identity_or_trust_changed")
+    if _validated_allowed_path_deltas:
+        fresh_reframe = _classify_anchor_scope_reframe(
+            comment_payload=fresh_anchor,
+            anchor_body=anchor_body,
+            repo=repo,
+            issue_number=issue_number,
+            anchor_url=anchor_url,
+        )
+        if (
+            fresh_reframe.get("status") != "approved_by_trusted_anchor"
+            or fresh_reframe.get("allowed_path_deltas") != _validated_allowed_path_deltas
+        ):
+            return blocked("anchor_identity_or_trust_changed")
+    if _raw_operations:
+        if fresh_body != body:
+            return blocked("body_drift_retry_exhausted")
+        if (
+            _validated_allowed_path_deltas
+            and _check_scope_reframe_deltas_reflected(
+                current_body=fresh_body,
+                allowed_path_deltas=_validated_allowed_path_deltas,
+            )
+            != "present"
+        ):
+            # Reflected section operations may cover only part of the anchor.
+            # Leave the remaining scope work to normal review, not a new handoff.
+            return {
+                "status": "no_change",
+                "failure": _DIRECT_UPDATE_NOT_ELIGIBLE,
+                "writes": 0,
+                "iterations": 0,
+            }
+
+    # An absent delta keeps the existing editor handoff. Otherwise the result
+    # would be a proven no-op, which must cover the whole anchor.
+    if (
+        not _validated_allowed_path_deltas
+        or _check_scope_reframe_deltas_reflected(
+            current_body=fresh_body,
+            allowed_path_deltas=_validated_allowed_path_deltas,
+        )
+        == "present"
+    ) and not _anchor_directives_fully_reflected(
+        anchor_body=anchor_body,
+        evidence=_build_scope_delta_authority_evidence(
+            comment_payload=anchor_payload,
+            comment_body=anchor_body,
+            repo=repo,
+            issue_number=issue_number,
+            anchor_url=anchor_url,
+            captured_at="",
+            human_context_comment_urls=context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
+            agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
+        ),
+        body=fresh_body,
+        allowed_path_deltas=_validated_allowed_path_deltas,
+    ):
+        return {
+            "status": "no_change",
+            "failure": _DIRECT_UPDATE_NOT_ELIGIBLE,
+            "writes": 0,
+            "iterations": 0,
+        }
+
     def _reflected_checker(fresh_body: str) -> str:
-        return _check_scope_reframe_deltas_reflected(
+        reflected = _check_scope_reframe_deltas_reflected(
             current_body=fresh_body,
             allowed_path_deltas=_validated_allowed_path_deltas or [],
         )
-
-    def candidate_readiness(candidate_body: str) -> dict:
-        if body_drifted:
-            return {"status": "blocked"}
-        injected = callbacks.get("candidate_readiness")
-        if injected is not None:
-            return injected(candidate_body)
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", encoding="utf-8", delete=False) as handle:
-            handle.write(candidate_body)
-            candidate_path = Path(handle.name)
-        temporary_paths.append(candidate_path)
-        readiness_script = (
-            _SCRIPTS_DIR.parent.parent / "issue-contract-review" / "scripts" / "contract_readiness_check.py"
-        )
-        completed = subprocess.run(
-            [sys.executable, str(readiness_script), "--body-file", str(candidate_path), "--mode", "static"],
-            capture_output=True,
-            text=True,
-            shell=False,
-            timeout=30,
-        )
-        try:
-            readiness = json.loads(completed.stdout)
-        except json.JSONDecodeError:
-            return {
-                "status": "input_or_runtime_error",
-                "body_sha256": f"sha256:{_sha256(candidate_body)}",
-                "source_checks": [],
-                "errors": [],
-                "readiness_result_ref": "transaction-local",
-            }
-        if not isinstance(readiness, dict):
-            return {
-                "status": "input_or_runtime_error",
-                "body_sha256": f"sha256:{_sha256(candidate_body)}",
-                "source_checks": [],
-                "errors": [],
-                "readiness_result_ref": "transaction-local",
-            }
-        readiness["readiness_result_ref"] = "transaction-local"
-        return readiness
-
-    def apply_transaction(current_issue: dict, candidate_body: str, readiness: dict) -> dict:
-        injected = callbacks.get("apply_transaction")
-        if injected is not None:
-            return injected(current_issue, candidate_body, readiness)
-        repo_root = _find_repo_root()
-        candidate_path = repo_root / "tmp" / f"issue_{issue_number}_trusted_anchor_candidate.md"
-        input_path = repo_root / "tmp" / f"issue_{issue_number}_trusted_anchor_txn.json"
-        candidate_path.parent.mkdir(parents=True, exist_ok=True)
-        candidate_path.write_text(candidate_body, encoding="utf-8")
-        temporary_paths.extend([candidate_path, input_path])
-        from scope_signal_delta import build_issue_edit_txn_input
-
-        # The readiness checker exposes a richer result for callers, while
-        # edit_issue_txn.py intentionally accepts only its closed forwarding
-        # payload. Keep this narrowing transaction-local so the controlled
-        # executor's input validation remains strict.
-        readiness_forwarding = {
-            key: readiness[key]
-            for key in (
-                "status",
-                "body_sha256",
-                "source_checks",
-                "errors",
-                "readiness_result_ref",
-                "resolution_evidence",
-            )
-            if key in readiness
-        }
-        transaction_input = build_issue_edit_txn_input(
-            issue_number=issue_number,
-            repo=repo,
-            previous_body_sha256=f"sha256:{_sha256(current_issue.get('body', ''))}",
-            previous_updated_at=current_issue["updatedAt"],
-            new_body_file=str(candidate_path.relative_to(repo_root)),
-            readiness_result=readiness_forwarding,
-        )
-        input_path.write_text(json.dumps(transaction_input, ensure_ascii=False), encoding="utf-8")
-        transaction_script = _SCRIPTS_DIR.parent.parent / "edit-issue" / "scripts" / "edit_issue_txn.py"
-        completed = subprocess.run(
-            [sys.executable, str(transaction_script), "--input-file", str(input_path.relative_to(repo_root))],
-            capture_output=True,
-            text=True,
-            shell=False,
-            cwd=str(repo_root),
-            timeout=60,
-        )
-        try:
-            result = json.loads(completed.stdout)
-        except json.JSONDecodeError:
-            return {"status": "failed_no_mutation"}
-        return result if isinstance(result, dict) else {"status": "failed_no_mutation"}
-
-    def fresh_checks(current_issue: dict) -> dict:
-        injected = callbacks.get("fresh_checks")
-        if injected is not None:
-            return injected(current_issue)
-        readiness = candidate_readiness(current_issue.get("body", ""))
-        # The previous comparison is bound to the pre-mutation body. Rebuild
-        # it from the existing snapshot selector for the fresh readback.
-        fresh_context = dict(known_context or {})
-        fresh_context.pop("scope_signal_delta_input", None)
-        with contextlib.redirect_stdout(io.StringIO()):
-            preflight_result, _ = run_preflight(
-                issue_number=issue_number,
-                repo=repo,
-                anchor_comment_urls=[anchor_url],
-                known_context=fresh_context,
-                consume_contract_patch_plan=False,
-            )
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", encoding="utf-8", delete=False) as handle:
-            handle.write(current_issue.get("body", ""))
-            review_body_path = Path(handle.name)
-        temporary_paths.append(review_body_path)
-        review_script = _SCRIPTS_DIR.parent.parent / "review-issue" / "scripts" / "check_issue_contract.py"
-        review = subprocess.run(
-            [sys.executable, str(review_script), "--file", str(review_body_path), "--json"],
-            capture_output=True,
-            text=True,
-            shell=False,
-            timeout=30,
-        )
-
-        # Execute the canonical Allowed Paths grammar rather than treating a
-        # successful contract review as a substitute for the path gate.
-        allowed_paths_status = "unavailable"
-        try:
-            import importlib.util
-
-            baseline_path = (
-                _SCRIPTS_DIR.parent.parent / "issue-contract-review" / "scripts" / "baseline_vc_preflight.py"
-            )
-            gate_path = _SCRIPTS_DIR.parent.parent / "pr-review-judge" / "scripts" / "allowed_paths_review_gate.py"
-            baseline_spec = importlib.util.spec_from_file_location("post_update_allowed_paths_baseline", baseline_path)
-            gate_spec = importlib.util.spec_from_file_location("post_update_allowed_paths_gate", gate_path)
-            if (
-                baseline_spec is not None
-                and baseline_spec.loader is not None
-                and gate_spec is not None
-                and gate_spec.loader is not None
-            ):
-                baseline_module = importlib.util.module_from_spec(baseline_spec)
-                gate_module = importlib.util.module_from_spec(gate_spec)
-                baseline_spec.loader.exec_module(baseline_module)
-                gate_spec.loader.exec_module(gate_module)
-                allowed_paths = baseline_module.extract_allowed_paths(current_issue.get("body", ""))
-                normalized_paths = [
-                    gate_module.AllowedPathsMatcher.normalize_allowed_pattern(path) for path in allowed_paths
-                ]
-                if allowed_paths and all(isinstance(path, str) and path for path in normalized_paths):
-                    allowed_paths_status = "pass"
-                else:
-                    allowed_paths_status = "failed"
-        except Exception:
-            allowed_paths_status = "unavailable"
-
-        # Validate the exact privileged command profile selected by the
-        # explicit source lane.  This checks the canonical registry/policy
-        # grammar, not a prose assertion from the directive.
-        permission_profile_status = "unavailable"
-        try:
-            from command_registry import render_command
-
-            policy_path = _find_repo_root() / "scripts" / "agent-guards" / "skill_runtime_command_policy.py"
-            policy_spec = importlib.util.spec_from_file_location("post_update_runtime_policy", policy_path)
-            if policy_spec is not None and policy_spec.loader is not None:
-                policy_module = importlib.util.module_from_spec(policy_spec)
-                # #2473: the module defines a module-level
-                # `@dataclass(frozen=True)` under `from __future__ import
-                # annotations`. Dataclass processing resolves those deferred
-                # string annotations via `sys.modules[cls.__module__]` --
-                # without registering this dynamically-loaded module there
-                # BEFORE `exec_module()` runs, that lookup fails and
-                # `exec_module()` raises unconditionally, which previously
-                # made this gate collapse to `"unavailable"` on every call
-                # regardless of the actual profile/argv validity.
-                #
-                # #2473 fix_delta (owner REQUEST_CHANGES on PR #2476): if
-                # `exec_module()` itself raises, remove the partially
-                # initialized module from `sys.modules` again before
-                # propagating, matching standard import machinery semantics
-                # and the existing pattern in
-                # `.claude/skills/agent-retrospective/scripts/collect_snapshot.py`.
-                # A failed module load must not leave a half-initialized
-                # module registered for a later retry to observe.
-                sys.modules[policy_spec.name] = policy_module
-                try:
-                    policy_spec.loader.exec_module(policy_module)
-                except Exception:
-                    sys.modules.pop(policy_spec.name, None)
-                    raise
-                context = known_context if isinstance(known_context, dict) else {}
-                human_urls = _normalize_comment_url_set(context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD))
-                profile = (
-                    "contract_update.run.with_human_context"
-                    if human_urls is not None and anchor_url in human_urls
-                    else "contract_update.run.with_anchor"
-                )
-                # render_command proves the child argv; the policy parses the
-                # matching executor argv, including the required lane flag.
-                render_command(profile, {"issue_number": issue_number, "repo": repo, "anchor_comment_url": anchor_url})
-                executor_argv = [
-                    "uv", "run", "python3", "scripts/agent-guards/skill_runtime_exec.py",
-                    "--command-id", profile, "--issue-number", str(issue_number),
-                    "--repo", repo, "--anchor-comment-url", anchor_url,
-                ]
-                if profile == "contract_update.run.with_human_context":
-                    executor_argv.extend(["--human-context-comment-url", anchor_url])
-                parsed = policy_module.parse_exact_skill_runtime_contract_update_anchor_command(
-                    shlex.join(executor_argv), str(_find_repo_root())
-                )
-                permission_profile_status = "pass" if parsed is not None else "failed"
-        except Exception:
-            permission_profile_status = "unavailable"
-
-        # The rerun must retain the exact source binding in a sidecar emitted
-        # by the fresh preflight.  A missing sidecar or a lane mismatch is a
-        # failed runtime-evidence gate, never an implicit success.
-        runtime_evidence_status = "unavailable"
-        try:
-            provenance_path = (
-                _issue_artifact_dir(_find_repo_root(), issue_number) / "refinement_preflight_provenance_v1.json"
-            )
-            provenance = json.loads(provenance_path.read_text(encoding="utf-8"))
-            source = provenance.get("runtime_evidence", {}).get("source", {})
-            context = known_context if isinstance(known_context, dict) else {}
-            expected_source_kind = _resolve_scope_delta_source_kind(
-                anchor_url,
-                human_context_comment_urls=context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
-                agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
-            )
-            if (
-                source.get("comment_url") == anchor_url
-                and source.get("source_kind") == expected_source_kind
-                and provenance.get("runtime_evidence", {}).get("tested_head_sha")
-            ):
-                runtime_evidence_status = "pass"
-            else:
-                runtime_evidence_status = "failed"
-        except Exception:
-            runtime_evidence_status = "unavailable"
-        return {
-            "preflight": preflight_result.get("status"),
-            "review": "approve" if review.returncode == 0 else "needs_fix" if review.returncode == 1 else "unavailable",
-            "readiness": readiness.get("status"),
-            "allowed_paths": allowed_paths_status,
-            "permission_profile": permission_profile_status,
-            "runtime_evidence": runtime_evidence_status,
-        }
+        # 反映済みの確認は可能だが、古い比較元に束縛された計画で新本文の handoff は認めない。
+        if reflected == "absent" and fresh_body != body:
+            return "invalid_or_unavailable"
+        return reflected
 
     normalized_anchor = dict(anchor_payload)
     normalized_anchor["html_url"] = anchor_url
     normalized_anchor["source_body_sha256"] = f"sha256:{_sha256(anchor_body)}"
-    try:
-        return run_trusted_anchor_iteration_zero(
-            repo=repo,
-            issue_number=issue_number,
-            issue=issue,
-            anchor=normalized_anchor,
-            anchor_body=anchor_body,
-            patch_plan=contract_patch_plan,
-            candidate_readiness=candidate_readiness,
-            fetch_current=fetch_current,
-            apply_transaction=apply_transaction,
-            fresh_checks=fresh_checks,
-            allowed_path_deltas=_validated_allowed_path_deltas,
-            scope_delta_status=(
-                "approved_by_trusted_anchor" if _validated_allowed_path_deltas else None
-            ),
-            reflected_checker=_reflected_checker,
-            patch_plan_producer_available=patch_plan_producer_available,
-        )
-    finally:
-        for path in temporary_paths:
-            try:
-                path.unlink()
-            except OSError:
-                pass
+    return run_trusted_anchor_iteration_zero(
+        repo=repo,
+        issue_number=issue_number,
+        issue=issue,
+        anchor=normalized_anchor,
+        anchor_body=anchor_body,
+        patch_plan=contract_patch_plan,
+        # Only the unchanged-candidate dispositions are exercised here.
+        candidate_readiness=lambda _: {"status": "blocked"},
+        fetch_current=lambda: (fresh_issue, fresh_anchor),
+        apply_transaction=None,
+        allowed_path_deltas=_validated_allowed_path_deltas,
+        scope_delta_status="approved_by_trusted_anchor" if _validated_allowed_path_deltas else None,
+        reflected_checker=_reflected_checker,
+        patch_plan_producer_available=patch_plan_producer_available,
+    )
 
 
 def _satisfied_trusted_directive_noop_patch_plan(
@@ -8076,7 +8168,7 @@ def _satisfied_trusted_directive_noop_patch_plan(
 
     The planner intentionally omits a patch plan after it sees that a
     previously applied directive is already present.  Contract-update mode
-    must not turn that safe replay into a failed mutation phase.  This helper
+    must not turn that safe replay into a failed compatibility phase. This helper
     is deliberately narrower than a generic missing-plan fallback: it accepts
     only the planner's ``no_scope_signal`` outcome, then independently derives
     explicit trusted operations and requires the section-aware builder to
@@ -8619,7 +8711,6 @@ def run_preflight(
     issue_number: int,
     repo: str,
     anchor_comment_urls: list[str],
-
     fixture_path: Optional[Path] = None,
     known_context: Optional[dict] = None,
     now: Optional[str] = None,
@@ -8922,7 +9013,7 @@ def run_preflight(
                 anchor_reason_code = "transport_internal_error"
                 for _b in anchor_blockers:
                     if _b.startswith("ANCHOR_FETCH_REASON:"):
-                        anchor_reason_code = _b[len("ANCHOR_FETCH_REASON:"):]
+                        anchor_reason_code = _b[len("ANCHOR_FETCH_REASON:") :]
                         break
                 return _emit_failure_result(
                     repo_root=repo_root,
@@ -9083,9 +9174,9 @@ def run_preflight(
                 _segments_result = anchor_context.segment_body(_anchor_body_for_context)
                 _candidates_result = anchor_context.extract_candidates(_anchor_body_for_context)
                 _kc["source_fetch_complete"] = bool(_anchor_body_for_context)
-                _kc["source_hash_verified"] = _sha256(_anchor_body_for_context) == scope_delta_decision.get(
-                    "anchor_comment_hash"
-                )
+                _kc["source_hash_verified"] = _sha256(
+                    _anchor_body_for_context
+                ) == scope_delta_decision.get("anchor_comment_hash")
                 _kc["source_ranges_covered"] = anchor_context.compute_source_ranges_covered(
                     _segments_result["segments"], _segments_result["line_count"]
                 )
@@ -9148,7 +9239,9 @@ def run_preflight(
             # PR #1973 (OWNER REQUEST_CHANGES, P0-1): anchor_reframe is
             # computed from the FINAL routed status (post-route), so it never
             # contradicts `_kc["scope_delta_decision"]["status"]`.
-            _kc["anchor_reframe"] = _kc["scope_delta_decision"].get("status") == "approved_by_trusted_anchor"
+            _kc["anchor_reframe"] = (
+                _kc["scope_delta_decision"].get("status") == "approved_by_trusted_anchor"
+            )
 
             # --- #1891 iteration 2 (PR #1923 OWNER REQUEST_CHANGES): the
             # multi-turn fail_closed route must actually reach `blockers`
@@ -9207,7 +9300,9 @@ def run_preflight(
     _repair_captured_at = now or _now_iso()
     _repair_original_updated_at = issue.get("updatedAt") if isinstance(issue, dict) else None
     _repair_source_lane = _determine_repair_source_lane(anchor_url_for_consumer, known_context)
-    _repair_source_refs_digest_value = _repair_source_refs_digest(_repair_source_lane, anchor_url_for_consumer)
+    _repair_source_refs_digest_value = _repair_source_refs_digest(
+        _repair_source_lane, anchor_url_for_consumer
+    )
     _repair_preflight_run_identity_value = _repair_preflight_run_identity(
         issue_number=issue_number,
         repo=repo,
@@ -9225,9 +9320,12 @@ def run_preflight(
     # as "absent when the producer was not invoked in structural-repair mode").
     structural_repair_action: Optional[dict[str, Any]] = None
     structural_repair_route: Optional[dict[str, Any]] = None
-    if build_structural_repair_bundle is not None and route_structural_repair_disposition is not None:
-        _struct_kind, _struct_template_text, _struct_template_relpath = _resolve_structural_repair_template(
-            issue.get("body", "") or "", repo_root
+    if (
+        build_structural_repair_bundle is not None
+        and route_structural_repair_disposition is not None
+    ):
+        _struct_kind, _struct_template_text, _struct_template_relpath = (
+            _resolve_structural_repair_template(issue.get("body", "") or "", repo_root)
         )
         if _struct_kind is not None:
             # Issue #995 fix_delta (P1-3, OWNER adversarial review): bind
@@ -9344,7 +9442,9 @@ def run_preflight(
     # invocation) re-derives the same reason for the non-early-return path
     # and is a no-op here when this already fired.
     _repair_invocation_error_early = (
-        _repair_result.get("error") if isinstance(_repair_result, dict) else "repair_result_not_object"
+        _repair_result.get("error")
+        if isinstance(_repair_result, dict)
+        else "repair_result_not_object"
     )
     if _repair_invocation_error_early and BLOCKER_REPAIR_ENVIRONMENT_FAILURE not in blockers:
         blockers.append(BLOCKER_REPAIR_ENVIRONMENT_FAILURE)
@@ -9423,10 +9523,13 @@ def run_preflight(
         # this process's actual cwd, instead of merely widening the
         # (cwd-anchored) boundary check while leaving the resolved candidate
         # path itself still cwd-anchored.
-        _investigation_evidence_transport_path_for_confinement = investigation_evidence_transport_path
+        _investigation_evidence_transport_path_for_confinement = (
+            investigation_evidence_transport_path
+        )
         if not Path(_investigation_evidence_transport_path_for_confinement).is_absolute():
             _investigation_evidence_transport_path_for_confinement = (
-                _investigation_evidence_confinement_root / _investigation_evidence_transport_path_for_confinement
+                _investigation_evidence_confinement_root
+                / _investigation_evidence_transport_path_for_confinement
             )
         _validated_literals, _transport_reason = _validate_investigation_evidence_transport(
             _investigation_evidence_transport_path_for_confinement,
@@ -9494,10 +9597,15 @@ def run_preflight(
     # into the planner input so ISSUE_EXECUTION_DECISION_V1 reflects known
     # collisions instead of always defaulting to 'selected'.
     _scope_rollup_plan = _load_scope_rollup_artifact(repo_root, issue_number)
-    planner_input_dict = _join_scope_rollup_into_planner_input(planner_input_dict, _scope_rollup_plan)
+    planner_input_dict = _join_scope_rollup_into_planner_input(
+        planner_input_dict, _scope_rollup_plan
+    )
     plan, planner_exit_code, planner_stderr, planner_stdout_raw = _invoke_planner(
         planner_input_dict, repo_root=repo_root, issue_number=issue_number
     )
+
+    # Persist the output of this subprocess, not a re-serialized or replayed plan.
+    planner_stdout_evidence = _save_planner_stdout(repo_root, issue_number, planner_stdout_raw)
 
     if plan is None:
         # Planner invocation failed
@@ -9516,10 +9624,13 @@ def run_preflight(
         )
 
         try:
-            _cls_dir = repo_root / ".claude" / "artifacts" / "issue-refinement-loop" / str(issue_number)
+            _cls_dir = (
+                repo_root / ".claude" / "artifacts" / "issue-refinement-loop" / str(issue_number)
+            )
             _cls_dir.mkdir(parents=True, exist_ok=True)
             (_cls_dir / "planner_failure_classification_v1.json").write_text(
-                json.dumps(failure_cls, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8"
+                json.dumps(failure_cls, ensure_ascii=False, indent=2, allow_nan=False),
+                encoding="utf-8",
             )
         except Exception:
             pass
@@ -9542,6 +9653,8 @@ def run_preflight(
                 plan=None,
                 result_next_action="fix_environment",
             )
+            if planner_stdout_evidence is not None:
+                _prov["runtime_evidence"]["planner_stdout"] = planner_stdout_evidence
             write_provenance_artifact(repo_root, issue_number, _prov)
         except Exception:
             pass
@@ -9554,7 +9667,9 @@ def run_preflight(
             issue_number=issue_number,
             repo=repo,
             status=status_str,
-            next_action="fix_environment" if status_str == "environment_failure" else "human_judgment_required",
+            next_action="fix_environment"
+            if status_str == "environment_failure"
+            else "human_judgment_required",
             blockers=blockers,
             planner_fail_closed_reason_codes=[BLOCKER_PLANNER_INTERNAL_ERROR],
             required_sections=[],
@@ -9567,17 +9682,27 @@ def run_preflight(
         )
 
     sidecar = plan.get("scope_signal_guard_decision_v2")
-    security_stop = isinstance(sidecar, dict) and sidecar.get("route") == "security_risk_gate_required"
+    security_stop = (
+        isinstance(sidecar, dict) and sidecar.get("route") == "security_risk_gate_required"
+    )
     if security_stop:
         blockers.append("security_risk_gate_required")
 
     # The planner subprocess cannot consume the raw trusted comment. Rebind
     # its existing sidecar to the fetched, hash-checked source before mutation
     # or result publication; this prevents H2 conflicts becoming partial plans.
-    if isinstance(known_context, dict) and isinstance(anchor_body_for_consumer, str) and anchor_url_for_consumer:
+    if (
+        isinstance(known_context, dict)
+        and isinstance(anchor_body_for_consumer, str)
+        and anchor_url_for_consumer
+    ):
         _bind_trusted_scope_patch_plan_to_source(
-            plan, known_context, anchor_body=anchor_body_for_consumer,
-            anchor_url=anchor_url_for_consumer, repo=repo, issue_number=issue_number,
+            plan,
+            known_context,
+            anchor_body=anchor_body_for_consumer,
+            anchor_url=anchor_url_for_consumer,
+            repo=repo,
+            issue_number=issue_number,
             issue_body_sha256=_sha256(issue.get("body", "")),
         )
 
@@ -9625,8 +9750,7 @@ def run_preflight(
         # (a) -- genuine "patch-plan producer unavailable", fail closed to
         # `invalid` -- from (b), left untouched (`True`).
         _patch_plan_producer_available = (
-            isinstance(known_context, dict)
-            and "scope_delta_authority_evidence" in known_context
+            isinstance(known_context, dict) and "scope_delta_authority_evidence" in known_context
         )
         if (
             not isinstance(patch_plan, dict)
@@ -9724,11 +9848,8 @@ def run_preflight(
                 patch_plan_producer_available=_patch_plan_producer_available,
             )
             contract_update_handoff = _bounded_contract_update_handoff(consumer_result)
-            _rewrite_route = (
-                consumer_result.get("rewrite_route") if isinstance(consumer_result, dict) else None
-            )
             contract_update_route_issue_editor_required = (
-                isinstance(_rewrite_route, dict) and _rewrite_route.get("route") == "issue_editor_required"
+                contract_update_handoff.get("status") == "handoff_required"
             )
             if contract_update_route_issue_editor_required:
                 # PR #2057 OWNER review P0-2/P1-3: a full_rewrite_required
@@ -9741,10 +9862,10 @@ def run_preflight(
                 # it and does NOT append BLOCKER_FAIL_CLOSED -- the dedicated
                 # next_action override below carries the signal instead.
                 pass
-            elif contract_update_handoff.get("status") not in {"applied", "no_change", "rebased"}:
+            elif contract_update_handoff.get("status") != "no_change":
                 blockers.append(BLOCKER_CONTRACT_UPDATE_FAILED)
         else:
-            # The explicit mutation phase has no safe action without a
+            # The read-only compatibility phase has no safe action without a
             # planner-produced and provenance-bound patch plan.
             contract_update_handoff = {
                 "status": "failed",
@@ -9785,7 +9906,9 @@ def run_preflight(
         else:
             _ied_violations = validate_issue_execution_decision(_issue_execution_decision)
             if _ied_violations:
-                blockers.append(f"{BLOCKER_ISSUE_EXECUTION_DECISION_INVALID}: " + ", ".join(_ied_violations))
+                blockers.append(
+                    f"{BLOCKER_ISSUE_EXECUTION_DECISION_INVALID}: " + ", ".join(_ied_violations)
+                )
 
     if planner_exit_code == 2:
         blockers.append(BLOCKER_PLANNER_INVALID_INPUT)
@@ -9805,13 +9928,17 @@ def run_preflight(
 
         rc = fail_closed.get("rewrite_constraints", {})
         if not isinstance(rc, dict):
-            blockers.append(f"{BLOCKER_REWRITE_CONSTRAINTS_NON_STRING_PAYLOAD}: rewrite_constraints must be an object")
+            blockers.append(
+                f"{BLOCKER_REWRITE_CONSTRAINTS_NON_STRING_PAYLOAD}: rewrite_constraints must be an object"
+            )
             rewrite_constraints = _build_safe_rewrite_constraints([], [])
             reason_codes_ok = False
         elif not rc.get("schema_version"):
             rewrite_constraints = _build_safe_rewrite_constraints([], [])
         elif reason_codes_ok:
-            if not _ensure_json_serializable(rc, "planner.fail_closed.rewrite_constraints", blockers):
+            if not _ensure_json_serializable(
+                rc, "planner.fail_closed.rewrite_constraints", blockers
+            ):
                 rewrite_constraints = _build_safe_rewrite_constraints([], [])
                 reason_codes_ok = False
             else:
@@ -9884,11 +10011,19 @@ def run_preflight(
     repair_needs_fix = False
     repair_environment_failure_reason: Optional[str] = None
 
-    _repair_error = _repair_result.get("error") if isinstance(_repair_result, dict) else "repair_result_not_object"
-    _repair_action_raw = _repair_result.get("repair_action") if isinstance(_repair_result, dict) else None
+    _repair_error = (
+        _repair_result.get("error")
+        if isinstance(_repair_result, dict)
+        else "repair_result_not_object"
+    )
+    _repair_action_raw = (
+        _repair_result.get("repair_action") if isinstance(_repair_result, dict) else None
+    )
     _repair_changed = _repair_result.get("changed") if isinstance(_repair_result, dict) else None
 
-    artifact_dir_repair = repo_root / ".claude" / "artifacts" / "issue-refinement-loop" / str(issue_number)
+    artifact_dir_repair = (
+        repo_root / ".claude" / "artifacts" / "issue-refinement-loop" / str(issue_number)
+    )
     try:
         artifact_dir_repair.mkdir(parents=True, exist_ok=True)
         repair_artifact_file = artifact_dir_repair / "repair_diagnostics.json"
@@ -9902,7 +10037,9 @@ def run_preflight(
         else:
             repair_artifact_path = str(repair_artifact_file)
     except Exception as exc:
-        repair_environment_failure_reason = f"repair_diagnostics_artifact_write_failed:{type(exc).__name__}"
+        repair_environment_failure_reason = (
+            f"repair_diagnostics_artifact_write_failed:{type(exc).__name__}"
+        )
 
     if repair_environment_failure_reason is None and _repair_error:
         repair_environment_failure_reason = f"repair_invocation_error:{_repair_error}"
@@ -9946,7 +10083,9 @@ def run_preflight(
             _candidate_body_artifact = str(artifact_dir_repair / "repaired_issue_body.md")
             repair_action_projection = {
                 "schema_version": _repair_action_raw.get("schema_version", "repair_action/v1"),
-                "policy_version": _repair_action_raw.get("policy_version", "deterministic-issue-repair/v1"),
+                "policy_version": _repair_action_raw.get(
+                    "policy_version", "deterministic-issue-repair/v1"
+                ),
                 "disposition": "auto_apply_safe",
                 "original_body_sha256": _repair_action_raw.get("original_body_sha256"),
                 "repaired_body_sha256": _repair_action_raw.get("repaired_body_sha256"),
@@ -10094,7 +10233,6 @@ def run_preflight(
                         if _struct_entry not in blockers:
                             blockers.append(_struct_entry)
 
-
     # #2048 Scope Delta: an approved trusted-anchor scope reframe whose
 
     # operations[] is empty AND is not yet reflected in the current body
@@ -10111,7 +10249,9 @@ def run_preflight(
 
     # --- Compute hashes for byte-stability (after all blockers finalized) ---
     snapshot_text = json.dumps(raw_snapshot, sort_keys=True, ensure_ascii=False, allow_nan=False)
-    planner_input_text = json.dumps(planner_input_dict, sort_keys=True, ensure_ascii=False, allow_nan=False)
+    planner_input_text = json.dumps(
+        planner_input_dict, sort_keys=True, ensure_ascii=False, allow_nan=False
+    )
 
     # Core result (without artifacts/hashes) for hash computation
     result_core_for_hash = {
@@ -10162,11 +10302,14 @@ def run_preflight(
             "disposition_summary": structural_repair_action.get("disposition_summary"),
             "original_body_sha256": structural_repair_action.get("original_body_sha256"),
             "item_field_ids": sorted(
-                i.get("field_id") for i in structural_repair_action.get("items", []) if isinstance(i, dict)
+                i.get("field_id")
+                for i in structural_repair_action.get("items", [])
+                if isinstance(i, dict)
             ),
         }
-    result_core_text = json.dumps(result_core_for_hash, sort_keys=True, ensure_ascii=False, allow_nan=False)
-
+    result_core_text = json.dumps(
+        result_core_for_hash, sort_keys=True, ensure_ascii=False, allow_nan=False
+    )
 
     hashes = {
         "raw_issue_snapshot_sha256": _sha256(snapshot_text),
@@ -10218,7 +10361,9 @@ def run_preflight(
             else None
         ),
         environment_failure_source="internal" if status == "environment_failure" else None,
-        environment_failure_operation="planner_invocation" if status == "environment_failure" else None,
+        environment_failure_operation="planner_invocation"
+        if status == "environment_failure"
+        else None,
     )
     try:
         _write_artifacts(repo_root, issue_number, raw_snapshot, planner_input_dict, result)
@@ -10230,8 +10375,12 @@ def run_preflight(
         if evidence_index is not None and _ContextBudgetReport is not None:
             try:
                 _report = _ContextBudgetReport(consumer="run_refinement_preflight.py")
-                _report.record_from_evidence_index(EVIDENCE_CACHE_PHASE_PREFLIGHT_FETCH, evidence_index)
-                _report.write_json(_issue_artifact_dir(repo_root, issue_number) / "context_budget_report.json")
+                _report.record_from_evidence_index(
+                    EVIDENCE_CACHE_PHASE_PREFLIGHT_FETCH, evidence_index
+                )
+                _report.write_json(
+                    _issue_artifact_dir(repo_root, issue_number) / "context_budget_report.json"
+                )
             except Exception:  # pragma: no cover - defensive, never fails the run
                 pass
 
@@ -10284,6 +10433,8 @@ def run_preflight(
             plan=plan,
             result_next_action=result.get("next_action", "unavailable"),
         )
+        if planner_stdout_evidence is not None:
+            _provenance["runtime_evidence"]["planner_stdout"] = planner_stdout_evidence
         write_provenance_artifact(repo_root, issue_number, _provenance)
     except Exception:
         pass
@@ -10852,6 +11003,21 @@ def build_replay_proof(
     }
 
 
+def _save_planner_stdout(repo_root: Path, issue_number: int, stdout: str) -> dict[str, str] | None:
+    if not stdout:
+        return None
+    digest = _sha256(stdout)
+    try:
+        artifact_dir = _issue_artifact_dir(repo_root, issue_number)
+        artifact_dir.mkdir(parents=True, exist_ok=True)
+        # One fixed name: the executor fails closed on a crowded artifact root.
+        path = artifact_dir / "planner.stdout"
+        _atomic_write_text(path, stdout)
+    except (OSError, UnicodeError):
+        return None  # No provenance claim when evidence could not be saved.
+    return {"path": str(path), "sha256": digest}
+
+
 def write_provenance_artifact(
     repo_root: Path,
     issue_number: int,
@@ -10868,7 +11034,6 @@ def write_provenance_artifact(
 # ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
-
 
 
 def _repository_identity_blocker(repo: object) -> str | None:
@@ -10888,8 +11053,12 @@ def main(argv: list[str] | None = None) -> None:
         description="Deterministic preflight wrapper for issue-refinement-loop.",
         allow_abbrev=False,
     )
-    parser.add_argument("--issue-number", type=int, required=True, help="GitHub Issue number (positive int).")
-    parser.add_argument("--repo", required=True, help="owner/repo string (must match ^[^/]+/[^/]+$).")
+    parser.add_argument(
+        "--issue-number", type=int, required=True, help="GitHub Issue number (positive int)."
+    )
+    parser.add_argument(
+        "--repo", required=True, help="owner/repo string (must match ^[^/]+/[^/]+$)."
+    )
     parser.add_argument(
         "--anchor-comment-url",
         dest="anchor_comment_urls",
@@ -10926,7 +11095,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--consume-contract-patch-plan",
         action="store_true",
-        help="Execute a trusted CONTRACT_PATCH_PLAN_V1 through edit_issue_txn.py.",
+        help="Evaluate a trusted CONTRACT_PATCH_PLAN_V1 without writing the Issue.",
     )
     parser.add_argument(
         "--evidence-cache",
@@ -10959,7 +11128,7 @@ def main(argv: list[str] | None = None) -> None:
         "correctness fix (iteration 5) that made this safe to flip. Only the CLI/main() "
         "entrypoint's default changed -- run_preflight()'s own Python-level keyword "
         "default is unchanged (False) so every other in-process caller (e.g. "
-        "_apply_contract_patch_plan_v1()'s fresh_checks() post-mutation reverification "
+        "the existing read-only contract update and handoff evaluation "
         "helper, which does not have every skill's sibling scripts/ directory on "
         "sys.path in every test harness) keeps its pre-existing behavior unless it "
         "explicitly opts in.",
@@ -11033,9 +11202,8 @@ def main(argv: list[str] | None = None) -> None:
         metavar="CONTRACT_PATCH_PLAN_JSON_PATH",
         help="#2053 P0 fix-delta (iteration 3): only meaningful with "
         "--consume-authority-transport. Path to a CONTRACT_PATCH_PLAN_V1 JSON file; when "
-        "supplied together with --anchor-context-file, the consumer's mutation is delegated "
-        "to the real controlled-mutation lane (consume_trusted_anchor_contract_patch_plan -> "
-        "edit_issue_txn.py) instead of only writing the local audit artifact.",
+        "supplied with --anchor-context-file, use the read-only Step 0g consumer "
+        "to classify the proposal independently of the local audit artifact.",
     )
     parser.add_argument(
         "--anchor-context-file",
@@ -11163,9 +11331,19 @@ def main(argv: list[str] | None = None) -> None:
     if args.produce_authority_transport is not None:
         _repo_root = _find_repo_root()
         try:
-            evidence_payload = json.loads(args.produce_authority_transport.read_text(encoding="utf-8"))
+            evidence_payload = json.loads(
+                args.produce_authority_transport.read_text(encoding="utf-8")
+            )
         except (OSError, json.JSONDecodeError) as exc:
-            print(json.dumps({"status": "environment_failure", "reason_code": "malformed_json", "error": str(exc)}))
+            print(
+                json.dumps(
+                    {
+                        "status": "environment_failure",
+                        "reason_code": "malformed_json",
+                        "error": str(exc),
+                    }
+                )
+            )
             sys.exit(EXIT_ENVIRONMENT_FAILURE)
         git_head_sha = args.git_head_sha or _git_head_sha(_repo_root)
         result, error = generate_authority_transport_manifest(
@@ -11177,7 +11355,15 @@ def main(argv: list[str] | None = None) -> None:
             repo_root=_repo_root,
         )
         if result is None:
-            print(json.dumps({"status": "environment_failure", "reason_code": "write_failure", "error": error}))
+            print(
+                json.dumps(
+                    {
+                        "status": "environment_failure",
+                        "reason_code": "write_failure",
+                        "error": error,
+                    }
+                )
+            )
             sys.exit(EXIT_ENVIRONMENT_FAILURE)
         print(json.dumps({"status": "ok", **result}, ensure_ascii=False, indent=2, sort_keys=True))
         sys.exit(0)
@@ -11203,7 +11389,9 @@ def main(argv: list[str] | None = None) -> None:
                 _cli_pf_path = _cli_repo_root / _cli_pf_path
             _cli_text, _ = secure_read_repair_apply_artifact(_cli_pf_path, root=_cli_repo_root)
             _cli_parsed = json.loads(_cli_text)
-            _cli_repair_action = _cli_parsed.get("repair_action") if isinstance(_cli_parsed, dict) else None
+            _cli_repair_action = (
+                _cli_parsed.get("repair_action") if isinstance(_cli_parsed, dict) else None
+            )
             if isinstance(_cli_repair_action, dict):
                 _cli_expected_provenance = {
                     "repo": args.repo,
@@ -11256,17 +11444,33 @@ def main(argv: list[str] | None = None) -> None:
         git_head_sha = args.git_head_sha or _git_head_sha(_repo_root)
         contract_patch_plan_arg = None
         anchor_context_arg = None
+        if (args.contract_patch_plan_file is None) != (args.anchor_context_file is None):
+            print(json.dumps({"status": "environment_failure", "reason_code": "schema_invalid"}))
+            sys.exit(EXIT_ENVIRONMENT_FAILURE)
         if args.contract_patch_plan_file is not None and args.anchor_context_file is not None:
             try:
                 contract_patch_plan_arg = json.loads(
                     args.contract_patch_plan_file.read_text(encoding="utf-8")
                 )
-                anchor_context_arg = json.loads(args.anchor_context_file.read_text(encoding="utf-8"))
+                anchor_context_arg = json.loads(
+                    args.anchor_context_file.read_text(encoding="utf-8")
+                )
             except (OSError, json.JSONDecodeError) as exc:
                 print(
                     json.dumps(
-                        {"status": "environment_failure", "reason_code": "malformed_json", "error": str(exc)}
+                        {
+                            "status": "environment_failure",
+                            "reason_code": "malformed_json",
+                            "error": str(exc),
+                        }
                     )
+                )
+                sys.exit(EXIT_ENVIRONMENT_FAILURE)
+            if not isinstance(contract_patch_plan_arg, dict) or not isinstance(
+                anchor_context_arg, dict
+            ):
+                print(
+                    json.dumps({"status": "environment_failure", "reason_code": "schema_invalid"})
                 )
                 sys.exit(EXIT_ENVIRONMENT_FAILURE)
         receipt = consume_authority_transport(
@@ -11293,7 +11497,9 @@ def main(argv: list[str] | None = None) -> None:
 
     for url in args.anchor_comment_urls:
         if not url.startswith(_GITHUB_URL_PREFIX):
-            input_errors.append(f"--anchor-comment-url must start with {_GITHUB_URL_PREFIX!r}, got {url!r}")
+            input_errors.append(
+                f"--anchor-comment-url must start with {_GITHUB_URL_PREFIX!r}, got {url!r}"
+            )
 
     # Issue #2689 P0-1 fix_delta: --mutation-category / --owner-user-id /
     # --preview-binding-file are an all-or-none atomic group -- any partial

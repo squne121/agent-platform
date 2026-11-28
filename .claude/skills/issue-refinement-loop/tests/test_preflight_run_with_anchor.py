@@ -42,10 +42,14 @@ _EXPECTED_PREFLIGHT_RUN_ENTRY = {
         # carrier), not `run_refinement_preflight.py` directly. Sibling
         # anchor-comment profiles (below) are unaffected and continue to
         # first-hop into `run_refinement_preflight.py`.
-        "uv", "run", "python3",
+        "uv",
+        "run",
+        "python3",
         ".claude/skills/issue-refinement-loop/scripts/workflow_start_entry.py",
-        "--issue-number", "{issue_number}",
-        "--repo", "{repo}",
+        "--issue-number",
+        "{issue_number}",
+        "--repo",
+        "{repo}",
     ],
     "shell": False,
     "cwd_policy": "repo_root",
@@ -213,20 +217,14 @@ _NEGATIVE_URLS = {
     ),
     # Matrix #13: userinfo, port, non-GitHub host, HTTP scheme.
     "userinfo": (
-        "https://user:pass@github.com/squne121/agent-platform/issues/1492"
-        "#issuecomment-4959671503"
+        "https://user:pass@github.com/squne121/agent-platform/issues/1492#issuecomment-4959671503"
     ),
-    "port": (
-        "https://github.com:8443/squne121/agent-platform/issues/1492"
-        "#issuecomment-4959671503"
-    ),
+    "port": ("https://github.com:8443/squne121/agent-platform/issues/1492#issuecomment-4959671503"),
     "non_github_host": (
-        "https://evil.example.com/squne121/agent-platform/issues/1492"
-        "#issuecomment-4959671503"
+        "https://evil.example.com/squne121/agent-platform/issues/1492#issuecomment-4959671503"
     ),
     "subdomain_host": (
-        "https://gist.github.com/squne121/agent-platform/issues/1492"
-        "#issuecomment-4959671503"
+        "https://gist.github.com/squne121/agent-platform/issues/1492#issuecomment-4959671503"
     ),
     "http_scheme": (
         "http://github.com/squne121/agent-platform/issues/1492#issuecomment-4959671503"
@@ -236,8 +234,7 @@ _NEGATIVE_URLS = {
         "https://github.com/squne121/agent-platform/issues/1492%23issuecomment-4959671503"
     ),
     "percent_encoded_dotdot": (
-        "https://github.com/squne121/agent-platform/%2e%2e/issues/1492"
-        "#issuecomment-4959671503"
+        "https://github.com/squne121/agent-platform/%2e%2e/issues/1492#issuecomment-4959671503"
     ),
     # Not a URL at all / empty
     "empty": "",
@@ -302,7 +299,6 @@ def test_registry_entry_is_a_deep_copy_safe_snapshot():
     assert reg.REGISTRY["preflight.run.with_anchor"]["argv"] != ["tampered"]
 
 
-
 # ---------------------------------------------------------------------------
 # #2048 Scope Delta: production-path E2E for the approved-scope-reframe /
 # empty-operations[] router.
@@ -343,7 +339,9 @@ def _e2e_load_module(name: str, filename: str):
     return module
 
 
-_e2e_preflight = _e2e_load_module("run_refinement_preflight_2048_e2e", "run_refinement_preflight.py")
+_e2e_preflight = _e2e_load_module(
+    "run_refinement_preflight_2048_e2e", "run_refinement_preflight.py"
+)
 
 _E2E_REPO = "squne121/agent-platform"
 _E2E_ISSUE = 2048
@@ -509,13 +507,13 @@ def test_e2e_full_rewrite_required_reaches_next_action_via_canonical_consumer(tm
     # the absence of any comment-posting callback, which this fixture never
     # supplies.
     assert result["contract_update"]["status"] != "no_change"
-    assert result["contract_update"]["reason_code"] == "approved_scope_requires_full_contract_rewrite"
-    # AC4: the existing _bounded_contract_update_handoff() post-update
-    # 6-gate (preflight/review/readiness/allowed_paths/permission_profile/
-    # runtime_evidence) is still exercised for this disposition -- fresh_checks
-    # is invoked exactly once, the same reused gate #1877 already established,
-    # not a duplicate routing plane.
-    assert calls["fresh_checks"] == 1
+    assert (
+        result["contract_update"]["reason_code"] == "approved_scope_requires_full_contract_rewrite"
+    )
+    # The handoff grants neither write authority nor freshness evidence.
+    assert calls["fresh_checks"] == 0
+    assert result["contract_update"]["final_readback"] == "not_applicable"
+    assert result["contract_update"]["fresh_review"] == "unavailable"
 
 
 def test_e2e_full_rewrite_required_replay_is_deterministic_and_side_effect_free(tmp_path):
@@ -567,7 +565,13 @@ def _e2e_consumer_kwargs(*, patch_plan: dict, known_context: "dict | None", issu
             anchor_url=_E2E_URL,
             anchor_payload=anchor_comment,
             anchor_body=anchor_body,
-            contract_patch_plan=patch_plan,
+            contract_patch_plan={
+                "schema_version": "CONTRACT_PATCH_PLAN_V1",
+                "target_issue_number": _E2E_ISSUE,
+                "base_issue_body_sha256": _e2e_sha256(issue_body),
+                "source_evidence": [],
+                **patch_plan,
+            },
             callbacks=callbacks,
             known_context=known_context,
         ),
@@ -588,9 +592,7 @@ def _e2e_approved_scope_delta_decision(*, anchor_body: str, delta: str = _E2E_DE
     }
 
 
-def test_negative_1_non_empty_operations_preserves_ordinary_contract_update_behavior():
-    """Regression #1: non-empty operations[] still take the ordinary
-    section-bound apply_transaction path, unaffected by the #2048 wiring."""
+def test_non_empty_operations_return_to_normal_review_without_transaction():
     issue_body = _e2e_issue_body(allowed_paths_includes_delta=False)
     anchor_comment = _e2e_anchor_comment()
     operations = [
@@ -612,15 +614,40 @@ def test_negative_1_non_empty_operations_preserves_ordinary_contract_update_beha
         "required_next_step": "rerun_refinement_after_contract_update",
     }
     known_context = {
-        "scope_delta_decision": _e2e_approved_scope_delta_decision(anchor_body=anchor_comment["body"])
+        "scope_delta_decision": _e2e_approved_scope_delta_decision(
+            anchor_body=anchor_comment["body"]
+        )
     }
     kwargs, calls, _ = _e2e_consumer_kwargs(
         patch_plan=patch_plan, known_context=known_context, issue_body=issue_body
     )
     result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(**kwargs)
 
-    assert result["status"] == "applied"
-    assert calls["apply_transaction"] == 1
+    assert result["status"] == "no_change"
+    assert result["failure"] == "direct_update_not_eligible"
+    assert result["writes"] == calls["apply_transaction"] == 0
+    assert "rewrite_route" not in result
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+    assert "disposition" not in projected
+    assert projected["final_readback"] == "not_applicable"
+
+
+@pytest.mark.parametrize(
+    "binding", [{"target_issue_number": 1}, {"base_issue_body_sha256": "0" * 64}]
+)
+def test_empty_structured_reframe_rejects_invalid_plan_binding(binding):
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=False)
+    anchor = _e2e_anchor_comment()
+    kwargs, calls, _ = _e2e_consumer_kwargs(
+        patch_plan={"operations": [], **binding},
+        known_context={
+            "scope_delta_decision": _e2e_approved_scope_delta_decision(anchor_body=anchor["body"])
+        },
+        issue_body=issue_body,
+    )
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(**kwargs)
+    assert result["failure"] == "invalid_contract_patch_plan_binding"
+    assert result["writes"] == calls["apply_transaction"] == 0
     assert "rewrite_route" not in result
 
 
@@ -664,6 +691,246 @@ def test_negative_3_already_reflected_deltas_are_proven_no_change():
     assert result["status"] == "no_change"
     assert "rewrite_route" not in result
     assert calls["apply_transaction"] == 0
+
+
+@pytest.mark.parametrize("mode", ["unreflected", "reflected", "edited_anchor", "timeout"])
+def test_structured_reframe_on_fresh_drift(mode):
+    anchor = _e2e_anchor_comment()
+    kwargs, calls, _ = _e2e_consumer_kwargs(
+        patch_plan={"operations": []},
+        known_context={
+            "scope_delta_decision": _e2e_approved_scope_delta_decision(anchor_body=anchor["body"])
+        },
+        issue_body=_e2e_issue_body(allowed_paths_includes_delta=False),
+    )
+
+    def fetch():
+        if mode == "timeout":
+            raise TimeoutError("fresh read timed out")
+        if mode == "edited_anchor":
+            return kwargs["issue"], dict(
+                anchor, created_at="2026-08-09T00:00:00Z", updated_at="2026-08-09T01:00:00Z"
+            )
+        fresh_body = (
+            _e2e_issue_body(allowed_paths_includes_delta=mode == "reflected")
+            + "\nConcurrent edit.\n"
+        )
+        return {"body": fresh_body}, anchor
+
+    kwargs["callbacks"]["fetch_current"] = fetch
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(**kwargs)
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+    assert result["writes"] == calls["apply_transaction"] == 0
+    assert "rewrite_route" not in result
+    if mode == "reflected":
+        assert projected["disposition"] == "proven_no_change"
+    else:
+        assert (
+            result["status"]
+            == {
+                "unreflected": "invalid",
+                "edited_anchor": "blocked",
+                "timeout": "environment_failure",
+            }[mode]
+        )
+        assert projected.get("disposition") != "proven_no_change"
+
+
+_I134_STOP = "- Stop if candidate readiness is not GO."
+_I134_SECTIONS = (
+    f"## Stop Conditions\n\n{_I134_STOP}\n\n## Allowed Paths\n\n- `{_E2E_DELTA}`\n\n"
+)
+_I134_PROSE = "\nPlease also add a Stop Condition for candidate readiness.\n"
+
+
+@pytest.mark.parametrize(
+    "anchor_body, stop_applied, proven",
+    [
+        pytest.param(_e2e_anchor_body(), False, True, id="fence-only"),
+        pytest.param(_I134_SECTIONS + _e2e_anchor_body(), True, True, id="sections-applied"),
+        pytest.param(_I134_SECTIONS + _e2e_anchor_body(), False, False, id="section-unapplied"),
+        pytest.param(_e2e_anchor_body() + _I134_PROSE, False, False, id="fence-then-prose"),
+        pytest.param(
+            _I134_SECTIONS + _e2e_anchor_body() + _I134_PROSE,
+            True,
+            False,
+            id="applied-sections-then-prose",
+        ),
+        pytest.param(
+            _I134_SECTIONS + f"## Out of Scope\n\n`{_E2E_DELTA}`\n\n" + _e2e_anchor_body(),
+            True,
+            False,
+            id="other-section-line-reuses-applied-text",
+        ),
+        pytest.param(
+            _e2e_anchor_body() + "\n" + _e2e_anchor_body("docs/product/features/second.md"),
+            False,
+            False,
+            id="second-fence",
+        ),
+    ],
+)
+def test_i134_structured_no_op_covers_the_whole_anchor(anchor_body, stop_applied, proven):
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=True)
+    if stop_applied:
+        issue_body = issue_body.replace(
+            "## Stop Conditions\n\n- none", f"## Stop Conditions\n\n{_I134_STOP}"
+        )
+    anchor = dict(_e2e_anchor_comment(), body=anchor_body)
+    decision = _e2e_preflight._classify_anchor_scope_reframe(
+        comment_payload=anchor,
+        anchor_body=anchor_body,
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        anchor_url=_E2E_URL,
+    )
+    assert decision["allowed_path_deltas"] == [_E2E_DELTA]
+    callbacks, calls = _e2e_callbacks(issue_body=issue_body, anchor_comment=anchor)
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        issue={"body": issue_body},
+        anchor_url=_E2E_URL,
+        anchor_payload=anchor,
+        anchor_body=anchor_body,
+        contract_patch_plan={
+            "schema_version": "CONTRACT_PATCH_PLAN_V1",
+            "target_issue_number": _E2E_ISSUE,
+            "base_issue_body_sha256": _e2e_sha256(issue_body),
+            "source_evidence": [],
+            "operations": [],
+        },
+        callbacks=callbacks,
+        known_context={
+            "human_context_comment_urls": [_E2E_URL],
+            "scope_delta_decision": decision,
+        },
+    )
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+
+    assert projected["status"] == "no_change"
+    assert projected.get("disposition") == ("proven_no_change" if proven else None)
+    assert "rewrite_route" not in result
+    assert result["writes"] == calls["apply_transaction"] == 0
+
+
+@pytest.mark.parametrize(
+    "extra, proven",
+    [
+        pytest.param("", True, id="applied-only"),
+        pytest.param(_I134_PROSE, False, id="prose"),
+        pytest.param("\n## Out of Scope\n\nnone\n", False, id="other-section-same-text"),
+        pytest.param("\nnone\n", False, id="unconsumed-same-section-line"),
+    ],
+)
+def test_i134_freeform_no_op_covers_only_consumed_lines(extra, proven):
+    from scope_signal_delta import classify_scope_delta_authority
+
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=False)
+    anchor_body = "## Stop Conditions\n\n- none\n" + extra
+    anchor = dict(_e2e_anchor_comment(), body=anchor_body)
+    evidence = _e2e_preflight._build_scope_delta_authority_evidence(
+        comment_payload=anchor,
+        comment_body=anchor_body,
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        anchor_url=_E2E_URL,
+        captured_at="2026-08-09T00:00:00Z",
+        human_context_comment_urls=[_E2E_URL],
+    )
+    plan = classify_scope_delta_authority(
+        [evidence],
+        source_body=anchor_body,
+        target_issue_number=_E2E_ISSUE,
+        expected_repo=_E2E_REPO,
+        base_issue_body_sha256=_e2e_sha256(issue_body),
+    )["contract_patch_plan"]
+    assert [op["text"] for op in plan["operations"]] == ["- none"]
+    callbacks, calls = _e2e_callbacks(issue_body=issue_body, anchor_comment=anchor)
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        issue={"body": issue_body},
+        anchor_url=_E2E_URL,
+        anchor_payload=anchor,
+        anchor_body=anchor_body,
+        contract_patch_plan=plan,
+        callbacks=callbacks,
+        known_context={"human_context_comment_urls": [_E2E_URL]},
+    )
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+
+    assert projected["status"] == "no_change"
+    assert projected.get("disposition") == ("proven_no_change" if proven else None)
+    assert result["writes"] == calls["apply_transaction"] == 0
+
+
+@pytest.mark.parametrize("structured", [False, True], ids=["freeform-bullet", "reframe-delta"])
+@pytest.mark.parametrize(
+    "hidden",
+    [
+        pytest.param("<!--\n{line}\n-->", id="comment"),
+        pytest.param("```text\n{line}\n```", id="fence"),
+        pytest.param("<!--\n{line}", id="unclosed-comment"),
+    ],
+)
+def test_i134_hidden_issue_text_is_not_applied(hidden, structured):
+    from scope_signal_delta import classify_scope_delta_authority
+
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=structured)
+    line = f"- {_E2E_DELTA}" if structured else "- none"
+    target = line if structured else "## Stop Conditions\n\n- none"
+    assert issue_body.count(target) == 1
+    issue_body = issue_body.replace(
+        target, target.replace(line, hidden.format(line=line) + "\n- docs/other.md")
+    )
+    anchor_body = _e2e_anchor_body() if structured else "## Stop Conditions\n\n- none\n"
+    anchor = dict(_e2e_anchor_comment(), body=anchor_body)
+    context = {"human_context_comment_urls": [_E2E_URL]}
+    plan = {
+        "schema_version": "CONTRACT_PATCH_PLAN_V1",
+        "target_issue_number": _E2E_ISSUE,
+        "base_issue_body_sha256": _e2e_sha256(issue_body),
+        "source_evidence": [],
+        "operations": [],
+    }
+    if structured:
+        context["scope_delta_decision"] = _e2e_approved_scope_delta_decision(
+            anchor_body=anchor_body
+        )
+    else:
+        evidence = _e2e_preflight._build_scope_delta_authority_evidence(
+            comment_payload=anchor,
+            comment_body=anchor_body,
+            repo=_E2E_REPO,
+            issue_number=_E2E_ISSUE,
+            anchor_url=_E2E_URL,
+            captured_at="2026-08-09T00:00:00Z",
+            human_context_comment_urls=[_E2E_URL],
+        )
+        plan = classify_scope_delta_authority(
+            [evidence],
+            source_body=anchor_body,
+            target_issue_number=_E2E_ISSUE,
+            expected_repo=_E2E_REPO,
+            base_issue_body_sha256=_e2e_sha256(issue_body),
+        )["contract_patch_plan"]
+    callbacks, calls = _e2e_callbacks(issue_body=issue_body, anchor_comment=anchor)
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        issue={"body": issue_body},
+        anchor_url=_E2E_URL,
+        anchor_payload=anchor,
+        anchor_body=anchor_body,
+        contract_patch_plan=plan,
+        callbacks=callbacks,
+        known_context=context,
+    )
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+
+    assert projected.get("disposition") != "proven_no_change"
+    assert result["writes"] == calls["apply_transaction"] == 0
 
 
 def test_negative_4_malformed_operations_type_fails_closed_without_coercion():
@@ -1060,8 +1327,7 @@ _HRD_INVALID_BINDING_BODY = (
     'allowed_path_deltas: ["docs/product/features/binding.md"]\n'
     'rationale: "wrong target fixture"\n'
     'required_rerun: ["contract_review"]\n'
-    "```\n\n"
-    + _HRD_EXPLICIT_BODY
+    "```\n\n" + _HRD_EXPLICIT_BODY
 )
 
 
@@ -1120,6 +1386,8 @@ def _hrd_run_preflight(
     url: str = _HRD_URL,
     known_context_extra: "dict | None" = None,
     fresh_anchor_body: "str | None" = None,
+    fresh_author_association: "str | None" = None,
+    drift_issue_body: bool = False,
 ):
     issue_body = _hrd_issue_body()
     anchor_comment = _hrd_anchor_comment(
@@ -1151,8 +1419,16 @@ def _hrd_run_preflight(
     def fetch_current():
         calls["fetch_current"] += 1
         return (
-            {"body": state["body"], "updatedAt": "2026-09-10T00:00:00Z"},
-            dict(anchor_comment, html_url=url, body=fresh_body),
+            {
+                "body": state["body"] + ("\nConcurrent Issue edit." if drift_issue_body else ""),
+                "updatedAt": "2026-09-10T00:00:00Z",
+            },
+            dict(
+                anchor_comment,
+                html_url=url,
+                body=fresh_body,
+                author_association=fresh_author_association or author_association,
+            ),
         )
 
     def candidate_readiness(_body):
@@ -1189,7 +1465,9 @@ def _hrd_run_preflight(
     known_context = {"human_context_comment_urls": list(human_context_comment_urls)}
     if known_context_extra:
         known_context.update(known_context_extra)
-    artifact_dir = _E2E_SKILL_ROOT.parent.parent / "artifacts" / "issue-refinement-loop" / str(_HRD_ISSUE)
+    artifact_dir = (
+        _E2E_SKILL_ROOT.parent.parent / "artifacts" / "issue-refinement-loop" / str(_HRD_ISSUE)
+    )
     try:
         result, exit_code = _e2e_preflight.run_preflight(
             issue_number=_HRD_ISSUE,
@@ -1660,7 +1938,8 @@ def test_finding1_regression_without_investigation_derived_path_literals_stays_f
 # ---------------------------------------------------------------------------
 
 
-def test_finding2_anchor_drift_at_fresh_readback_fails_closed_production_reachable(tmp_path):
+@pytest.mark.parametrize("drift", ["anchor_body", "anchor_authority", "issue_body"])
+def test_finding2_anchor_drift_at_fresh_readback_fails_closed_production_reachable(tmp_path, drift):
     """The SAME explicit, eligible directive as the AC1/AC6 positive case,
     but the anchor comment's body has changed by the time the fresh
     `fetch_current()` readback runs (simulating a concurrent edit) -- this
@@ -1670,7 +1949,11 @@ def test_finding2_anchor_drift_at_fresh_readback_fails_closed_production_reachab
         tmp_path,
         anchor_body=_HRD_EXPLICIT_BODY,
         run_id="anchor_drift",
-        fresh_anchor_body=_HRD_EXPLICIT_BODY + "\nEdited after evidence capture.\n",
+        fresh_anchor_body=(_HRD_EXPLICIT_BODY + "\nEdited after evidence capture.\n")
+        if drift == "anchor_body"
+        else None,
+        fresh_author_association="CONTRIBUTOR" if drift == "anchor_authority" else None,
+        drift_issue_body=drift == "issue_body",
     )
 
     assert result["next_action"] != "issue_editor_required"

@@ -263,3 +263,7 @@ terminal または handoff result には次を必ず含めます。
 同じ入力、つまり同じ Issue body・comments・known_context に対しては、`generated_at` を除いて常に同じ JSON が生成されます。
 
 multi-value field である `target_paths` や `repo_claims` などは安定順序で sort されるため、実行ごとの差分が発生しない設計です。
+
+### Step 0g から通常審査への継承（#134）
+
+`contract_patch_plan` と `contract_update_required` は既存の修正提案・判定であり、Step 0g の書き込み許可ではない。親は同一 invocation の `planner_input`（正規化済み `anchor_comment_feedback` と正規比較入力を含む場合はそれら）および planner 判定を、同じ本文 SHA の通常 Step 2/2.5 → Step 4 に継承する。`contract_update` の `no_change` で `disposition` がなく `final_readback: not_applicable` の場合は適用見送りであり、`proven_no_change` との混同や承認への昇格をしない。正規 handoff の anchor URL は親が自身の呼び出しから保持し、raw snapshot を引き継がない。
