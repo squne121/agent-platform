@@ -808,6 +808,47 @@ def test_i134_structured_no_op_covers_the_whole_anchor(anchor_body, stop_applied
     assert result["writes"] == calls["apply_transaction"] == 0
 
 
+def test_i134_freeform_applied_bullet_with_unapplied_prose_is_deferred():
+    from scope_signal_delta import classify_scope_delta_authority
+
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=False)
+    anchor_body = "## Stop Conditions\n\n- none\n" + _I134_PROSE
+    anchor = dict(_e2e_anchor_comment(), body=anchor_body)
+    evidence = _e2e_preflight._build_scope_delta_authority_evidence(
+        comment_payload=anchor,
+        comment_body=anchor_body,
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        anchor_url=_E2E_URL,
+        captured_at="2026-08-09T00:00:00Z",
+        human_context_comment_urls=[_E2E_URL],
+    )
+    plan = classify_scope_delta_authority(
+        [evidence],
+        source_body=anchor_body,
+        target_issue_number=_E2E_ISSUE,
+        expected_repo=_E2E_REPO,
+        base_issue_body_sha256=_e2e_sha256(issue_body),
+    )["contract_patch_plan"]
+    assert [op["text"] for op in plan["operations"]] == ["- none"]
+    callbacks, calls = _e2e_callbacks(issue_body=issue_body, anchor_comment=anchor)
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        issue={"body": issue_body},
+        anchor_url=_E2E_URL,
+        anchor_payload=anchor,
+        anchor_body=anchor_body,
+        contract_patch_plan=plan,
+        callbacks=callbacks,
+        known_context={"human_context_comment_urls": [_E2E_URL]},
+    )
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+
+    assert projected["status"] == "no_change" and "disposition" not in projected
+    assert result["writes"] == calls["apply_transaction"] == 0
+
+
 def test_negative_4_malformed_operations_type_fails_closed_without_coercion():
     """Regression #4: operations is not a list -- fails closed immediately,
     never coerced to []; run_trusted_anchor_iteration_zero is never reached."""
