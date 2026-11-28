@@ -736,6 +736,78 @@ def test_structured_reframe_on_fresh_drift(mode):
         assert projected.get("disposition") != "proven_no_change"
 
 
+_I134_STOP = "- Stop if candidate readiness is not GO."
+_I134_SECTIONS = (
+    f"## Stop Conditions\n\n{_I134_STOP}\n\n## Allowed Paths\n\n- `{_E2E_DELTA}`\n\n"
+)
+_I134_PROSE = "\nPlease also add a Stop Condition for candidate readiness.\n"
+
+
+@pytest.mark.parametrize(
+    "anchor_body, stop_applied, proven",
+    [
+        pytest.param(_e2e_anchor_body(), False, True, id="fence-only"),
+        pytest.param(_I134_SECTIONS + _e2e_anchor_body(), True, True, id="sections-applied"),
+        pytest.param(_I134_SECTIONS + _e2e_anchor_body(), False, False, id="section-unapplied"),
+        pytest.param(_e2e_anchor_body() + _I134_PROSE, False, False, id="fence-then-prose"),
+        pytest.param(
+            _I134_SECTIONS + _e2e_anchor_body() + _I134_PROSE,
+            True,
+            False,
+            id="applied-sections-then-prose",
+        ),
+        pytest.param(
+            _e2e_anchor_body() + "\n" + _e2e_anchor_body("docs/product/features/second.md"),
+            False,
+            False,
+            id="second-fence",
+        ),
+    ],
+)
+def test_i134_structured_no_op_covers_the_whole_anchor(anchor_body, stop_applied, proven):
+    issue_body = _e2e_issue_body(allowed_paths_includes_delta=True)
+    if stop_applied:
+        issue_body = issue_body.replace(
+            "## Stop Conditions\n\n- none", f"## Stop Conditions\n\n{_I134_STOP}"
+        )
+    anchor = dict(_e2e_anchor_comment(), body=anchor_body)
+    decision = _e2e_preflight._classify_anchor_scope_reframe(
+        comment_payload=anchor,
+        anchor_body=anchor_body,
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        anchor_url=_E2E_URL,
+    )
+    assert decision["allowed_path_deltas"] == [_E2E_DELTA]
+    callbacks, calls = _e2e_callbacks(issue_body=issue_body, anchor_comment=anchor)
+    result = _e2e_preflight.consume_trusted_anchor_contract_patch_plan(
+        repo=_E2E_REPO,
+        issue_number=_E2E_ISSUE,
+        issue={"body": issue_body},
+        anchor_url=_E2E_URL,
+        anchor_payload=anchor,
+        anchor_body=anchor_body,
+        contract_patch_plan={
+            "schema_version": "CONTRACT_PATCH_PLAN_V1",
+            "target_issue_number": _E2E_ISSUE,
+            "base_issue_body_sha256": _e2e_sha256(issue_body),
+            "source_evidence": [],
+            "operations": [],
+        },
+        callbacks=callbacks,
+        known_context={
+            "human_context_comment_urls": [_E2E_URL],
+            "scope_delta_decision": decision,
+        },
+    )
+    projected = _e2e_preflight._bounded_contract_update_handoff(result)
+
+    assert projected["status"] == "no_change"
+    assert projected.get("disposition") == ("proven_no_change" if proven else None)
+    assert "rewrite_route" not in result
+    assert result["writes"] == calls["apply_transaction"] == 0
+
+
 def test_negative_4_malformed_operations_type_fails_closed_without_coercion():
     """Regression #4: operations is not a list -- fails closed immediately,
     never coerced to []; run_trusted_anchor_iteration_zero is never reached."""

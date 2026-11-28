@@ -7381,6 +7381,74 @@ def _decide_human_review_directive_editor_route(
     }
 
 
+def _anchor_directives_fully_reflected(
+    *, anchor_body: str, evidence: Optional[dict], body: str
+) -> bool:
+    """Whether every line of the anchor is accounted for as already applied.
+
+    A no-op proves nothing about text the canonical parser does not turn into
+    an operation, so any such line leaves the anchor to normal review. The one
+    structured reframe fence is excluded: its deltas are checked separately.
+    """
+    from scope_signal_delta import (
+        _COMMENT_SECTION_HEADINGS,
+        _parse_heading,
+        build_section_aware_candidate_body,
+        derive_contract_patch_operations,
+    )
+
+    residual = anchor_body
+    for match in re.finditer(
+        r"^```yaml[ \t]*\r?\n(?:(?!```).*\r?\n)*```[ \t]*\r?$", anchor_body, re.MULTILINE
+    ):
+        if _parse_anchor_scope_reframe_body(match.group(0)) is not None:
+            residual = anchor_body[: match.start()] + anchor_body[match.end() :]
+            break
+    if not residual.strip():
+        return True
+    operations = (
+        derive_contract_patch_operations([evidence], source_body=anchor_body) if evidence else []
+    )
+    if not operations:
+        return False
+    # Allowed Paths compare as normalized paths (backticks are optional in the
+    # Issue body); every other section must be unchanged by the canonical append.
+    paths = [
+        line.removeprefix("- ")
+        for op in operations
+        if op["section"] == "Allowed Paths"
+        for line in op["text"].split("\n")
+    ]
+    if paths and (
+        _check_scope_reframe_deltas_reflected(current_body=body, allowed_path_deltas=paths)
+        != "present"
+    ):
+        return False
+    try:
+        if build_section_aware_candidate_body(
+            body=body,
+            operations=[op for op in operations if op["section"] != "Allowed Paths"],
+            source_identity={},
+        )["changed"]:
+            return False
+    except (ValueError, TypeError):
+        return False
+    covered = {
+        line.strip().removeprefix("- ") for op in operations for line in op["text"].split("\n")
+    }
+    for line in residual.splitlines():
+        text = line.strip()
+        if not text:
+            continue
+        heading = _parse_heading(line)
+        if heading is not None:
+            if heading.lower() not in _COMMENT_SECTION_HEADINGS:
+                return False
+        elif text.removeprefix("- ").removeprefix("* ") not in covered:
+            return False
+    return True
+
+
 def consume_trusted_anchor_contract_patch_plan(
     *,
     repo: str,
@@ -7958,6 +8026,36 @@ def consume_trusted_anchor_contract_patch_plan(
                 "writes": 0,
                 "iterations": 0,
             }
+
+    # An absent delta keeps the existing editor handoff. Otherwise the result
+    # would be a proven no-op, which must cover the whole anchor.
+    if (
+        not _validated_allowed_path_deltas
+        or _check_scope_reframe_deltas_reflected(
+            current_body=fresh_body,
+            allowed_path_deltas=_validated_allowed_path_deltas,
+        )
+        == "present"
+    ) and not _anchor_directives_fully_reflected(
+        anchor_body=anchor_body,
+        evidence=_build_scope_delta_authority_evidence(
+            comment_payload=anchor_payload,
+            comment_body=anchor_body,
+            repo=repo,
+            issue_number=issue_number,
+            anchor_url=anchor_url,
+            captured_at="",
+            human_context_comment_urls=context.get(_HUMAN_CONTEXT_COMMENT_URLS_FIELD),
+            agent_report_comment_urls=context.get(_AGENT_REPORT_COMMENT_URLS_FIELD),
+        ),
+        body=fresh_body,
+    ):
+        return {
+            "status": "no_change",
+            "failure": _DIRECT_UPDATE_NOT_ELIGIBLE,
+            "writes": 0,
+            "iterations": 0,
+        }
 
     def _reflected_checker(fresh_body: str) -> str:
         reflected = _check_scope_reframe_deltas_reflected(
