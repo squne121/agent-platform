@@ -757,6 +757,12 @@ _I134_PROSE = "\nPlease also add a Stop Condition for candidate readiness.\n"
             id="applied-sections-then-prose",
         ),
         pytest.param(
+            _I134_SECTIONS + f"## Out of Scope\n\n`{_E2E_DELTA}`\n\n" + _e2e_anchor_body(),
+            True,
+            False,
+            id="other-section-line-reuses-applied-text",
+        ),
+        pytest.param(
             _e2e_anchor_body() + "\n" + _e2e_anchor_body("docs/product/features/second.md"),
             False,
             False,
@@ -808,11 +814,20 @@ def test_i134_structured_no_op_covers_the_whole_anchor(anchor_body, stop_applied
     assert result["writes"] == calls["apply_transaction"] == 0
 
 
-def test_i134_freeform_applied_bullet_with_unapplied_prose_is_deferred():
+@pytest.mark.parametrize(
+    "extra, proven",
+    [
+        pytest.param("", True, id="applied-only"),
+        pytest.param(_I134_PROSE, False, id="prose"),
+        pytest.param("\n## Out of Scope\n\nnone\n", False, id="other-section-same-text"),
+        pytest.param("\nnone\n", False, id="unconsumed-same-section-line"),
+    ],
+)
+def test_i134_freeform_no_op_covers_only_consumed_lines(extra, proven):
     from scope_signal_delta import classify_scope_delta_authority
 
     issue_body = _e2e_issue_body(allowed_paths_includes_delta=False)
-    anchor_body = "## Stop Conditions\n\n- none\n" + _I134_PROSE
+    anchor_body = "## Stop Conditions\n\n- none\n" + extra
     anchor = dict(_e2e_anchor_comment(), body=anchor_body)
     evidence = _e2e_preflight._build_scope_delta_authority_evidence(
         comment_payload=anchor,
@@ -845,7 +860,8 @@ def test_i134_freeform_applied_bullet_with_unapplied_prose_is_deferred():
     )
     projected = _e2e_preflight._bounded_contract_update_handoff(result)
 
-    assert projected["status"] == "no_change" and "disposition" not in projected
+    assert projected["status"] == "no_change"
+    assert projected.get("disposition") == ("proven_no_change" if proven else None)
     assert result["writes"] == calls["apply_transaction"] == 0
 
 

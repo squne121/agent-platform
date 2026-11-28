@@ -7391,6 +7391,7 @@ def _anchor_directives_fully_reflected(
     structured reframe fence is excluded: its deltas are checked separately.
     """
     from scope_signal_delta import (
+        _BULLET_LINE_RE,
         _COMMENT_SECTION_HEADINGS,
         _parse_heading,
         build_section_aware_candidate_body,
@@ -7433,18 +7434,29 @@ def _anchor_directives_fully_reflected(
             return False
     except (ValueError, TypeError):
         return False
+    # Coverage is bound to the section: the same text elsewhere proves nothing.
     covered = {
-        line.strip().removeprefix("- ") for op in operations for line in op["text"].split("\n")
+        (op["section"], line.strip().removeprefix("- "))
+        for op in operations
+        for line in op["text"].split("\n")
     }
+    section, in_item = None, False
     for line in residual.splitlines():
         text = line.strip()
         if not text:
             continue
         heading = _parse_heading(line)
         if heading is not None:
-            if heading.lower() not in _COMMENT_SECTION_HEADINGS:
+            section, in_item = _COMMENT_SECTION_HEADINGS.get(heading.lower()), False
+            if section is None:
                 return False
-        elif text.removeprefix("- ").removeprefix("* ") not in covered:
+            continue
+        # The parser consumes only bullets and their indented continuations.
+        if _BULLET_LINE_RE.fullmatch(line):
+            in_item = True
+        elif not (in_item and line.startswith(("  ", "\t"))):
+            return False
+        if (section, text.removeprefix("- ").removeprefix("* ")) not in covered:
             return False
     return True
 
