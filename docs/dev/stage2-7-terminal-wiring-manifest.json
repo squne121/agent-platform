@@ -201,8 +201,8 @@
         "deferred": 0
       },
       "stage1a-core-manifest.json": {
-        "collect": 955,
-        "ran": 955,
+        "collect": 956,
+        "ran": 956,
         "deferred": 0
       },
       "stage1b1-leaf-manifest.json": {
@@ -271,8 +271,8 @@
         "deferred": 0
       }
     },
-    "collect": 4775,
-    "ran": 4699,
+    "collect": 4776,
+    "ran": 4700,
     "deferred": 76,
     "note": "sums of the existing stage manifests plus this manifest; the per-lane runners (run_stage0_tests.py, run_stage1a_tests.py, run_stage1b1_tests.py <manifest>) verify each lane's real collect/ran/deferred/skip counts in CI. stage0 pins collect counts only."
   },

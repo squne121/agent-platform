@@ -11010,7 +11010,8 @@ def _save_planner_stdout(repo_root: Path, issue_number: int, stdout: str) -> dic
     try:
         artifact_dir = _issue_artifact_dir(repo_root, issue_number)
         artifact_dir.mkdir(parents=True, exist_ok=True)
-        path = artifact_dir / f"planner-{digest}.stdout"
+        # One fixed name: the executor fails closed on a crowded artifact root.
+        path = artifact_dir / "planner.stdout"
         _atomic_write_text(path, stdout)
     except (OSError, UnicodeError):
         return None  # No provenance claim when evidence could not be saved.

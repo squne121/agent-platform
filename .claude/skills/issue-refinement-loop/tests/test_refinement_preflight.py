@@ -26,6 +26,7 @@ Blocker fixes (iteration 2):
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -388,6 +389,27 @@ def test_i127_scope_comparison_stops_trusted_anchor_when_required(tmp_path, caps
     assert result["status"] == "blocked"
     assert result["next_action"] == "human_judgment_required"
     assert "STATUS: blocked" in capsys.readouterr().out
+
+
+def test_i134_repeated_planner_stdout_stays_within_executor_scan_budget(tmp_path):
+    path = Path(__file__).resolve().parents[4] / "scripts/agent-guards/skill_runtime_exec.py"
+    spec = importlib.util.spec_from_file_location("skill_runtime_exec_i134", path)
+    executor = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = executor
+    spec.loader.exec_module(executor)
+
+    # Live planner output differs on every invocation (`generated_at`).
+    for number in range(executor._LEFTOVER_SCRATCH_DIRECTORY_SCAN_BUDGET + 2):
+        stdout = json.dumps({"generated_at": number})
+        saved = wrapper._save_planner_stdout(tmp_path, 200, stdout)
+
+    assert Path(saved["path"]).read_text(encoding="utf-8") == stdout
+    assert saved["sha256"] == wrapper._sha256(stdout)
+    assert list(Path(saved["path"]).parent.iterdir()) == [Path(saved["path"])]
+    ok, reason, _ = executor._bounded_cleanup_stale_artifact_leftovers(
+        tmp_path, "200", "preflight.run", 0.0
+    )
+    assert ok, reason
 
 
 @pytest.mark.parametrize("already_reflected", [False, True])
