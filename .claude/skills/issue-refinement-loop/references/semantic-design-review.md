@@ -22,10 +22,25 @@ uv run --locked python3 .claude/skills/issue-refinement-loop/scripts/semantic_re
 （`extract_directive_markers()` とは独立した関数、P1-4）が severity-tagged 見出しを抽出し
 `severity_tagged_anchor_findings` へ反映する。
 
-`semantic_review_applicable: false` の場合は本レーンをスキップし、直接 Step 4.5 へ進む。
+`semantic_review_applicable: false` での skip は、下記の手順で履歴不要が確認され、他の必須証拠も確認済みで、未反映の trusted directive がない場合に限る。
 
 `semantic_review_applicable` は before/after 比較ではなく、明示シグナルのみに基づく
 **適用可否分類**である（materiality の呼称は使わない。P0-2）。
+
+### 履歴比較の要否と比較証拠（Step 2 / 2.5 の既存親）
+
+1. deterministic approve の pinned body と、その repo・Issue・本文 SHA に束縛された preflight 入力・結果・必須証拠を読む。回帰テストが参照する旧実装、外部仕様、実際に取得すべき前版 Issue を文脈で区別する。語彙、履歴の不在、trigger の false を履歴不要の証明にしない。
+2. 比較の要否・対象が未確定なら既存 builder の `heuristic_concerns` にその懸念を渡し、必須の審査は `transport_policy: required` で dispatch・完了待ち・fresh record・join する。確定して不要で、かつ他の applicability signal がないときは通常どおり skip できる。必要な場合の false、未完了・stale・invalid、required transport の失敗は既存 Step 5 human judgment に送る。意味上の finding は既存 join の rewrite 判断に従う。
+3. 必要な履歴は親が既存の保存比較元と正規比較入力で確認する。対象 repo・Issue・現本文 SHA・要求された比較 revision・source provenance を実際に照合し、失効した trusted GO や「保存 fixture がある」だけで代替しない。reviewer の clear や transport 成功は比較元の取得・検証を証明しない。要否の未解決・必須比較元や他証拠の不足では、join が approve でも Step 4.5・承認・更新に進めず既存 human judgment を使う。
+4. Step 0g で見送った trusted directive は未反映のまま親が保持する。同じ pinned body に対して `anchor_comment_feedback`、既存判定の構造化操作・比較入力、親が保持する正規 anchor 参照を照合する。deterministic approve の場合も未反映指示を既存 `heuristic_concerns` に入れ、Step 2.5 を skip しない。reviewer にはその指示が pinned body に反映されていない箇所と必要な修正を審査させ、finding は既存 semantic rewrite へ渡す。
+5. semantic clear や join approve だけで未反映指示が解決済みとはしない。親が同本文で解決を確認できない場合は Step 4.5・正式 GO に進まず、未反映の指示が具体的で通常 rewrite の条件を満たすなら、正規 anchor URL と正規化済み feedback を既存 Step 4 の入力として渡す。semantic finding がある場合だけ既存 join の semantic rewrite payload を用いる。`clear` を `needs-fix` に書き換えたり、新たな `issue_editor_required` を合成したりしない。必須証拠不足や transport 失敗は既存停止条件に従うが、Step 0g が更新しなかったこと自体は人間判断の理由にしない。Step 4 の transaction・readback と、その後の fresh 審査は変更しない。
+
+### 未反映指示の入力を実際に渡す箇所
+
+- 親は既存 `planner_input` の repo・Issue・pinned body SHA、正規 anchor URL・anchor body hash と比較元の revision・digest を照合する。正規化済み feedback は `pin-bundle --anchor-feedback-file` に渡す。`heuristic_concerns` は適用判定用で内容を relay しないため、既存 `issue-design-reviewer` 起動 prompt にも、未反映の操作・指定 revision と照合済み比較事実、その source ref、保留理由を最小限で明記し、それを pinned body の補助 evidence として読むよう指示する。比較元本文や raw anchor snapshot を貼らず、別本文を review authority にしない。
+- 通常の Step 4 には、同じ正規化済み feedback と scoped 操作・照合済み比較事実を既存 `reviewer_feedback_text` として渡す。既存二 handoff では、正規 `reviewer_feedback_url` を保持し、同一 dispatch の入力文に必要な束縛済み事実を補助証拠として記す。いずれも正規 URL、審査済み本文 SHA、照合済み anchor 本文 SHA を添え、Step 4 の既存 pre-readback と transaction precondition をそれらの確認結果に束縛する。drift では旧審査結果・readiness を使わず fresh 審査に戻る。新しい Agent 入力フィールドや handoff は合成しない。
+- Step 4 後は元の正規 anchor URL と origin lane で fresh read-only preflight を行う。旧 SHA の investigation manifest では継続せず、必要ならその preflight の現在本文・anchor に対して既存の read-only investigator と transport producer を再実行し、新 SHA に束縛した manifest を同じ anchor profile に渡す（[anchor の transport 手順](anchor-comment-handling.md)）。親は調査に渡した正規 anchor URL と本文 SHA を既存 preflight の anchor 証拠から保持し、調査結果の採用時と後続の read-only preflight／handoff の両方で現在の anchor 本文 SHA と一致する場合だけ調査結果を使う。URL が同じでも anchor が変わったら manifest を破棄し、最新 anchor で調査し直す。同一 manifest の再利用は Issue 本文 SHA と anchor 本文 SHA の両方が同じ read-only preflight → 旧 ID の handoff 判定間に限る。必須証拠が揃わなければ既存 Step 5 へ送る。
+- 一部だけ反映された場合は残指示を既存 feedback として Step 2/2.5 → 4 へ渡し直す。`ok` や fresh deterministic approve、semantic clear だけでは未反映指示を落とさない。Step 4 再入は既存 iteration を消費し、`max_iterations` に達したら Step 5 `human_escalation` へ進む。checker の成功や join `approve` でこの上限をリセットしない。
 
 ## 2. Bundle の pin と起動
 
@@ -318,15 +333,18 @@ uv run --locked python3 .claude/skills/issue-refinement-loop/scripts/join_review
 `effective_verdict`（`approve` | `needs-fix` | `retry` | `human_judgment_required`）を返す。
 `retry` は本 Step 2.5 の内部ループでのみ消費され、`decide_next_loop_action.py` には一切渡さない:
 
-- `approve` → Step 4.5 へ
+- `approve` → 履歴要否と必須証拠を確認し、trusted directive の未解決がなければ Step 4.5。必須証拠が欠ける・履歴要否が未確定なら既存 Step 5。証拠が揃い具体的な未反映指示だけが残るなら通常 Step 4。真に指示の解釈が曖昧な場合は既存の人間判断とし、適用見送りそのものを理由にしない。
+  審査が必須なのに `semantic_assessment: not_required` を渡してはならない（join はこれを `approve` にする）
 - `needs-fix` → Step 4（rewrite）へ。この verdict が deterministic ではなく semantic finding
   由来の場合、結果には追加で `rewrite_lane: "semantic"` と `semantic_rewrite_constraints`
   （`SEMANTIC_REWRITE_CONSTRAINTS_V1`、`.claude/agents/issue-editor.md` 参照）が含まれる。
   Step 4 はこの payload を **再構築せずそのまま** `issue-editor` へ渡す（P0-4）
-- `retry` → transport（Step 2/3）を **一度だけ** 再実行し、`retry_already_attempted: true` で
-  本 join を再実行する。二度目も transport が失敗した場合は `best_effort` ポリシーの下で
+- `retry`（`best_effort` のみ）→ transport（Step 2/3）を **一度だけ** 再実行し、
+  `retry_already_attempted: true` で本 join を再実行する。任意審査で二度目も transport が失敗した場合は
   `approve` + `semantic_review_unavailable: true` + `SEMANTIC_REVIEW_UNAVAILABLE` 警告
-  （terminal/final report まで運ぶ、intermediate JSON だけに留めない。P0-3/P1-5）に収束する
+  （terminal/final report まで運ぶ、intermediate JSON だけに留めない。P0-3/P1-5）に収束する。
+  この `approve` にも上記の親による確認条件を適用する。必須審査（`required`）は `retry` を返さず、
+  transport 失敗で `human_judgment_required` になる
 - `human_judgment_required` → Step 5（human escalation）へ
 
 `join_review_results()` の decision は `semantic_assessment` ラベルではなく `findings` の内容を
@@ -335,9 +353,10 @@ uv run --locked python3 .claude/skills/issue-refinement-loop/scripts/join_review
 
 ## Policy 値
 
-- `transport_policy`: `best_effort`（既定。transport 失敗時は 1 回だけ自動再実行し、
-  それでも不能なら approve + `SEMANTIC_REVIEW_UNAVAILABLE` warning で継続） | `required`
-  （明示指定時のみ。transport 失敗時は `human_judgment_required`）
+- `transport_policy`: `required` | `best_effort`。履歴の要否・対象が未確定など審査が必須の場合は
+  `required` を明示指定する（transport 失敗時は `human_judgment_required`）。`best_effort`（script の既定値）は
+  任意審査に限る（transport 失敗時は 1 回だけ再実行し、それでも不能なら approve +
+  `SEMANTIC_REVIEW_UNAVAILABLE` warning）。上の join 実例は任意審査の形である
 - `finding_policy`: `route_high_open_to_rewrite`（常時有効な唯一の値。`severity: blocker|high`
   かつ有効な `owner_disposition` が未記録の finding のみ rewrite へルーティングする）
 

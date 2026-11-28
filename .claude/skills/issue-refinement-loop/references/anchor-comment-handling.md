@@ -217,11 +217,11 @@ freeform directive では常に空になる（`derive_contract_patch_operations(
 `preflight.run` → fresh review → fresh readiness が全て成功するまで実装は許可されない
 （既存の post-update gate と同一）。
 
-### mutation phase（`contract_update.run.with_human_context`）への配線（#2678）
+### Step 0g の読取専用 handoff 判定への配線（#2678、#134）
 
 上記の read-only investigation evidence（`investigation_derived_path_literals`）は、
-`preflight.run.with_human_context`（read-only lane）だけでなく、実際に GitHub mutation を行う
-`contract_update.run.with_human_context`（mutation phase、`SKILL.md` の「Step 0g」参照）でも
+`preflight.run.with_human_context`（read-only lane）だけでなく、既存の handoff を判定する
+`contract_update.run.with_human_context`（互換 command ID、`SKILL.md` の「Step 0g」参照）でも
 同じ意味で再現される。呼び出し側の操作手順は次の 2 ステップ:
 
 1. `preflight.run.with_human_context` を `--investigation-evidence-transport-path <manifest>`
@@ -229,7 +229,7 @@ freeform directive では常に空になる（`derive_contract_patch_operations(
 2. ステップ1の read-only invocation で使用した**同一の `<manifest>` パス**を、command ID が異なる
    （＝呼び出し自体は別の）直後の `contract_update.run.with_human_context` invocation に再利用して
    そのまま渡す（`--investigation-evidence-transport-path <manifest>`）。read-only 呼び出しとは
-   別の transport manifest を新たに生成し直す必要はない。
+   別の transport manifest を新たに生成し直す必要はないのは、親が調査開始時に固定した Issue 本文 SHA と anchor 本文 SHA が、調査結果の採用時・ステップ1・ステップ2 の各 readback と一致する場合に限る。既存 manifest の URL／Issue 本文 SHA 検査は anchor 本文 SHA の代用にしない。いずれかが変われば旧調査結果を使わず、fresh read-only preflight と調査へ戻る。
 
 `--investigation-evidence-primary-root` は caller が指定する項目ではない。
 `skill_runtime_exec.py` はこのフラグを CLI として受け付けず、`--investigation-evidence-
@@ -243,13 +243,17 @@ transport-path` が指定された場合にのみ、executor が既に確認済�
 **invalid-transport の write-zero 保証（AC6）:** transport が明示指定され、かつ digest / issue /
 repo / anchor / body / HEAD / path confinement のいずれかの検証に失敗した場合、anchor 本文単独
 から独立に有効な `CONTRACT_PATCH_PLAN_V1`（exact backtick literal を含む directive 等、
-investigation evidence を必要としないケースを含む）が導出可能であっても、mutation consumer
+investigation evidence を必要としないケースを含む）が導出可能であっても、handoff 判定 consumer
 （`consume_trusted_anchor_contract_patch_plan()`）は一切呼び出されず、GitHub 更新要求も発生しない
 （`run_refinement_preflight.py` の `_investigation_evidence_transport_rejected` フラグ。
-transport 未指定時の挙動は byte-identical のまま変更されない）。`destructive_or_non_idempotent_
+transport 未指定でも Step 0g の本文更新は常にゼロ）。`destructive_or_non_idempotent_
 operation` / `changes_permission_boundary` / `changes_external_service_boundary` /
-`requires_issue_split` の各 boundary はこの mutation phase でも緩和されない（`expands_allowed_paths`
+`requires_issue_split` の各 boundary はこの判定 でも緩和されない（`expands_allowed_paths`
 のみが対象、上記「read-only investigation による exact path 導出（AC3/AC4）」と同一）。
+
+Section-bound 指示を Step 0g では適用しない。未反映の正規化済み `anchor_comment_feedback`、構造化指示・比較入力、親が保持する元の正規 anchor URL を、同じ本文 SHA の Step 2/2.5 → Step 4 に継承する。raw snapshot は転送しない。二つの既存 handoff はそれぞれの正規到達条件に限定し、未反映というだけで新しい handoff は作らない。本文更新とその readback は Step 4 が所有する。
+
+旧 `authority_transport.consume` の `artifact_only` はローカル記録のみ。plan/context が揃う場合の `contract_patch_plan_consumer` は、適用見送り・真の no-op・適格な handoff のいずれも GitHub を更新しないため `mutation_applied: false`。receipt の `readback_verified` はローカル記録に限る。`contract_update_status: no_change` だけで反映済みとみなさず、上記 preflight の disposition と同一 revision の指示を確認する。明示された片側または不正な入力は `artifact_only` にフォールバックしない。
 
 ## anchor_context.py — 複数ターン分節・候補抽出・取得完全性（#1891）
 
